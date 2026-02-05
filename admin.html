@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>Admin Dashboard</h1>
+            <div class="header-actions">
+                <span class="admin-user" id="admin-user"></span>
+                <button class="logout-btn" id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <nav class="admin-nav">
+            <button class="nav-btn active" data-tab="visits">Visits</button>
+            <button class="nav-btn" data-tab="users">Users</button>
+            <button class="nav-btn" data-tab="stats">Stats</button>
+        </nav>
+
+        <main class="admin-content">
+            <!-- Visits Tab -->
+            <section class="tab-content active" id="visits-tab">
+                <div class="section-header">
+                    <h2>Recent Visits</h2>
+                    <span class="visit-count" id="visit-count"></span>
+                </div>
+
+                <div class="table-container">
+                    <table class="visits-table" id="visits-table">
+                        <thead>
+                            <tr>
+                                <th>Server Time</th>
+                                <th>Client Time</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Device</th>
+                                <th>OS</th>
+                                <th>Browser</th>
+                                <th>Engine</th>
+                                <th>Location</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visits-body">
+                            <!-- Visits loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="load-more-container">
+                    <button class="load-more-btn" id="load-more-btn">Load More</button>
+                </div>
+            </section>
+
+            <!-- Users Tab -->
+            <section class="tab-content" id="users-tab">
+                <div class="section-header">
+                    <h2>Registered Users</h2>
+                    <span class="user-count" id="user-count"></span>
+                </div>
+
+                <div class="table-container">
+                    <table class="users-table" id="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Has Password</th>
+                                <th>Created</th>
+                                <th>Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-body">
+                            <!-- Users loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Stats Tab -->
+            <section class="tab-content" id="stats-tab">
+                <div class="section-header">
+                    <h2>Statistics</h2>
+                </div>
+
+                <div class="stats-grid" id="stats-grid">
+                    <!-- Stats loaded dynamically -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Access Denied Overlay -->
+    <div class="access-denied" id="access-denied">
+        <div class="access-denied-content">
+            <h2>Access Denied</h2>
+            <p>You must be logged in as an admin to view this page.</p>
+            <a href="index.html" class="back-link">Return to Home</a>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>

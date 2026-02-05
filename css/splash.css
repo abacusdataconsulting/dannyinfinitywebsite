@@ -1,0 +1,288 @@
+/* ==============================================
+   Splash Page Styles
+   Landing page specific styles
+   ============================================== */
+
+.splash-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+/* Terminal Text Display */
+.terminal-text {
+    font-size: 1.5rem;
+    font-style: italic;
+    font-weight: 700;
+    max-width: 800px;
+    width: 100%;
+    margin-bottom: 60px;
+    min-height: 120px;
+    line-height: 1.8;
+}
+
+/* Welcome back message - larger centered style */
+.terminal-text.welcome-message {
+    font-size: 2.5rem;
+    text-align: center;
+    min-height: auto;
+    margin-bottom: 30px;
+}
+
+.terminal-text .cursor {
+    display: inline-block;
+    width: 12px;
+    height: 1.5rem;
+    background-color: var(--text-primary);
+    margin-left: 2px;
+    vertical-align: middle;
+}
+
+/* Input Section */
+.input-section {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+}
+
+/* Input wrapper for custom cursor positioning */
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.terminal-input {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 1.1rem;
+    background-color: transparent;
+    border: 2px solid var(--border-color);
+    caret-color: transparent;
+}
+
+.terminal-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.terminal-input:focus {
+    border-color: var(--border-color);
+}
+
+/* Custom block cursor for input */
+.input-cursor {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 20px;
+    width: 12px;
+    height: 1.3rem;
+    background-color: var(--text-primary);
+    pointer-events: none;
+    opacity: 0;
+}
+
+.input-cursor.active {
+    animation: blink 1s infinite;
+}
+
+.input-cursor.typing {
+    opacity: 1;
+    animation: none;
+}
+
+/* Enter Button */
+.enter-btn {
+    background: transparent;
+    border: none;
+    font-size: 4.4rem;
+    font-weight: 900;
+    padding: 20px 70px;
+    letter-spacing: 5px;
+}
+
+.enter-btn:hover {
+    background: transparent;
+    color: var(--text-secondary);
+    text-shadow: 0 0 20px var(--text-primary);
+}
+
+/* Hidden state for elements before animation */
+.hidden {
+    opacity: 0;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Password Prompt Section */
+.password-section {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    text-align: center;
+}
+
+/* Centered state for password section (below terminal text) */
+.password-section.centered {
+    margin-top: 40px;
+}
+
+.password-prompt {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+.password-buttons {
+    display: flex;
+    gap: 40px;
+}
+
+.password-btn {
+    background: transparent;
+    border: 2px solid var(--border-color);
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 15px 40px;
+    letter-spacing: 2px;
+}
+
+.password-btn:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+.password-btn.guest-btn {
+    border-style: dashed;
+    opacity: 0.8;
+}
+
+.password-btn.guest-btn:hover {
+    opacity: 1;
+}
+
+.password-input-wrapper {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+}
+
+.password-input-wrapper.active {
+    display: flex;
+    margin-bottom: 30px;
+}
+
+/* Registration Section */
+.register-section {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    text-align: center;
+}
+
+.register-prompt {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.register-buttons {
+    display: flex;
+    gap: 40px;
+}
+
+.register-input-wrapper {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.register-input-wrapper.active {
+    display: flex;
+}
+
+.register-hint {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+/* Door Animation Container */
+.door-animation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.door-animation.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.door-ascii {
+    font-size: 0.8rem;
+    line-height: 1.1;
+    white-space: pre;
+    color: var(--text-primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .terminal-text {
+        font-size: 1.2rem;
+    }
+
+    .terminal-input {
+        font-size: 1rem;
+        padding: 12px 15px;
+    }
+
+    .enter-btn {
+        font-size: 3rem;
+    }
+
+    .door-ascii {
+        font-size: 0.5rem;
+    }
+
+    .password-buttons {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .password-btn {
+        font-size: 1.2rem;
+        padding: 12px 30px;
+    }
+}

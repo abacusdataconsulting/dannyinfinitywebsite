@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Photos</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/photos.css">
+</head>
+<body>
+    <div class="photos-container container">
+        <!-- Header -->
+        <header class="site-header">
+            <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
+            <nav class="site-nav">
+                <a href="home.html" class="nav-link">HOME</a>
+                <a href="#" class="nav-link">MUSIC</a>
+                <a href="photos.html" class="nav-link active">PHOTOS</a>
+                <a href="videos.html" class="nav-link">VIDEOS</a>
+                <a href="#" class="nav-link">CONTACT</a>
+            </nav>
+        </header>
+
+        <!-- Page Title -->
+        <section class="page-header">
+            <h1 class="page-title">&gt; GALLERY_</h1>
+            <p class="page-subtitle">Behind the scenes, live shows, and studio sessions</p>
+        </section>
+
+        <!-- Filter Tabs -->
+        <div class="gallery-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="live">Live</button>
+            <button class="filter-btn" data-filter="studio">Studio</button>
+            <button class="filter-btn" data-filter="bts">BTS</button>
+        </div>
+
+        <!-- Photo Gallery -->
+        <div class="gallery-grid" id="gallery-grid">
+            <!-- Photos will be loaded dynamically or added here -->
+            <!-- Example placeholder items with different orientations -->
+            <div class="gallery-item" data-category="live" data-orientation="landscape">
+                <div class="gallery-placeholder">
+                    <span class="placeholder-text">[LIVE_001]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Live Performance</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+
+            <div class="gallery-item" data-category="studio" data-orientation="portrait">
+                <div class="gallery-placeholder portrait">
+                    <span class="placeholder-text">[STUDIO_001]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Studio Session</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+
+            <div class="gallery-item" data-category="bts" data-orientation="landscape">
+                <div class="gallery-placeholder">
+                    <span class="placeholder-text">[BTS_001]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Behind The Scenes</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+
+            <div class="gallery-item" data-category="live" data-orientation="square">
+                <div class="gallery-placeholder square">
+                    <span class="placeholder-text">[LIVE_002]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Concert Night</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+
+            <div class="gallery-item" data-category="studio" data-orientation="landscape">
+                <div class="gallery-placeholder wide">
+                    <span class="placeholder-text">[STUDIO_002]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Recording Session</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+
+            <div class="gallery-item" data-category="bts" data-orientation="portrait">
+                <div class="gallery-placeholder portrait">
+                    <span class="placeholder-text">[BTS_002]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Backstage</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+
+            <div class="gallery-item" data-category="live" data-orientation="landscape">
+                <div class="gallery-placeholder">
+                    <span class="placeholder-text">[LIVE_003]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Festival Set</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+
+            <div class="gallery-item" data-category="studio" data-orientation="square">
+                <div class="gallery-placeholder square">
+                    <span class="placeholder-text">[STUDIO_003]</span>
+                </div>
+                <div class="gallery-overlay">
+                    <span class="photo-title">Mixing Board</span>
+                    <span class="photo-date">2024</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lightbox -->
+        <div class="lightbox" id="lightbox">
+            <button class="lightbox-close" id="lightbox-close">&times;</button>
+            <button class="lightbox-prev" id="lightbox-prev">&larr;</button>
+            <button class="lightbox-next" id="lightbox-next">&rarr;</button>
+            <div class="lightbox-content">
+                <div class="lightbox-image" id="lightbox-image"></div>
+                <div class="lightbox-info">
+                    <span class="lightbox-title" id="lightbox-title"></span>
+                    <span class="lightbox-date" id="lightbox-date"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <p class="footer-text">&gt; DANNY INFINITY // <span id="current-year">2024</span></p>
+            </div>
+            <a href="index.html" class="logout-link">[DISCONNECT]</a>
+        </footer>
+    </div>
+
+    <script src="js/photos.js"></script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Videos</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/videos.css">
+</head>
+<body>
+    <div class="videos-container container">
+        <!-- Header -->
+        <header class="site-header">
+            <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
+            <nav class="site-nav">
+                <a href="home.html" class="nav-link">HOME</a>
+                <a href="#" class="nav-link">MUSIC</a>
+                <a href="photos.html" class="nav-link">PHOTOS</a>
+                <a href="videos.html" class="nav-link active">VIDEOS</a>
+                <a href="#" class="nav-link">CONTACT</a>
+            </nav>
+        </header>
+
+        <!-- Page Title -->
+        <section class="page-header">
+            <h1 class="page-title">&gt; VIDEOS_</h1>
+            <p class="page-subtitle">Music videos, live performances, and behind the scenes</p>
+        </section>
+
+        <!-- Filter Tabs -->
+        <div class="video-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="music-video">Music Videos</button>
+            <button class="filter-btn" data-filter="live">Live</button>
+            <button class="filter-btn" data-filter="bts">BTS</button>
+        </div>
+
+        <!-- Video Gallery -->
+        <div class="video-grid" id="video-grid">
+            <!-- Video items -->
+            <div class="video-item" data-category="music-video">
+                <div class="video-thumbnail">
+                    <div class="thumbnail-placeholder">
+                        <span class="placeholder-text">[MV_001]</span>
+                    </div>
+                    <div class="play-button">
+                        <span class="play-icon">&#9654;</span>
+                    </div>
+                    <span class="video-duration">3:42</span>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">Neon Dreams (Official Video)</h3>
+                    <p class="video-meta">Music Video // 2024</p>
+                </div>
+            </div>
+
+            <div class="video-item" data-category="live">
+                <div class="video-thumbnail">
+                    <div class="thumbnail-placeholder">
+                        <span class="placeholder-text">[LIVE_001]</span>
+                    </div>
+                    <div class="play-button">
+                        <span class="play-icon">&#9654;</span>
+                    </div>
+                    <span class="video-duration">45:21</span>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">Live at Warehouse Festival</h3>
+                    <p class="video-meta">Live Performance // 2024</p>
+                </div>
+            </div>
+
+            <div class="video-item" data-category="bts">
+                <div class="video-thumbnail">
+                    <div class="thumbnail-placeholder">
+                        <span class="placeholder-text">[BTS_001]</span>
+                    </div>
+                    <div class="play-button">
+                        <span class="play-icon">&#9654;</span>
+                    </div>
+                    <span class="video-duration">8:15</span>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">Making of "Neon Dreams"</h3>
+                    <p class="video-meta">Behind The Scenes // 2024</p>
+                </div>
+            </div>
+
+            <div class="video-item" data-category="music-video">
+                <div class="video-thumbnail">
+                    <div class="thumbnail-placeholder">
+                        <span class="placeholder-text">[MV_002]</span>
+                    </div>
+                    <div class="play-button">
+                        <span class="play-icon">&#9654;</span>
+                    </div>
+                    <span class="video-duration">4:08</span>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">Digital Rain (Official Video)</h3>
+                    <p class="video-meta">Music Video // 2024</p>
+                </div>
+            </div>
+
+            <div class="video-item" data-category="live">
+                <div class="video-thumbnail">
+                    <div class="thumbnail-placeholder">
+                        <span class="placeholder-text">[LIVE_002]</span>
+                    </div>
+                    <div class="play-button">
+                        <span class="play-icon">&#9654;</span>
+                    </div>
+                    <span class="video-duration">12:33</span>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">Midnight Protocol - Live Session</h3>
+                    <p class="video-meta">Live Performance // 2024</p>
+                </div>
+            </div>
+
+            <div class="video-item" data-category="bts">
+                <div class="video-thumbnail">
+                    <div class="thumbnail-placeholder">
+                        <span class="placeholder-text">[BTS_002]</span>
+                    </div>
+                    <div class="play-button">
+                        <span class="play-icon">&#9654;</span>
+                    </div>
+                    <span class="video-duration">15:42</span>
+                </div>
+                <div class="video-info">
+                    <h3 class="video-title">Studio Tour 2024</h3>
+                    <p class="video-meta">Behind The Scenes // 2024</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Video Player Modal -->
+        <div class="video-modal" id="video-modal">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <div class="modal-content">
+                <div class="video-player" id="video-player">
+                    <!-- Video embed or player goes here -->
+                    <div class="player-placeholder">
+                        <span class="play-icon large">&#9654;</span>
+                        <p>Video Player</p>
+                    </div>
+                </div>
+                <div class="video-details">
+                    <h2 class="modal-title" id="modal-title"></h2>
+                    <p class="modal-meta" id="modal-meta"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <p class="footer-text">&gt; DANNY INFINITY // <span id="current-year">2024</span></p>
+            </div>
+            <a href="index.html" class="logout-link">[DISCONNECT]</a>
+        </footer>
+    </div>
+
+    <script src="js/videos.js"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/splash.css">
+</head>
+<body>
+    <main class="splash-container">
+        <div class="terminal-text">
+            <span id="typed-text"></span><span class="cursor"></span>
+        </div>
+
+        <div class="input-section hidden" id="input-section">
+            <div class="input-wrapper">
+                <input
+                    type="text"
+                    class="terminal-input"
+                    id="user-input"
+                    placeholder="Enter your name (optional)..."
+                    autocomplete="off"
+                >
+                <span class="input-cursor" id="input-cursor"></span>
+            </div>
+            <button class="enter-btn" id="enter-btn">Enter</button>
+        </div>
+
+        <!-- Password prompt for recognized users -->
+        <div class="password-section hidden" id="password-section">
+            <p class="password-prompt" id="password-prompt">Welcome back! Do you have a password?</p>
+            <div class="password-input-wrapper" id="password-input-wrapper">
+                <div class="input-wrapper">
+                    <input
+                        type="password"
+                        class="terminal-input"
+                        id="password-input"
+                        placeholder="Enter password..."
+                        autocomplete="off"
+                    >
+                    <span class="input-cursor" id="password-cursor"></span>
+                </div>
+            </div>
+            <div class="password-buttons" id="password-buttons">
+                <button class="password-btn" id="yes-password-btn">Login</button>
+                <button class="password-btn guest-btn" id="guest-btn">Continue as Guest</button>
+            </div>
+        </div>
+
+        <!-- New user registration -->
+        <div class="register-section hidden" id="register-section">
+            <p class="register-prompt" id="register-prompt">Welcome! Would you like to create an account?</p>
+            <div class="register-buttons" id="register-buttons">
+                <button class="password-btn" id="create-account-btn">Create Account</button>
+                <button class="password-btn guest-btn" id="skip-register-btn">Continue as Guest</button>
+            </div>
+            <div class="register-input-wrapper" id="register-input-wrapper">
+                <p class="register-hint">Set a password (optional - leave blank to skip)</p>
+                <div class="input-wrapper">
+                    <input
+                        type="password"
+                        class="terminal-input"
+                        id="new-password-input"
+                        placeholder="Create password (optional)..."
+                        autocomplete="off"
+                    >
+                    <span class="input-cursor" id="new-password-cursor"></span>
+                </div>
+                <div class="password-submit-buttons">
+                    <button class="enter-btn" id="complete-register-btn">Complete</button>
+                    <button class="password-btn guest-btn" id="back-register-btn">Back</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Door Animation Overlay -->
+    <div class="door-animation" id="door-animation">
+        <pre class="door-ascii" id="door-ascii"></pre>
+    </div>
+
+    <script src="js/splash.js"></script>
+</body>
+</html>

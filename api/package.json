@@ -1,0 +1,16 @@
+{
+  "name": "abacus-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "dev:remote": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute abacus-db --local --file=schema.sql",
+    "db:init:remote": "wrangler d1 execute abacus-db --file=schema.sql",
+    "db:studio": "wrangler d1 execute abacus-db --local --command \"SELECT * FROM users; SELECT * FROM visits;\""
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

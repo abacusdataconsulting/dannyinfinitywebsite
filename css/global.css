@@ -1,0 +1,101 @@
+/* ==============================================
+   Global Styles - Terminal Theme
+   Site-wide CSS for consistent terminal aesthetic
+   ============================================== */
+
+/* CSS Custom Properties (Variables) */
+:root {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --text-primary: #9b59b6;
+    --text-secondary: #8e44ad;
+    --border-color: #9b59b6;
+    --font-mono: 'Courier New', Courier, monospace;
+}
+
+/* Reset & Base Styles */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+}
+
+body {
+    font-family: var(--font-mono);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-mono);
+    font-weight: normal;
+}
+
+a {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+a:hover {
+    opacity: 0.8;
+}
+
+/* Form Elements - Terminal Style */
+input,
+textarea,
+button {
+    font-family: var(--font-mono);
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    outline: none;
+}
+
+input:focus,
+textarea:focus {
+    box-shadow: 0 0 10px rgba(155, 89, 182, 0.3);
+}
+
+button {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+/* Utility Classes */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Cursor Blink Animation */
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.cursor {
+    animation: blink 1s infinite;
+}
