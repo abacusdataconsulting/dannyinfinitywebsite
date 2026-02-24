@@ -2,6 +2,8 @@
 
 Single Cloudflare Worker (Hono.js) serving the full site: static pages, API, CMS admin, and Stripe webhook.
 
+to access admin, admin login is user "admin" pass "admin123" will lead to normal home page, manually type in admin.html as extension to get to admin dashboard
+
 ## Prerequisites
 
 - Node.js 18+
