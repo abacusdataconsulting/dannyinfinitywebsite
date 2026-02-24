@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Photos</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/photos.css">
+</head>
+<body>
+    <div class="photos-container container">
+        <!-- Header -->
+        <header class="site-header">
+            <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
+            <nav class="site-nav">
+                <a href="home.html" class="nav-link">HOME</a>
+                <a href="music.html" class="nav-link">MUSIC</a>
+                <a href="videos.html" class="nav-link">VIDEOS</a>
+                <a href="photos.html" class="nav-link active">PHOTOS</a>
+                <a href="blog.html" class="nav-link">BLOG</a>
+                <a href="sheet-music.html" class="nav-link">SHEETS</a>
+                <a href="#" class="nav-link member-only" id="members-link">MEMBERS</a>
+            </nav>
+        </header>
+
+        <!-- Page Title -->
+        <section class="page-header">
+            <h1 class="page-title">&gt; GALLERY_</h1>
+            <p class="page-subtitle">Behind the scenes, live shows, and studio sessions</p>
+        </section>
+
+        <!-- Filter Tabs -->
+        <div class="gallery-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="live">Live</button>
+            <button class="filter-btn" data-filter="studio">Studio</button>
+            <button class="filter-btn" data-filter="bts">BTS</button>
+        </div>
+
+        <!-- Photo Gallery (loaded from API) -->
+        <div class="gallery-grid" id="gallery-grid">
+            <!-- Loaded dynamically -->
+        </div>
+
+        <!-- Lightbox -->
+        <div class="lightbox" id="lightbox">
+            <button class="lightbox-close" id="lightbox-close">&times;</button>
+            <button class="lightbox-prev" id="lightbox-prev">&larr;</button>
+            <button class="lightbox-next" id="lightbox-next">&rarr;</button>
+            <div class="lightbox-content">
+                <div class="lightbox-image" id="lightbox-image"></div>
+                <div class="lightbox-info">
+                    <span class="lightbox-title" id="lightbox-title"></span>
+                    <span class="lightbox-date" id="lightbox-date"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <p class="footer-text">&gt; DANNY INFINITY // <span id="current-year">2024</span></p>
+            </div>
+            <a href="index.html" class="logout-link">[DISCONNECT]</a>
+        </footer>
+    </div>
+
+    <script src="js/photos.js"></script>
+</body>
+</html>

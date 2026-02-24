@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>Admin Dashboard</h1>
+            <div class="header-actions">
+                <span class="admin-user" id="admin-user"></span>
+                <button class="logout-btn" id="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <nav class="admin-nav">
+            <button class="nav-btn active" data-tab="visits">Visits</button>
+            <button class="nav-btn" data-tab="users">Users</button>
+            <button class="nav-btn" data-tab="stats">Stats</button>
+            <button class="nav-btn" data-tab="sheet-music">Sheet Music</button>
+            <button class="nav-btn" data-tab="music">Music</button>
+            <button class="nav-btn" data-tab="blog">Blog</button>
+            <button class="nav-btn" data-tab="videos">Videos</button>
+            <button class="nav-btn" data-tab="photos">Photos</button>
+            <button class="nav-btn" data-tab="donations">Donations</button>
+        </nav>
+
+        <main class="admin-content">
+            <!-- Visits Tab -->
+            <section class="tab-content active" id="visits-tab">
+                <div class="section-header">
+                    <h2>Recent Visits</h2>
+                    <span class="visit-count" id="visit-count"></span>
+                </div>
+
+                <div class="table-container">
+                    <table class="visits-table" id="visits-table">
+                        <thead>
+                            <tr>
+                                <th>Server Time</th>
+                                <th>Client Time</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Device</th>
+                                <th>OS</th>
+                                <th>Browser</th>
+                                <th>Engine</th>
+                                <th>Location</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visits-body">
+                            <!-- Visits loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="load-more-container">
+                    <button class="load-more-btn" id="load-more-btn">Load More</button>
+                </div>
+            </section>
+
+            <!-- Users Tab -->
+            <section class="tab-content" id="users-tab">
+                <div class="section-header">
+                    <h2>Registered Users</h2>
+                    <span class="user-count" id="user-count"></span>
+                </div>
+
+                <div class="table-container">
+                    <table class="users-table" id="users-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Has Password</th>
+                                <th>Created</th>
+                                <th>Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-body">
+                            <!-- Users loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Stats Tab -->
+            <section class="tab-content" id="stats-tab">
+                <div class="section-header">
+                    <h2>Statistics</h2>
+                </div>
+
+                <div class="stats-grid" id="stats-grid">
+                    <!-- Stats loaded dynamically -->
+                </div>
+            </section>
+
+            <!-- Sheet Music Tab -->
+            <section class="tab-content" id="sheet-music-tab">
+                <div class="section-header">
+                    <h2>Sheet Music</h2>
+                    <button class="cms-btn cms-btn-primary" id="new-sheet-btn">+ New Sheet</button>
+                </div>
+
+                <!-- List view -->
+                <div id="sheets-list" class="cms-list">
+                    <!-- Loaded dynamically -->
+                </div>
+
+                <!-- Create/Edit Form (hidden by default) -->
+                <div id="sheet-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="sheet-form-title">New Sheet Music</h3>
+                    <form id="sheet-form" class="cms-form">
+                        <input type="hidden" id="sheet-edit-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sheet-title">Title *</label>
+                                <input type="text" id="sheet-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sheet-composer">Composer</label>
+                                <input type="text" id="sheet-composer" value="Danny Infinity">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sheet-arrangement">Arrangement *</label>
+                                <input type="text" id="sheet-arrangement" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sheet-year">Year *</label>
+                                <input type="number" id="sheet-year" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sheet-pages">Pages</label>
+                                <input type="number" id="sheet-pages" value="1" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="sheet-sort-order">Sort Order</label>
+                                <input type="number" id="sheet-sort-order" value="0" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="sheet-tip-link">Stripe Tip Link URL</label>
+                            <input type="url" id="sheet-tip-link" placeholder="https://buy.stripe.com/...">
+                        </div>
+                        <div class="form-group">
+                            <label>PDF File</label>
+                            <div class="drop-zone" id="sheet-drop-zone">
+                                <span class="drop-zone-text" id="sheet-drop-text">Drag & drop PDF here or click to browse</span>
+                                <input type="file" id="sheet-pdf-input" accept=".pdf" style="display:none;">
+                            </div>
+                            <input type="hidden" id="sheet-r2-key">
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="sheet-published" checked>
+                                <span>Published</span>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="sheet-save-btn">Save</button>
+                            <button type="button" class="cms-btn" id="sheet-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Music Tab -->
+            <section class="tab-content" id="music-tab">
+                <div class="section-header">
+                    <h2>Music</h2>
+                    <button class="cms-btn cms-btn-primary" id="new-album-btn">+ New Album</button>
+                </div>
+
+                <!-- Album list -->
+                <div id="albums-list" class="cms-list">
+                    <!-- Loaded dynamically -->
+                </div>
+
+                <!-- Album Form (hidden by default) -->
+                <div id="album-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="album-form-title">New Album</h3>
+                    <form id="album-form" class="cms-form">
+                        <input type="hidden" id="album-edit-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="album-title">Title *</label>
+                                <input type="text" id="album-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="album-artist">Artist</label>
+                                <input type="text" id="album-artist" value="Danny Infinity">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="album-type">Type</label>
+                                <select id="album-type">
+                                    <option value="Album">Album</option>
+                                    <option value="EP">EP</option>
+                                    <option value="Single">Single</option>
+                                    <option value="Beat Tape">Beat Tape</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="album-year">Year</label>
+                                <input type="number" id="album-year">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="album-gradient">Gradient</label>
+                                <select id="album-gradient">
+                                    <option value="gradient-1">Gradient 1</option>
+                                    <option value="gradient-2">Gradient 2</option>
+                                    <option value="gradient-3">Gradient 3</option>
+                                    <option value="gradient-4">Gradient 4</option>
+                                    <option value="gradient-5">Gradient 5</option>
+                                    <option value="gradient-6">Gradient 6</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="album-sort-order">Sort Order</label>
+                                <input type="number" id="album-sort-order" value="0" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="album-published" checked>
+                                <span>Published</span>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="album-save-btn">Save</button>
+                            <button type="button" class="cms-btn" id="album-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Track editor (shown when editing an album) -->
+                <div id="tracks-editor" class="cms-form-container" style="display:none;">
+                    <h3 id="tracks-editor-title">Tracks</h3>
+                    <div id="tracks-list" class="cms-list"></div>
+                    <div class="form-actions" style="margin-top:15px;">
+                        <button type="button" class="cms-btn cms-btn-primary" id="add-track-btn">+ Add Track</button>
+                        <button type="button" class="cms-btn" id="tracks-done-btn">Done</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Blog Tab -->
+            <section class="tab-content" id="blog-tab">
+                <div class="section-header">
+                    <h2>Blog Posts</h2>
+                    <button class="cms-btn cms-btn-primary" id="new-post-btn">+ New Post</button>
+                </div>
+                <div id="posts-list" class="cms-list"></div>
+
+                <div id="post-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="post-form-title">New Post</h3>
+                    <form id="post-form" class="cms-form">
+                        <input type="hidden" id="post-edit-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="post-title">Title *</label>
+                                <input type="text" id="post-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="post-tag">Tag</label>
+                                <select id="post-tag">
+                                    <option value="UPDATE">UPDATE</option>
+                                    <option value="MUSIC">MUSIC</option>
+                                    <option value="BTS">BTS</option>
+                                    <option value="PRODUCTION">PRODUCTION</option>
+                                    <option value="PERSONAL">PERSONAL</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="post-date">Publish Date</label>
+                            <input type="text" id="post-date" placeholder="YYYY-MM-DD">
+                        </div>
+                        <div class="form-group">
+                            <label for="post-body">Body (HTML)</label>
+                            <textarea id="post-body" rows="10" style="resize:vertical;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="post-published" checked>
+                                <span>Published</span>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="post-save-btn">Save</button>
+                            <button type="button" class="cms-btn" id="post-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Videos Tab -->
+            <section class="tab-content" id="videos-tab">
+                <div class="section-header">
+                    <h2>Videos</h2>
+                    <button class="cms-btn cms-btn-primary" id="new-video-btn">+ New Video</button>
+                </div>
+                <div id="videos-list" class="cms-list"></div>
+
+                <div id="video-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="video-form-title">New Video</h3>
+                    <form id="video-form" class="cms-form">
+                        <input type="hidden" id="video-edit-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="video-title">Title *</label>
+                                <input type="text" id="video-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="video-category">Category</label>
+                                <select id="video-category">
+                                    <option value="music-video">Music Video</option>
+                                    <option value="live">Live</option>
+                                    <option value="bts">BTS</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="video-orientation">Orientation</label>
+                                <select id="video-orientation">
+                                    <option value="landscape">Landscape</option>
+                                    <option value="portrait">Portrait</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="video-duration">Duration</label>
+                                <input type="text" id="video-duration" placeholder="3:42">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="video-type">Video Type</label>
+                                <select id="video-type">
+                                    <option value="">None (placeholder)</option>
+                                    <option value="youtube">YouTube</option>
+                                    <option value="vimeo">Vimeo</option>
+                                    <option value="local">Local/R2</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="video-year">Year</label>
+                                <input type="number" id="video-year">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="video-src">Video Source (YouTube ID / Vimeo ID / URL)</label>
+                            <input type="text" id="video-src" placeholder="dQw4w9WgXcQ">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="video-sort-order">Sort Order</label>
+                                <input type="number" id="video-sort-order" value="0" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="video-published" checked>
+                                    <span>Published</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="video-save-btn">Save</button>
+                            <button type="button" class="cms-btn" id="video-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Photos Tab -->
+            <section class="tab-content" id="photos-tab">
+                <div class="section-header">
+                    <h2>Photos</h2>
+                    <button class="cms-btn cms-btn-primary" id="new-photo-btn">+ New Photo</button>
+                </div>
+                <div id="photos-list" class="cms-list"></div>
+
+                <div id="photo-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="photo-form-title">New Photo</h3>
+                    <form id="photo-form" class="cms-form">
+                        <input type="hidden" id="photo-edit-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="photo-title">Title *</label>
+                                <input type="text" id="photo-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="photo-category">Category</label>
+                                <select id="photo-category">
+                                    <option value="live">Live</option>
+                                    <option value="studio">Studio</option>
+                                    <option value="bts">BTS</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="photo-orientation">Orientation</label>
+                                <select id="photo-orientation">
+                                    <option value="landscape">Landscape</option>
+                                    <option value="portrait">Portrait</option>
+                                    <option value="square">Square</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="photo-date">Date</label>
+                                <input type="text" id="photo-date" placeholder="YYYY-MM-DD">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Image</label>
+                            <div class="drop-zone" id="photo-drop-zone">
+                                <span class="drop-zone-text" id="photo-drop-text">Drag & drop image here or click to browse</span>
+                                <input type="file" id="photo-image-input" accept="image/*" style="display:none;">
+                            </div>
+                            <input type="hidden" id="photo-r2-key">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="photo-sort-order">Sort Order</label>
+                                <input type="number" id="photo-sort-order" value="0" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="photo-published" checked>
+                                    <span>Published</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="photo-save-btn">Save</button>
+                            <button type="button" class="cms-btn" id="photo-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Donations Tab -->
+            <section class="tab-content" id="donations-tab">
+                <div class="section-header">
+                    <h2>Donations</h2>
+                </div>
+
+                <div class="stats-grid" id="donations-stats">
+                    <!-- Stats loaded dynamically -->
+                </div>
+
+                <div class="table-container" style="margin-top:20px;">
+                    <table class="donations-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Donor</th>
+                                <th>Email</th>
+                                <th>Sheet</th>
+                                <th>Amount</th>
+                                <th>Currency</th>
+                            </tr>
+                        </thead>
+                        <tbody id="donations-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Access Denied Overlay -->
+    <div class="access-denied" id="access-denied">
+        <div class="access-denied-content">
+            <h2>Access Denied</h2>
+            <p>You must be logged in as an admin to view this page.</p>
+            <a href="index.html" class="back-link">Return to Home</a>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>

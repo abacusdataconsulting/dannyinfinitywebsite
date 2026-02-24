@@ -1,0 +1,466 @@
+/* ==============================================
+   Sheet Music Page Styles
+   PDF preview grid with download and tip
+   ============================================== */
+
+.sheets-container {
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+/* Header */
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 40px;
+}
+
+.site-logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+}
+
+.logo-accent {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.site-nav {
+    display: flex;
+    gap: 30px;
+}
+
+.nav-link {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    padding: 5px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    border-bottom-color: var(--text-primary);
+    opacity: 1;
+}
+
+.nav-link.locked {
+    opacity: 0.4;
+}
+
+/* Page Title */
+.page-title-section {
+    margin-bottom: 30px;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+}
+
+.page-subtitle {
+    font-size: 0.95rem;
+    opacity: 0.5;
+    letter-spacing: 2px;
+}
+
+/* Section Headers */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.section-icon {
+    font-size: 1.2rem;
+}
+
+.section-title {
+    font-size: 1rem;
+    letter-spacing: 3px;
+    font-weight: 400;
+}
+
+/* ============================
+   TIP JAR
+   ============================ */
+
+.tip-jar-section {
+    margin-bottom: 40px;
+}
+
+.tip-jar-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 25px 30px;
+    border: 2px dashed var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.tip-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.tip-text {
+    flex: 1;
+}
+
+.tip-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+}
+
+.tip-description {
+    font-size: 0.85rem;
+    opacity: 0.6;
+    line-height: 1.5;
+}
+
+.tip-btn {
+    flex-shrink: 0;
+    padding: 12px 25px;
+    border: 2px solid var(--border-color);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    transition: all 0.2s ease;
+    display: inline-block;
+    text-align: center;
+}
+
+.tip-btn:hover {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    opacity: 1;
+}
+
+/* ============================
+   SHEET MUSIC GRID
+   ============================ */
+
+.sheets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+.sheet-card {
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.sheet-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--text-primary);
+    box-shadow: 0 0 20px rgba(155, 89, 182, 0.2);
+}
+
+.sheet-preview {
+    width: 100%;
+    aspect-ratio: 8.5 / 11;
+    background: #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.sheet-preview canvas {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+}
+
+.sheet-placeholder {
+    text-align: center;
+    opacity: 0.3;
+}
+
+.sheet-placeholder-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.sheet-placeholder-text {
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+}
+
+.sheet-info {
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.sheet-title {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.sheet-meta {
+    font-size: 0.8rem;
+    opacity: 0.5;
+    letter-spacing: 1px;
+}
+
+.sheet-actions {
+    display: flex;
+    gap: 10px;
+    padding: 0 20px 15px;
+}
+
+.sheet-action-btn {
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.sheet-action-btn:hover {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    opacity: 1;
+}
+
+/* ============================
+   PREVIEW MODAL
+   ============================ */
+
+.preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.preview-modal.active {
+    display: flex;
+}
+
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    background: none;
+    border: none;
+    font-size: 3rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    z-index: 1001;
+}
+
+.modal-close:hover {
+    opacity: 1;
+    background: transparent;
+}
+
+.modal-content {
+    display: flex;
+    gap: 40px;
+    max-width: 1000px;
+    width: 90%;
+    align-items: flex-start;
+}
+
+.preview-canvas-wrapper {
+    flex: 1;
+    max-width: 500px;
+    position: relative;
+}
+
+.preview-canvas {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    background: #fff;
+}
+
+.preview-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    opacity: 0.5;
+}
+
+.preview-loading.hidden {
+    display: none;
+}
+
+.preview-details {
+    flex: 1;
+    max-width: 400px;
+}
+
+.preview-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.preview-meta {
+    font-size: 0.9rem;
+    opacity: 0.6;
+    letter-spacing: 1px;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.preview-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.action-btn {
+    display: block;
+    text-align: center;
+    padding: 15px 25px;
+    border: 2px solid var(--border-color);
+    font-size: 0.95rem;
+    letter-spacing: 2px;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    opacity: 1;
+}
+
+.tip-action-btn {
+    border-style: dashed;
+}
+
+/* Footer */
+.site-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer-text {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+}
+
+.footer-status {
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+.logout-link {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.logout-link:hover {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    opacity: 1;
+}
+
+/* ============================
+   RESPONSIVE
+   ============================ */
+
+@media (max-width: 768px) {
+    .site-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+
+    .site-nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .tip-jar-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+
+    .sheets-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
+    }
+
+    .modal-content {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .preview-canvas-wrapper {
+        max-width: 100%;
+    }
+
+    .preview-details {
+        max-width: 100%;
+        text-align: center;
+    }
+
+    .modal-close {
+        top: 10px;
+        right: 15px;
+        font-size: 2rem;
+    }
+
+    .site-footer {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .sheets-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sheet-actions {
+        flex-direction: column;
+    }
+}

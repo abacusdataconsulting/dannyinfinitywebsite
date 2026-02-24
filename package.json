@@ -1,0 +1,25 @@
+{
+  "name": "abacus",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute abacus-db --local --file=schema.sql",
+    "db:init:remote": "wrangler d1 execute abacus-db --file=schema.sql",
+    "db:migrate": "wrangler d1 execute abacus-db --local --file=migrations/002-add-pbkdf2.sql",
+    "db:migrate:cms": "wrangler d1 execute abacus-db --local --file=migrations/003-cms-tables.sql",
+    "db:migrate:cms:remote": "wrangler d1 execute abacus-db --file=migrations/003-cms-tables.sql",
+    "db:seed:sheets": "wrangler d1 execute abacus-db --local --file=migrations/004-seed-sheet-music.sql",
+    "db:seed:music": "wrangler d1 execute abacus-db --local --file=migrations/005-seed-music.sql",
+    "db:seed:content": "wrangler d1 execute abacus-db --local --file=migrations/006-seed-blog-videos-photos.sql",
+    "create-admin": "node scripts/create-admin.js"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

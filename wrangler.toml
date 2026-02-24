@@ -1,0 +1,32 @@
+name = "abacus"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+# Workers Static Assets - serves files from public/ directory
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Environment variables (non-secret)
+[vars]
+ENVIRONMENT = "development"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "abacus-db"
+database_id = "local-dev-db"  # Replace with real ID after: wrangler d1 create abacus-db
+
+# R2 Bucket binding (file storage for CMS uploads)
+# For production: wrangler r2 bucket create abacus-files
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "abacus-files"
+
+# Production environment overrides
+# [env.production]
+# vars = { ENVIRONMENT = "production" }
+# [[env.production.d1_databases]]
+# binding = "DB"
+# database_name = "abacus-db"
+# database_id = "real-production-db-id"

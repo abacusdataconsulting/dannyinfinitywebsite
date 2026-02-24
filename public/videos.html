@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Videos</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/videos.css">
+</head>
+<body>
+    <div class="videos-container container">
+        <!-- Header -->
+        <header class="site-header">
+            <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
+            <nav class="site-nav">
+                <a href="home.html" class="nav-link">HOME</a>
+                <a href="music.html" class="nav-link">MUSIC</a>
+                <a href="videos.html" class="nav-link active">VIDEOS</a>
+                <a href="photos.html" class="nav-link">PHOTOS</a>
+                <a href="blog.html" class="nav-link">BLOG</a>
+                <a href="sheet-music.html" class="nav-link">SHEETS</a>
+                <a href="#" class="nav-link member-only" id="members-link">MEMBERS</a>
+            </nav>
+        </header>
+
+        <!-- Page Title -->
+        <section class="page-header">
+            <h1 class="page-title">&gt; VIDEOS_</h1>
+            <p class="page-subtitle">Music videos, live performances, and behind the scenes</p>
+        </section>
+
+        <!-- Filter Tabs -->
+        <div class="video-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="music-video">Music Videos</button>
+            <button class="filter-btn" data-filter="live">Live</button>
+            <button class="filter-btn" data-filter="bts">BTS</button>
+        </div>
+
+        <!-- Video Gallery (loaded from API) -->
+        <div class="video-grid" id="video-grid">
+            <!-- Loaded dynamically -->
+        </div>
+
+        <!-- Video Player Modal -->
+        <div class="video-modal" id="video-modal">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <div class="modal-content">
+                <div class="video-player" id="video-player">
+                    <!-- Video embed or player goes here -->
+                    <div class="player-placeholder">
+                        <span class="play-icon large">&#9654;</span>
+                        <p>Video Player</p>
+                    </div>
+                </div>
+                <div class="video-details">
+                    <h2 class="modal-title" id="modal-title"></h2>
+                    <p class="modal-meta" id="modal-meta"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <p class="footer-text">&gt; DANNY INFINITY // <span id="current-year">2024</span></p>
+            </div>
+            <a href="index.html" class="logout-link">[DISCONNECT]</a>
+        </footer>
+    </div>
+
+    <script src="js/videos.js"></script>
+</body>
+</html>

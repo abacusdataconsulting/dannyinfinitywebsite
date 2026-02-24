@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Sheet Music</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/sheet-music.css">
+    <!-- PDF.js from CDN (legacy build exposes window.pdfjsLib) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <div class="sheets-container container">
+        <!-- Header -->
+        <header class="site-header">
+            <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
+            <nav class="site-nav">
+                <a href="home.html" class="nav-link">HOME</a>
+                <a href="music.html" class="nav-link">MUSIC</a>
+                <a href="videos.html" class="nav-link">VIDEOS</a>
+                <a href="photos.html" class="nav-link">PHOTOS</a>
+                <a href="blog.html" class="nav-link">BLOG</a>
+                <a href="sheet-music.html" class="nav-link active">SHEETS</a>
+                <a href="#" class="nav-link member-only" id="members-link">MEMBERS</a>
+            </nav>
+        </header>
+
+        <!-- Page Title -->
+        <section class="page-title-section">
+            <h1 class="page-title">&gt; SHEET_MUSIC_</h1>
+            <p class="page-subtitle">Browse, preview, and download sheet music</p>
+        </section>
+
+        <!-- Global Tip Jar -->
+        <section class="tip-jar-section">
+            <div class="tip-jar-content">
+                <span class="tip-icon">&#9829;</span>
+                <div class="tip-text">
+                    <p class="tip-title">Support the Music</p>
+                    <p class="tip-description">If you enjoy the sheet music, consider leaving a tip to support future releases.</p>
+                </div>
+                <a href="#" class="tip-btn" id="global-tip-btn" data-stripe-link="YOUR_STRIPE_PAYMENT_LINK_HERE">[LEAVE A TIP]</a>
+            </div>
+        </section>
+
+        <!-- Sheet Music Grid -->
+        <div class="sheets-grid" id="sheets-grid">
+            <!-- Sheet music cards populated by JS -->
+        </div>
+
+        <!-- Preview Modal -->
+        <div class="preview-modal" id="preview-modal">
+            <button class="modal-close" id="modal-close">&times;</button>
+            <div class="modal-content">
+                <div class="preview-canvas-wrapper">
+                    <canvas id="preview-canvas" class="preview-canvas"></canvas>
+                    <div class="preview-loading" id="preview-loading">Loading preview...</div>
+                </div>
+                <div class="preview-details">
+                    <h2 class="preview-title" id="preview-title"></h2>
+                    <p class="preview-meta" id="preview-meta"></p>
+                    <div class="preview-actions">
+                        <a href="#" class="action-btn download-btn" id="download-btn">[DOWNLOAD PDF]</a>
+                        <a href="#" class="action-btn tip-action-btn" id="tip-action-btn" data-stripe-link="YOUR_STRIPE_PAYMENT_LINK_HERE">[LEAVE A TIP]</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <p class="footer-text">&gt; DANNY INFINITY // <span id="current-year">2026</span></p>
+                <p class="footer-status">Session: <span id="session-status">ACTIVE</span> | <span id="current-time"></span></p>
+            </div>
+            <a href="index.html" class="logout-link">[DISCONNECT]</a>
+        </footer>
+    </div>
+
+    <script src="js/sheet-music.js"></script>
+</body>
+</html>

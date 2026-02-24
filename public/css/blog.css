@@ -1,0 +1,202 @@
+/* ==============================================
+   Blog Page Styles
+   Terminal aesthetic blog layout
+   ============================================== */
+
+.blog-container {
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+/* Reuse header styles from home */
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 60px;
+}
+
+.site-logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+}
+
+.logo-accent {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.site-nav {
+    display: flex;
+    gap: 30px;
+}
+
+.nav-link {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    padding: 5px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    border-bottom-color: var(--text-primary);
+    opacity: 1;
+}
+
+.nav-link.locked {
+    opacity: 0.4;
+}
+
+/* Page Title */
+.page-title-section {
+    margin-bottom: 50px;
+}
+
+.page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+}
+
+.page-subtitle {
+    font-size: 0.95rem;
+    opacity: 0.5;
+    letter-spacing: 2px;
+}
+
+/* Blog Posts */
+.blog-posts {
+    margin-bottom: 60px;
+}
+
+.blog-post {
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    margin-bottom: 30px;
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.post-date {
+    font-size: 0.85rem;
+    opacity: 0.5;
+    letter-spacing: 2px;
+}
+
+.post-tag {
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border: 1px solid var(--border-color);
+}
+
+.post-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 25px 25px 15px;
+}
+
+.post-body {
+    padding: 0 25px 25px;
+    line-height: 1.8;
+}
+
+.post-body p {
+    margin-bottom: 15px;
+    opacity: 0.8;
+}
+
+.post-body p:last-child {
+    margin-bottom: 0;
+}
+
+.post-signature {
+    opacity: 0.6;
+    font-style: italic;
+}
+
+.post-footer {
+    padding: 15px 25px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.post-terminal {
+    font-size: 0.8rem;
+    opacity: 0.4;
+    letter-spacing: 2px;
+}
+
+/* Footer */
+.site-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer-text {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+}
+
+.footer-status {
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+.logout-link {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    padding: 8px 15px;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.logout-link:hover {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .site-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+
+    .site-nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .post-title {
+        font-size: 1.4rem;
+    }
+
+    .site-footer {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+    }
+}

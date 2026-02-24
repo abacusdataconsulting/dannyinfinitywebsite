@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Music</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/music.css">
+</head>
+<body>
+    <div class="music-container container">
+        <!-- Header -->
+        <header class="site-header">
+            <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
+            <nav class="site-nav">
+                <a href="home.html" class="nav-link">HOME</a>
+                <a href="music.html" class="nav-link active">MUSIC</a>
+                <a href="videos.html" class="nav-link">VIDEOS</a>
+                <a href="photos.html" class="nav-link">PHOTOS</a>
+                <a href="blog.html" class="nav-link">BLOG</a>
+                <a href="sheet-music.html" class="nav-link">SHEETS</a>
+                <a href="#" class="nav-link member-only" id="members-link">MEMBERS</a>
+            </nav>
+        </header>
+
+        <!-- ==============================
+             BROWSE VIEW - Album/Single Grid
+             ============================== -->
+        <div id="browse-view">
+            <section class="page-title-section">
+                <h1 class="page-title">&gt; MUSIC_</h1>
+                <p class="page-subtitle">Albums, singles, and beats</p>
+            </section>
+
+            <div class="album-grid" id="album-grid">
+                <!-- Albums populated by JS -->
+            </div>
+        </div>
+
+        <!-- ==============================
+             PLAYER VIEW - Now Playing + Tracklist
+             ============================== -->
+        <div id="player-view" class="hidden">
+            <!-- Back Button -->
+            <button class="back-btn" id="back-btn">&larr; BACK</button>
+
+            <!-- Now Playing -->
+            <section class="now-playing-section">
+                <div class="now-playing-art" id="now-playing-art">
+                    <div class="art-placeholder"></div>
+                </div>
+                <div class="now-playing-info">
+                    <h2 class="now-playing-title" id="now-playing-title">--</h2>
+                    <p class="now-playing-artist" id="now-playing-artist">Danny Infinity</p>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-container" id="progress-container">
+                    <span class="time-current" id="time-current">0:00</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                        <div class="progress-handle" id="progress-handle"></div>
+                    </div>
+                    <span class="time-total" id="time-total">0:00</span>
+                </div>
+
+                <!-- Transport Controls -->
+                <div class="transport-controls">
+                    <button class="transport-btn" id="prev-btn" title="Previous">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+                        </svg>
+                    </button>
+                    <button class="transport-btn play-pause-btn" id="play-pause-btn" title="Play">
+                        <svg class="icon-play" width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                        <svg class="icon-pause hidden" width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                        </svg>
+                    </button>
+                    <button class="transport-btn" id="next-btn" title="Next">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Tracklist -->
+            <section class="tracklist-section">
+                <div class="section-header">
+                    <span class="section-icon">&#9836;</span>
+                    <h2 class="section-title" id="tracklist-album-title">TRACKLIST</h2>
+                </div>
+                <div class="tracklist" id="tracklist">
+                    <!-- Tracks populated by JS -->
+                </div>
+            </section>
+
+            <!-- Recommendations -->
+            <section class="recommendations-section">
+                <div class="section-header">
+                    <span class="section-icon">&#9654;</span>
+                    <h2 class="section-title">MORE_MUSIC</h2>
+                </div>
+                <div class="recommendations-grid" id="recommendations-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Hidden Audio Element -->
+        <audio id="audio-player"></audio>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <p class="footer-text">&gt; DANNY INFINITY // <span id="current-year">2026</span></p>
+                <p class="footer-status">Session: <span id="session-status">ACTIVE</span> | <span id="current-time"></span></p>
+            </div>
+            <a href="index.html" class="logout-link">[DISCONNECT]</a>
+        </footer>
+    </div>
+
+    <script src="js/music.js"></script>
+</body>
+</html>
