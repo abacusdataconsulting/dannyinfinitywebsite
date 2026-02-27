@@ -9,13 +9,14 @@ binding = "ASSETS"
 
 # Environment variables (non-secret)
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
+ALLOWED_ORIGIN = "https://dannyinfinity.com"  # or "https://abacus.yourname.workers.dev"
 
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "abacus-db"
-database_id = "local-dev-db"  # Replace with real ID after: wrangler d1 create abacus-db
+database_id = "088e6d5d-5424-4bce-af1d-bff30b0cda99"
 
 # R2 Bucket binding (file storage for CMS uploads)
 # For production: wrangler r2 bucket create abacus-files
