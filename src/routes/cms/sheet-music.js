@@ -37,8 +37,8 @@ sheetMusic.post('/', async (c) => {
 
     const slug = slugify(body.title);
     const result = await c.env.DB.prepare(`
-        INSERT INTO sheet_music (slug, title, composer, arrangement, year, pages, pdf_r2_key, tip_link, sort_order, is_published)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO sheet_music (slug, title, composer, arrangement, year, pages, description, pdf_r2_key, tip_link, sort_order, is_published)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
         slug,
         body.title,
@@ -46,6 +46,7 @@ sheetMusic.post('/', async (c) => {
         body.arrangement,
         body.year,
         body.pages || 1,
+        body.description || null,
         body.pdfR2Key || null,
         body.tipLink || null,
         body.sortOrder || 0,
@@ -68,7 +69,7 @@ sheetMusic.put('/:id', async (c) => {
     await c.env.DB.prepare(`
         UPDATE sheet_music SET
             slug = ?, title = ?, composer = ?, arrangement = ?, year = ?,
-            pages = ?, pdf_r2_key = ?, tip_link = ?, sort_order = ?,
+            pages = ?, description = ?, pdf_r2_key = ?, tip_link = ?, sort_order = ?,
             is_published = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `).bind(
@@ -78,6 +79,7 @@ sheetMusic.put('/:id', async (c) => {
         body.arrangement ?? existing.arrangement,
         body.year ?? existing.year,
         body.pages ?? existing.pages,
+        body.description !== undefined ? body.description : existing.description,
         body.pdfR2Key !== undefined ? body.pdfR2Key : existing.pdf_r2_key,
         body.tipLink !== undefined ? body.tipLink : existing.tip_link,
         body.sortOrder ?? existing.sort_order,

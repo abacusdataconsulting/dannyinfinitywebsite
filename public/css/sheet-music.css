@@ -206,7 +206,7 @@
 
 .sheet-info {
     padding: 15px 20px;
-    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .sheet-title {
@@ -222,26 +222,22 @@
     letter-spacing: 1px;
 }
 
-.sheet-actions {
-    display: flex;
-    gap: 10px;
-    padding: 0 20px 15px;
+.sheet-see-more {
+    padding: 12px 20px;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
 }
 
-.sheet-action-btn {
-    padding: 8px 15px;
-    border: 1px solid var(--border-color);
-    font-size: 0.8rem;
-    letter-spacing: 1px;
+.see-more-link {
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    opacity: 0.7;
     transition: all 0.2s ease;
-    display: inline-block;
-    cursor: pointer;
 }
 
-.sheet-action-btn:hover {
-    background: var(--text-primary);
-    color: var(--bg-primary);
+.see-more-link:hover {
     opacity: 1;
+    text-shadow: 0 0 10px var(--text-primary);
 }
 
 /* ============================
@@ -329,12 +325,26 @@
     margin-bottom: 10px;
 }
 
-.preview-meta {
+.preview-fields {
+    margin-bottom: 20px;
+}
+
+.preview-field {
     font-size: 0.9rem;
-    opacity: 0.6;
+    opacity: 0.7;
     letter-spacing: 1px;
+    line-height: 1.8;
+}
+
+.field-label {
+    opacity: 0.5;
+}
+
+.preview-description {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    line-height: 1.7;
     margin-bottom: 30px;
-    line-height: 1.6;
 }
 
 .preview-actions {
@@ -375,11 +385,6 @@
 .footer-text {
     font-size: 0.9rem;
     letter-spacing: 2px;
-}
-
-.footer-status {
-    font-size: 0.8rem;
-    opacity: 0.6;
 }
 
 .logout-link {
@@ -458,9 +463,5 @@
 @media (max-width: 480px) {
     .sheets-grid {
         grid-template-columns: 1fr;
-    }
-
-    .sheet-actions {
-        flex-direction: column;
     }
 }

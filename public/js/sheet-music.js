@@ -15,7 +15,8 @@
     var previewCanvas = document.getElementById('preview-canvas');
     var previewLoading = document.getElementById('preview-loading');
     var previewTitle = document.getElementById('preview-title');
-    var previewMeta = document.getElementById('preview-meta');
+    var previewFields = document.getElementById('preview-fields');
+    var previewDescription = document.getElementById('preview-description');
     var downloadBtn = document.getElementById('download-btn');
     var tipActionBtn = document.getElementById('tip-action-btn');
 
@@ -55,37 +56,24 @@
             card.dataset.sheetId = sheet.id;
 
             card.innerHTML =
+                '<div class="sheet-info">' +
+                    '<div class="sheet-title">' + sheet.title + '</div>' +
+                    '<div class="sheet-meta">' + sheet.arrangement + ' // ' + sheet.year + '</div>' +
+                '</div>' +
                 '<div class="sheet-preview" id="preview-' + sheet.id + '">' +
                     '<div class="sheet-placeholder">' +
                         '<span class="sheet-placeholder-icon">&#9835;</span>' +
                         '<span class="sheet-placeholder-text">' + sheet.pages + ' pages</span>' +
                     '</div>' +
                 '</div>' +
-                '<div class="sheet-info">' +
-                    '<div class="sheet-title">' + sheet.title + '</div>' +
-                    '<div class="sheet-meta">' + sheet.arrangement + ' // ' + sheet.year + '</div>' +
-                '</div>' +
-                '<div class="sheet-actions">' +
-                    '<a href="' + (sheet.pdfUrl || '#') + '" class="sheet-action-btn download-card-btn" ' +
-                        (sheet.pdfUrl ? 'download' : '') + '>[DOWNLOAD]</a>' +
-                    '<a href="' + sheet.tipLink + '" class="sheet-action-btn" target="_blank" rel="noopener">[TIP]</a>' +
+                '<div class="sheet-see-more">' +
+                    '<a href="#" class="see-more-link">See More</a>' +
                 '</div>';
 
-            // Click on preview area opens modal
-            var previewArea = card.querySelector('.sheet-preview');
-            previewArea.addEventListener('click', function(e) {
+            // Click anywhere on card opens modal
+            card.addEventListener('click', function(e) {
+                e.preventDefault();
                 openPreview(sheet);
-            });
-
-            // Prevent card click when clicking action buttons
-            var actionBtns = card.querySelectorAll('.sheet-action-btn');
-            actionBtns.forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    if (!sheet.pdfUrl && btn.classList.contains('download-card-btn')) {
-                        e.preventDefault();
-                    }
-                });
             });
 
             sheetsGrid.appendChild(card);
@@ -167,7 +155,17 @@
     // ============================
     function openPreview(sheet) {
         previewTitle.textContent = sheet.title;
-        previewMeta.textContent = sheet.arrangement + ' // ' + sheet.composer + ' // ' + sheet.year + ' // ' + sheet.pages + ' pages';
+
+        // Build detail fields conditionally
+        var fields = '';
+        if (sheet.composer) fields += '<p class="preview-field"><span class="field-label">Composed by:</span> ' + sheet.composer + '</p>';
+        if (sheet.arrangement) fields += '<p class="preview-field"><span class="field-label">Arrangement:</span> ' + sheet.arrangement + '</p>';
+        if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Year:</span> ' + sheet.year + '</p>';
+        if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + sheet.pages + '</p>';
+        previewFields.innerHTML = fields;
+
+        previewDescription.textContent = sheet.description;
+        previewDescription.style.display = sheet.description ? '' : 'none';
 
         // Set download link
         if (sheet.pdfUrl) {
@@ -237,6 +235,7 @@
                     arrangement: s.arrangement,
                     year: String(s.year),
                     pages: s.pages,
+                    description: s.description || '',
                     pdfUrl: s.pdfUrl || '',
                     tipLink: s.tipLink || '#'
                 };

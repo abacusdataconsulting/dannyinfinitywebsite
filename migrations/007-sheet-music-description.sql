@@ -1,0 +1,1 @@
+ALTER TABLE sheet_music ADD COLUMN description TEXT DEFAULT NULL;

@@ -377,6 +377,7 @@
             document.getElementById('sheet-year').value = sheet.year;
             document.getElementById('sheet-pages').value = sheet.pages;
             document.getElementById('sheet-sort-order').value = sheet.sort_order || 0;
+            document.getElementById('sheet-description').value = sheet.description || '';
             document.getElementById('sheet-tip-link').value = sheet.tip_link || '';
             document.getElementById('sheet-published').checked = !!sheet.is_published;
             sheetR2Key.value = sheet.pdf_r2_key || '';
@@ -442,6 +443,7 @@
                 arrangement: document.getElementById('sheet-arrangement').value,
                 year: parseInt(document.getElementById('sheet-year').value),
                 pages: parseInt(document.getElementById('sheet-pages').value) || 1,
+                description: document.getElementById('sheet-description').value || null,
                 sortOrder: parseInt(document.getElementById('sheet-sort-order').value) || 0,
                 tipLink: document.getElementById('sheet-tip-link').value || null,
                 pdfR2Key: sheetR2Key.value || null,

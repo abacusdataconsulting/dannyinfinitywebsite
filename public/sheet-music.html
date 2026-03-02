@@ -27,9 +27,13 @@
 
         <!-- Page Title -->
         <section class="page-title-section">
-            <h1 class="page-title">&gt; SHEET_MUSIC_</h1>
-            <p class="page-subtitle">Browse, preview, and download sheet music</p>
+            <h1 class="page-title">SHEET MUSIC</h1>
         </section>
+
+        <!-- Sheet Music Grid -->
+        <div class="sheets-grid" id="sheets-grid">
+            <!-- Sheet music cards populated by JS -->
+        </div>
 
         <!-- Global Tip Jar -->
         <section class="tip-jar-section">
@@ -43,11 +47,6 @@
             </div>
         </section>
 
-        <!-- Sheet Music Grid -->
-        <div class="sheets-grid" id="sheets-grid">
-            <!-- Sheet music cards populated by JS -->
-        </div>
-
         <!-- Preview Modal -->
         <div class="preview-modal" id="preview-modal">
             <button class="modal-close" id="modal-close">&times;</button>
@@ -58,7 +57,8 @@
                 </div>
                 <div class="preview-details">
                     <h2 class="preview-title" id="preview-title"></h2>
-                    <p class="preview-meta" id="preview-meta"></p>
+                    <div class="preview-fields" id="preview-fields"></div>
+                    <p class="preview-description" id="preview-description"></p>
                     <div class="preview-actions">
                         <a href="#" class="action-btn download-btn" id="download-btn">[DOWNLOAD PDF]</a>
                         <a href="#" class="action-btn tip-action-btn" id="tip-action-btn" data-stripe-link="YOUR_STRIPE_PAYMENT_LINK_HERE">[LEAVE A TIP]</a>

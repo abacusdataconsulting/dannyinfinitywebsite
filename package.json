@@ -13,6 +13,8 @@
     "db:seed:sheets": "wrangler d1 execute abacus-db --local --file=migrations/004-seed-sheet-music.sql",
     "db:seed:music": "wrangler d1 execute abacus-db --local --file=migrations/005-seed-music.sql",
     "db:seed:content": "wrangler d1 execute abacus-db --local --file=migrations/006-seed-blog-videos-photos.sql",
+    "db:migrate:description": "wrangler d1 execute abacus-db --local --file=migrations/007-sheet-music-description.sql",
+    "db:migrate:description:remote": "wrangler d1 execute abacus-db --file=migrations/007-sheet-music-description.sql",
     "create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {
