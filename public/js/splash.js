@@ -12,7 +12,7 @@
         startDelay: 500,
         showInputDelay: 300,
         doorAnimationSpeed: 150,
-        redirectUrl: 'home.html'
+        redirectUrl: 'home.html#links'
     };
 
     // The text to be typed out

@@ -60,12 +60,6 @@
     }
 
     document.getElementById('current-year').textContent = new Date().getFullYear();
-    var currentTimeEl = document.getElementById('current-time');
-    function updateClock() {
-        currentTimeEl.textContent = new Date().toLocaleTimeString();
-    }
-    updateClock();
-    setInterval(updateClock, 1000);
 
     // ============================
     // BROWSE VIEW

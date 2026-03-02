@@ -14,13 +14,6 @@
     // Update year
     document.getElementById('current-year').textContent = new Date().getFullYear();
 
-    // Update time
-    var currentTime = document.getElementById('current-time');
-    function updateTime() {
-        currentTime.textContent = new Date().toLocaleTimeString();
-    }
-    updateTime();
-    setInterval(updateTime, 1000);
 
     // Load and render blog posts
     var postsContainer = document.getElementById('blog-posts');
