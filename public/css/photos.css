@@ -337,24 +337,34 @@
         column-gap: 15px;
     }
 
+    .lightbox {
+        flex-direction: column;
+        gap: 15px;
+        padding: 60px 10px 20px;
+    }
+
+    .lightbox-content {
+        order: 1;
+        max-height: none;
+    }
+
     .lightbox-prev,
     .lightbox-next {
-        padding: 10px 15px;
+        position: static;
+        transform: none;
+        padding: 12px 30px;
         font-size: 1.2rem;
-    }
-
-    .lightbox-prev {
-        left: 10px;
-    }
-
-    .lightbox-next {
-        right: 10px;
+        order: 2;
     }
 
     .lightbox-close {
         top: 10px;
         right: 15px;
         font-size: 2rem;
+    }
+
+    .lightbox-image img {
+        max-height: 55vh;
     }
 
     .site-footer {
