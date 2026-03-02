@@ -338,13 +338,16 @@
     }
 
     .lightbox {
-        flex-direction: column;
+        flex-wrap: wrap;
+        align-content: center;
+        justify-content: center;
         gap: 15px;
         padding: 60px 10px 20px;
     }
 
     .lightbox-content {
         order: 1;
+        width: 100%;
         max-height: none;
     }
 
