@@ -158,9 +158,9 @@
 
         // Build detail fields conditionally
         var fields = '';
-        if (sheet.composer) fields += '<p class="preview-field"><span class="field-label">Composed by:</span> ' + sheet.composer + '</p>';
+        if (sheet.composer) fields += '<p class="preview-field"><span class="field-label">Composer:</span> ' + sheet.composer + '</p>';
         if (sheet.arrangement) fields += '<p class="preview-field"><span class="field-label">Arrangement:</span> ' + sheet.arrangement + '</p>';
-        if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Year:</span> ' + sheet.year + '</p>';
+        if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Date:</span> ' + sheet.year + '</p>';
         if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + sheet.pages + '</p>';
         previewFields.innerHTML = fields;
 
