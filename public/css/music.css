@@ -173,7 +173,6 @@
 .art-placeholder {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #00d2ff 0%, #7b2ff7 100%);
 }
 
 .now-playing-info {
@@ -392,8 +391,9 @@
 
 .recommendations-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 180px));
     gap: 20px;
+    justify-content: center;
 }
 
 .rec-card {
@@ -511,7 +511,7 @@
     }
 
     .music-container {
-        padding: 30px 15px;
+        padding: 30px 20px;
     }
 
     .page-title {
@@ -523,7 +523,7 @@
     }
 
     .album-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 15px;
     }
 
@@ -563,7 +563,7 @@
     }
 
     .recommendations-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
         gap: 15px;
     }
 
@@ -572,7 +572,12 @@
     }
 
     .section-header {
+        justify-content: center;
         margin-bottom: 15px;
+    }
+
+    .rec-info {
+        text-align: center;
     }
 
     .site-footer {
@@ -584,7 +589,7 @@
 
 @media (max-width: 480px) {
     .music-container {
-        padding: 20px 10px;
+        padding: 20px 15px;
     }
 
     .page-title {
@@ -708,6 +713,10 @@
 }
 
 @media (max-width: 360px) {
+    .music-container {
+        padding: 15px 12px;
+    }
+
     .now-playing-art {
         width: 60vw;
     }

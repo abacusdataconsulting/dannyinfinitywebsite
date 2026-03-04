@@ -70,11 +70,10 @@ upload.post('/', async (c) => {
         return c.json({ error: `Invalid folder. Use: ${Object.keys(FOLDER_RULES).join(', ')}` }, 400);
     }
 
-    // Validate type — check MIME type first, fall back to file extension
-    // (browsers can report empty or wrong MIME types, especially for .MOV)
+    // Validate type — accept if MIME type matches OR file extension matches
+    // (browsers report non-standard MIME types for many formats)
     const ext = getExtension(file.name);
-    const typeOk = rules.types.includes(file.type) ||
-                   ((!file.type || file.type === 'application/octet-stream') && rules.extensions.includes(ext));
+    const typeOk = rules.types.includes(file.type) || rules.extensions.includes(ext);
 
     if (!typeOk) {
         return c.json({ error: `Invalid file type. Expected ${rules.label} (${rules.extensions.join(', ')})` }, 400);
@@ -93,8 +92,8 @@ upload.post('/', async (c) => {
     // (e.g. store .mov as video/mp4 so browsers can play it)
     const contentType = EXTENSION_CONTENT_TYPES[ext] || file.type || 'application/octet-stream';
 
-    const arrayBuffer = await file.arrayBuffer();
-    await c.env.R2.put(r2Key, arrayBuffer, {
+    // Pass the File (Blob) directly to R2 to avoid doubling memory usage
+    await c.env.R2.put(r2Key, file, {
         httpMetadata: { contentType },
     });
 
