@@ -19,7 +19,6 @@
                 <a href="photos.html" class="nav-link">PHOTOS</a>
                 <a href="blog.html" class="nav-link">BLOG</a>
                 <a href="sheet-music.html" class="nav-link">SHEETS</a>
-                <a href="#" class="nav-link member-only" id="members-link">MEMBERS</a>
             </nav>
         </header>
 
@@ -41,20 +40,16 @@
             <!-- Loaded dynamically -->
         </div>
 
-        <!-- Video Player Modal -->
-        <div class="video-modal" id="video-modal">
-            <button class="modal-close" id="modal-close">&times;</button>
-            <div class="modal-content">
-                <div class="video-player" id="video-player">
-                    <!-- Video embed or player goes here -->
-                    <div class="player-placeholder">
-                        <span class="play-icon large">&#9654;</span>
-                        <p>Video Player</p>
-                    </div>
-                </div>
-                <div class="video-details">
-                    <h2 class="modal-title" id="modal-title"></h2>
-                    <p class="modal-meta" id="modal-meta"></p>
+        <!-- Video Lightbox -->
+        <div class="video-lightbox" id="video-lightbox">
+            <button class="lightbox-close" id="lightbox-close">&times;</button>
+            <button class="lightbox-prev" id="lightbox-prev">&larr;</button>
+            <button class="lightbox-next" id="lightbox-next">&rarr;</button>
+            <div class="lightbox-content">
+                <div class="video-player" id="video-player"></div>
+                <div class="lightbox-info">
+                    <span class="lightbox-title" id="lightbox-title"></span>
+                    <span class="lightbox-meta" id="lightbox-meta"></span>
                 </div>
             </div>
         </div>

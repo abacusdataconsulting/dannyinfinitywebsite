@@ -259,6 +259,36 @@
                         <button type="button" class="cms-btn" id="tracks-done-btn">Done</button>
                     </div>
                 </div>
+
+                <!-- Track Form (hidden by default) -->
+                <div id="track-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="track-form-title">New Track</h3>
+                    <form id="track-form" class="cms-form">
+                        <input type="hidden" id="track-edit-id">
+                        <input type="hidden" id="track-audio-r2-key">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="track-title">Title *</label>
+                                <input type="text" id="track-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="track-duration">Duration</label>
+                                <input type="text" id="track-duration" placeholder="Auto-detected" readonly>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Audio File (MP3, WAV, FLAC, M4A)</label>
+                            <div class="drop-zone" id="track-drop-zone">
+                                <span class="drop-zone-text" id="track-drop-text">Drag & drop audio file here or click to browse</span>
+                                <input type="file" id="track-audio-input" accept=".mp3,.wav,.flac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/mp4" style="display:none;">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="track-save-btn">Save Track</button>
+                            <button type="button" class="cms-btn" id="track-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
             </section>
 
             <!-- Blog Tab -->
@@ -366,8 +396,16 @@
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="video-src">Video Source (YouTube ID / Vimeo ID / URL)</label>
-                            <input type="text" id="video-src" placeholder="dQw4w9WgXcQ">
+                            <label for="video-src">Video Source (paste a YouTube/Vimeo link, or enter ID)</label>
+                            <input type="text" id="video-src" placeholder="https://youtube.com/watch?v=... or https://vimeo.com/...">
+                            <small id="video-src-hint" style="opacity:0.5;font-size:0.75rem;margin-top:4px;display:none;"></small>
+                        </div>
+                        <div class="form-group" id="video-upload-group">
+                            <label>Or Upload Video File</label>
+                            <div class="drop-zone" id="video-drop-zone">
+                                <span class="drop-zone-text" id="video-drop-text">Drag & drop video (MP4/WebM/MOV) here or click to browse</span>
+                                <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/quicktime,.mov" style="display:none;">
+                            </div>
                         </div>
                         <div class="form-row">
                             <div class="form-group">

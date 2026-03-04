@@ -78,6 +78,46 @@ button:hover {
     color: var(--bg-primary);
 }
 
+/* Site Header */
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 40px;
+}
+
+.site-logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+}
+
+.logo-accent {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.site-nav {
+    display: flex;
+    gap: 30px;
+}
+
+.nav-link {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    padding: 5px 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    border-bottom-color: var(--text-primary);
+    opacity: 1;
+}
+
 /* Utility Classes */
 .container {
     width: 100%;

@@ -32,17 +32,6 @@
         return Promise.resolve(null);
     }
 
-    // ============================
-    // SESSION
-    // ============================
-    var accessLevel = sessionStorage.getItem('accessLevel') || 'guest';
-    var authToken = sessionStorage.getItem('authToken');
-
-    var membersLink = document.getElementById('members-link');
-    if (!(accessLevel === 'member' && authToken)) {
-        membersLink.classList.add('locked');
-    }
-
     document.getElementById('current-year').textContent = new Date().getFullYear();
 
     // ============================

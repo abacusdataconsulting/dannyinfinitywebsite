@@ -61,6 +61,15 @@ videos.put('/:id', async (c) => {
     const existing = await c.env.DB.prepare('SELECT * FROM videos WHERE id = ?').bind(id).first();
     if (!existing) return c.json({ error: 'Not found' }, 404);
 
+    // Clean up old R2 video file if replacing with a new source
+    if (body.videoSrc !== undefined && body.videoSrc !== existing.video_src &&
+        existing.video_type === 'local' && existing.video_src) {
+        const oldR2Key = existing.video_src.replace(/^\/api\/files\//, '');
+        if (oldR2Key) {
+            try { await c.env.R2.delete(oldR2Key); } catch (e) { /* ignore */ }
+        }
+    }
+
     const slug = body.title ? slugify(body.title) : existing.slug;
 
     await c.env.DB.prepare(`
@@ -91,11 +100,19 @@ videos.put('/:id', async (c) => {
 // Delete
 videos.delete('/:id', async (c) => {
     const id = c.req.param('id');
-    const existing = await c.env.DB.prepare('SELECT thumbnail_r2_key FROM videos WHERE id = ?').bind(id).first();
+    const existing = await c.env.DB.prepare('SELECT thumbnail_r2_key, video_type, video_src FROM videos WHERE id = ?').bind(id).first();
     if (!existing) return c.json({ error: 'Not found' }, 404);
 
     if (existing.thumbnail_r2_key) {
         try { await c.env.R2.delete(existing.thumbnail_r2_key); } catch (e) { /* ignore */ }
+    }
+
+    // Clean up uploaded video file from R2
+    if (existing.video_type === 'local' && existing.video_src) {
+        const r2Key = existing.video_src.replace(/^\/api\/files\//, '');
+        if (r2Key) {
+            try { await c.env.R2.delete(r2Key); } catch (e) { /* ignore */ }
+        }
     }
 
     await c.env.DB.prepare('DELETE FROM videos WHERE id = ?').bind(id).run();

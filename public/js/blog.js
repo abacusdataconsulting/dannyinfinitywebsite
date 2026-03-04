@@ -1,16 +1,6 @@
 (function() {
     'use strict';
 
-    // Session info
-    var accessLevel = sessionStorage.getItem('accessLevel') || 'guest';
-    var authToken = sessionStorage.getItem('authToken');
-
-    // Members link
-    var membersLink = document.getElementById('members-link');
-    if (!(accessLevel === 'member' && authToken)) {
-        membersLink.classList.add('locked');
-    }
-
     // Update year
     document.getElementById('current-year').textContent = new Date().getFullYear();
 

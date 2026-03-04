@@ -156,6 +156,12 @@ music.put('/tracks/:trackId', async (c) => {
     const existing = await c.env.DB.prepare('SELECT * FROM tracks WHERE id = ?').bind(trackId).first();
     if (!existing) return c.json({ error: 'Not found' }, 404);
 
+    // Clean up old audio file from R2 if replacing with a new one
+    const newAudioKey = body.audioR2Key !== undefined ? body.audioR2Key : existing.audio_r2_key;
+    if (body.audioR2Key && existing.audio_r2_key && body.audioR2Key !== existing.audio_r2_key) {
+        try { await c.env.R2.delete(existing.audio_r2_key); } catch (e) { /* ignore */ }
+    }
+
     await c.env.DB.prepare(`
         UPDATE tracks SET
             title = ?, duration = ?, audio_r2_key = ?,
@@ -164,7 +170,7 @@ music.put('/tracks/:trackId', async (c) => {
     `).bind(
         body.title ?? existing.title,
         body.duration ?? existing.duration,
-        body.audioR2Key !== undefined ? body.audioR2Key : existing.audio_r2_key,
+        newAudioKey,
         body.trackNumber ?? existing.track_number,
         body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : existing.is_published,
         trackId

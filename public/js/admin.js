@@ -688,11 +688,18 @@
     }
 
     // --- Track Editor ---
+    var trackFormContainer = document.getElementById('track-form-container');
+    var trackForm = document.getElementById('track-form');
+    var trackDropZone = document.getElementById('track-drop-zone');
+    var trackDropText = document.getElementById('track-drop-text');
+    var trackAudioInput = document.getElementById('track-audio-input');
+
     async function openTracksEditor(albumId, albumTitle) {
         editingAlbumId = albumId;
         tracksEditorTitle.textContent = 'Tracks: ' + albumTitle;
         albumsList.style.display = 'none';
         albumFormContainer.style.display = 'none';
+        trackFormContainer.style.display = 'none';
         tracksEditor.style.display = 'block';
         document.getElementById('new-album-btn').style.display = 'none';
         await loadTracks(albumId);
@@ -700,6 +707,7 @@
 
     function closeTracksEditor() {
         tracksEditor.style.display = 'none';
+        trackFormContainer.style.display = 'none';
         albumsList.style.display = '';
         document.getElementById('new-album-btn').style.display = '';
         editingAlbumId = null;
@@ -738,9 +746,13 @@
                     '<div class="cms-item-meta">' + track.duration + ' ' + audioTag + '</div>' +
                 '</div>' +
                 '<div class="cms-item-actions">' +
+                    '<button class="cms-btn cms-btn-sm" data-action="edit-track">Edit</button>' +
                     '<button class="cms-btn cms-btn-sm cms-btn-danger" data-action="delete-track" data-id="' + track.id + '">Delete</button>' +
                 '</div>';
 
+            item.querySelector('[data-action="edit-track"]').addEventListener('click', function() {
+                openTrackForm(track);
+            });
             item.querySelector('[data-action="delete-track"]').addEventListener('click', function() {
                 deleteTrack(track.id, track.title);
             });
@@ -749,23 +761,130 @@
         });
     }
 
-    async function addTrack() {
-        var title = prompt('Track title:');
-        if (!title) return;
-        var duration = prompt('Duration (e.g. 3:45):', '0:00');
+    /**
+     * Detect audio duration from a File object
+     * Returns a promise that resolves with "m:ss" string
+     */
+    function detectAudioDuration(file) {
+        return new Promise(function(resolve) {
+            var url = URL.createObjectURL(file);
+            var audio = document.createElement('audio');
+            audio.preload = 'metadata';
+            audio.onloadedmetadata = function() {
+                var secs = Math.floor(audio.duration);
+                var mins = Math.floor(secs / 60);
+                var remainder = secs % 60;
+                resolve(mins + ':' + String(remainder).padStart(2, '0'));
+                URL.revokeObjectURL(url);
+            };
+            audio.onerror = function() {
+                resolve(null);
+                URL.revokeObjectURL(url);
+            };
+            audio.src = url;
+        });
+    }
+
+    function openTrackForm(track) {
+        trackFormContainer.style.display = 'block';
+        tracksEditor.style.display = 'none';
+
+        // Reset
+        trackAudioInput.value = '';
+        trackDropZone.classList.remove('has-file');
+
+        if (track) {
+            document.getElementById('track-form-title').textContent = 'Edit Track';
+            document.getElementById('track-edit-id').value = track.id;
+            document.getElementById('track-title').value = track.title;
+            document.getElementById('track-duration').value = track.duration || '';
+            document.getElementById('track-audio-r2-key').value = track.audio_r2_key || '';
+
+            if (track.audio_r2_key) {
+                trackDropText.textContent = 'Current: ' + track.audio_r2_key.split('/').pop() + ' (drop new file to replace)';
+                trackDropZone.classList.add('has-file');
+            } else {
+                trackDropText.textContent = 'Drag & drop audio file here or click to browse';
+            }
+        } else {
+            document.getElementById('track-form-title').textContent = 'New Track';
+            trackForm.reset();
+            document.getElementById('track-edit-id').value = '';
+            document.getElementById('track-audio-r2-key').value = '';
+            document.getElementById('track-duration').value = '';
+            trackDropText.textContent = 'Drag & drop audio file here or click to browse';
+        }
+    }
+
+    function closeTrackForm() {
+        trackFormContainer.style.display = 'none';
+        tracksEditor.style.display = 'block';
+    }
+
+    async function saveTrack(e) {
+        e.preventDefault();
+        var saveBtn = document.getElementById('track-save-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
 
         try {
-            var res = await fetch('/api/admin/music/' + editingAlbumId + '/tracks', {
-                method: 'POST',
-                headers: jsonAuthHeaders(),
-                body: JSON.stringify({ title: title, duration: duration || '0:00' })
-            });
+            var audioR2Key = document.getElementById('track-audio-r2-key').value || null;
+            var duration = document.getElementById('track-duration').value || '0:00';
 
-            if (!res.ok) throw new Error('Add failed');
+            // Upload audio file if one was selected
+            var audioFile = trackAudioInput.files[0];
+            if (audioFile) {
+                saveBtn.textContent = 'Uploading audio...';
+                var uploadResult = await uploadFile(audioFile, 'audio');
+                audioR2Key = uploadResult.r2Key;
+
+                // Auto-detect duration if not already set
+                if (!duration || duration === '0:00') {
+                    var detected = await detectAudioDuration(audioFile);
+                    if (detected) duration = detected;
+                }
+            }
+
+            var editId = document.getElementById('track-edit-id').value;
+            var title = document.getElementById('track-title').value;
+
+            saveBtn.textContent = 'Saving...';
+
+            if (editId) {
+                // Update existing track
+                var res = await fetch('/api/admin/music/tracks/' + editId, {
+                    method: 'PUT',
+                    headers: jsonAuthHeaders(),
+                    body: JSON.stringify({
+                        title: title,
+                        duration: duration,
+                        audioR2Key: audioR2Key
+                    })
+                });
+                if (!res.ok) throw new Error((await res.json()).error || 'Update failed');
+            } else {
+                // Create new track
+                var res = await fetch('/api/admin/music/' + editingAlbumId + '/tracks', {
+                    method: 'POST',
+                    headers: jsonAuthHeaders(),
+                    body: JSON.stringify({
+                        title: title,
+                        duration: duration,
+                        audioR2Key: audioR2Key
+                    })
+                });
+                if (!res.ok) throw new Error((await res.json()).error || 'Add failed');
+            }
+
+            closeTrackForm();
+            trackAudioInput.value = '';
             loadTracks(editingAlbumId);
         } catch (err) {
             alert('Error: ' + err.message);
         }
+
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Track';
     }
 
     async function deleteTrack(id, title) {
@@ -782,6 +901,49 @@
         } catch (err) {
             alert('Error: ' + err.message);
         }
+    }
+
+    function initTrackDropZone() {
+        trackDropZone.addEventListener('click', function() { trackAudioInput.click(); });
+
+        trackAudioInput.addEventListener('change', function() {
+            if (trackAudioInput.files[0]) {
+                var file = trackAudioInput.files[0];
+                trackDropText.textContent = file.name;
+                trackDropZone.classList.add('has-file');
+
+                // Auto-detect duration
+                detectAudioDuration(file).then(function(dur) {
+                    if (dur) {
+                        document.getElementById('track-duration').value = dur;
+                    }
+                });
+            }
+        });
+
+        trackDropZone.addEventListener('dragover', function(e) { e.preventDefault(); trackDropZone.classList.add('drag-over'); });
+        trackDropZone.addEventListener('dragleave', function() { trackDropZone.classList.remove('drag-over'); });
+        trackDropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            trackDropZone.classList.remove('drag-over');
+            var file = e.dataTransfer.files[0];
+            if (file && (file.type.startsWith('audio/') || /\.(mp3|wav|flac|m4a)$/i.test(file.name))) {
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                trackAudioInput.files = dt.files;
+                trackDropText.textContent = file.name;
+                trackDropZone.classList.add('has-file');
+
+                // Auto-detect duration
+                detectAudioDuration(file).then(function(dur) {
+                    if (dur) {
+                        document.getElementById('track-duration').value = dur;
+                    }
+                });
+            } else {
+                alert('Please drop an audio file (MP3, WAV, FLAC, or M4A).');
+            }
+        });
     }
 
     // =========================================
@@ -911,6 +1073,29 @@
     // VIDEOS CMS
     // =========================================
     let videosData = [];
+    var videoDropZone = document.getElementById('video-drop-zone');
+    var videoDropText = document.getElementById('video-drop-text');
+    var videoFileInput = document.getElementById('video-file-input');
+    var videoSrcHint = document.getElementById('video-src-hint');
+
+    /**
+     * Parse a pasted URL and extract video type + ID
+     * Supports YouTube and Vimeo URLs in various formats
+     */
+    function parseVideoUrl(url) {
+        if (!url) return null;
+        url = url.trim();
+
+        // YouTube: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, youtube.com/shorts/ID
+        var ytMatch = url.match(/(?:youtube\.com\/(?:watch\?.*v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        if (ytMatch) return { type: 'youtube', id: ytMatch[1] };
+
+        // Vimeo: vimeo.com/ID or player.vimeo.com/video/ID
+        var vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/);
+        if (vimeoMatch) return { type: 'vimeo', id: vimeoMatch[1] };
+
+        return null;
+    }
 
     async function loadVideos() {
         var list = document.getElementById('videos-list');
@@ -963,6 +1148,12 @@
         var container = document.getElementById('video-form-container');
         var list = document.getElementById('videos-list');
 
+        // Reset drop zone
+        videoFileInput.value = '';
+        videoDropZone.classList.remove('has-file');
+        videoSrcHint.style.display = 'none';
+        videoSrcHint.textContent = '';
+
         if (video) {
             document.getElementById('video-form-title').textContent = 'Edit: ' + video.title;
             document.getElementById('video-edit-id').value = video.id;
@@ -975,12 +1166,21 @@
             document.getElementById('video-year').value = video.year || new Date().getFullYear();
             document.getElementById('video-sort-order').value = video.sort_order || 0;
             document.getElementById('video-published').checked = !!video.is_published;
+
+            // Show current file info for local uploads
+            if (video.video_type === 'local' && video.video_src) {
+                videoDropText.textContent = 'Current: ' + video.video_src.split('/').pop();
+                videoDropZone.classList.add('has-file');
+            } else {
+                videoDropText.textContent = 'Drag & drop video (MP4/WebM/MOV) here or click to browse';
+            }
         } else {
             document.getElementById('video-form-title').textContent = 'New Video';
             document.getElementById('video-form').reset();
             document.getElementById('video-edit-id').value = '';
             document.getElementById('video-year').value = new Date().getFullYear();
             document.getElementById('video-published').checked = true;
+            videoDropText.textContent = 'Drag & drop video (MP4/WebM/MOV) here or click to browse';
         }
 
         container.style.display = 'block';
@@ -1001,18 +1201,31 @@
         saveBtn.textContent = 'Saving...';
 
         try {
+            var videoType = document.getElementById('video-type').value || null;
+            var videoSrc = document.getElementById('video-src').value || null;
+
+            // Upload video file if one was selected
+            var videoFile = videoFileInput.files[0];
+            if (videoFile) {
+                saveBtn.textContent = 'Uploading video...';
+                var uploadResult = await uploadFile(videoFile, 'videos');
+                videoType = 'local';
+                videoSrc = uploadResult.url;
+            }
+
             var body = {
                 title: document.getElementById('video-title').value,
                 category: document.getElementById('video-category').value,
                 orientation: document.getElementById('video-orientation').value,
                 duration: document.getElementById('video-duration').value || '0:00',
-                videoType: document.getElementById('video-type').value || null,
-                videoSrc: document.getElementById('video-src').value || null,
+                videoType: videoType,
+                videoSrc: videoSrc,
                 year: parseInt(document.getElementById('video-year').value),
                 sortOrder: parseInt(document.getElementById('video-sort-order').value) || 0,
                 isPublished: document.getElementById('video-published').checked,
             };
 
+            saveBtn.textContent = 'Saving...';
             var editId = document.getElementById('video-edit-id').value;
             var url = editId ? '/api/admin/videos/' + editId : '/api/admin/videos';
             var method = editId ? 'PUT' : 'POST';
@@ -1021,6 +1234,7 @@
             if (!res.ok) throw new Error((await res.json()).error || 'Save failed');
 
             closeVideoForm();
+            videoFileInput.value = '';
             loadVideos();
         } catch (err) {
             alert('Error: ' + err.message);
@@ -1037,6 +1251,68 @@
             if (!res.ok) throw new Error('Delete failed');
             loadVideos();
         } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    function initVideoDropZone() {
+        // Click to browse
+        videoDropZone.addEventListener('click', function() { videoFileInput.click(); });
+
+        videoFileInput.addEventListener('change', function() {
+            if (videoFileInput.files[0]) {
+                videoDropText.textContent = videoFileInput.files[0].name;
+                videoDropZone.classList.add('has-file');
+                // Auto-set type to local when file is chosen
+                document.getElementById('video-type').value = 'local';
+                // Clear the link field since we're uploading
+                document.getElementById('video-src').value = '';
+                videoSrcHint.style.display = 'block';
+                videoSrcHint.textContent = 'File selected — link field cleared. Video will be uploaded on save.';
+            }
+        });
+
+        // Drag and drop
+        videoDropZone.addEventListener('dragover', function(e) { e.preventDefault(); videoDropZone.classList.add('drag-over'); });
+        videoDropZone.addEventListener('dragleave', function() { videoDropZone.classList.remove('drag-over'); });
+        videoDropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            videoDropZone.classList.remove('drag-over');
+            var file = e.dataTransfer.files[0];
+            if (file && (file.type === 'video/mp4' || file.type === 'video/webm' || file.type === 'video/quicktime')) {
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                videoFileInput.files = dt.files;
+                videoDropText.textContent = file.name;
+                videoDropZone.classList.add('has-file');
+                document.getElementById('video-type').value = 'local';
+                document.getElementById('video-src').value = '';
+                videoSrcHint.style.display = 'block';
+                videoSrcHint.textContent = 'File selected — link field cleared. Video will be uploaded on save.';
+            } else {
+                alert('Please drop an MP4, WebM, or MOV video file.');
+            }
+        });
+
+        // Auto-parse pasted URLs in the video source field
+        var videoSrcInput = document.getElementById('video-src');
+        videoSrcInput.addEventListener('input', function() {
+            var val = videoSrcInput.value.trim();
+            var parsed = parseVideoUrl(val);
+            if (parsed) {
+                document.getElementById('video-type').value = parsed.type;
+                videoSrcInput.value = parsed.id;
+                videoSrcHint.style.display = 'block';
+                videoSrcHint.textContent = 'Detected ' + parsed.type.charAt(0).toUpperCase() + parsed.type.slice(1) + ' — ID extracted: ' + parsed.id;
+                // Clear any file selection since we're using a link
+                videoFileInput.value = '';
+                videoDropZone.classList.remove('has-file');
+                videoDropText.textContent = 'Drag & drop video (MP4/WebM/MOV) here or click to browse';
+            } else if (val && (val.startsWith('http://') || val.startsWith('https://'))) {
+                videoSrcHint.style.display = 'block';
+                videoSrcHint.textContent = 'URL not recognized as YouTube/Vimeo. Set video type manually or upload a file instead.';
+            } else {
+                videoSrcHint.style.display = 'none';
+            }
+        });
     }
 
     // =========================================
@@ -1336,8 +1612,11 @@
         document.getElementById('new-album-btn').addEventListener('click', function() { openAlbumForm(null); });
         document.getElementById('album-cancel-btn').addEventListener('click', closeAlbumForm);
         albumForm.addEventListener('submit', saveAlbum);
-        document.getElementById('add-track-btn').addEventListener('click', addTrack);
+        document.getElementById('add-track-btn').addEventListener('click', function() { openTrackForm(null); });
         document.getElementById('tracks-done-btn').addEventListener('click', closeTracksEditor);
+        document.getElementById('track-cancel-btn').addEventListener('click', closeTrackForm);
+        trackForm.addEventListener('submit', saveTrack);
+        initTrackDropZone();
 
         // Blog form
         document.getElementById('new-post-btn').addEventListener('click', function() { openPostForm(null); });
@@ -1348,6 +1627,7 @@
         document.getElementById('new-video-btn').addEventListener('click', function() { openVideoForm(null); });
         document.getElementById('video-cancel-btn').addEventListener('click', closeVideoForm);
         document.getElementById('video-form').addEventListener('submit', saveVideo);
+        initVideoDropZone();
 
         // Photos form
         document.getElementById('new-photo-btn').addEventListener('click', function() { openPhotoForm(null); });
