@@ -2,6 +2,7 @@
  * Public videos API
  */
 import { Hono } from 'hono';
+import { fileUrl, rewriteFileUrl } from '../../utils/fileUrl.js';
 
 const publicVideos = new Hono();
 
@@ -18,8 +19,8 @@ publicVideos.get('/', async (c) => {
         orientation: v.orientation || 'landscape',
         duration: v.duration,
         videoType: v.video_type,
-        videoSrc: v.video_src,
-        thumbnailUrl: v.thumbnail_r2_key ? `/api/files/${v.thumbnail_r2_key}` : null,
+        videoSrc: rewriteFileUrl(c.env, v.video_src),
+        thumbnailUrl: fileUrl(c.env, v.thumbnail_r2_key),
         year: v.year,
     }));
 

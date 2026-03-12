@@ -11,6 +11,7 @@ binding = "ASSETS"
 [vars]
 ENVIRONMENT = "production"
 ALLOWED_ORIGIN = "https://dannyinfinity.com"  # or "https://abacus.yourname.workers.dev"
+R2_PUBLIC_URL = ""  # Set to R2 public domain (e.g. "https://files.dannyinfinity.com") to bypass Worker for file serving
 
 # D1 Database binding
 [[d1_databases]]

@@ -1,5 +1,9 @@
 /**
- * File serving route — streams files from R2
+ * File serving route — streams files from R2 with Cloudflare edge caching
+ *
+ * Full (non-range) requests are cached at the Cloudflare edge via the Cache API.
+ * After the first request, subsequent requests for the same file are served
+ * directly from the CDN — no Worker execution, no R2 fetch.
  */
 import { Hono } from 'hono';
 
@@ -29,7 +33,7 @@ files.get('/:folder/:filename', async (c) => {
     const ext = '.' + filename.split('.').pop().toLowerCase();
     const rangeHeader = c.req.header('Range');
 
-    // Handle Range requests (required for video/audio seeking)
+    // Range requests bypass cache (needed for video/audio seeking)
     if (rangeHeader) {
         const object = await c.env.R2.get(r2Key, { range: c.req.raw.headers });
         if (!object) {
@@ -43,7 +47,6 @@ files.get('/:folder/:filename', async (c) => {
             'Cache-Control': 'public, max-age=31536000, immutable',
         };
 
-        // R2 returns range info on the object
         if (object.range) {
             const { offset, length } = object.range;
             headers['Content-Range'] = `bytes ${offset}-${offset + length - 1}/${object.size}`;
@@ -53,7 +56,17 @@ files.get('/:folder/:filename', async (c) => {
         return new Response(object.body, { status: 206, headers });
     }
 
-    // Normal full-file request
+    // --- Full-file requests: serve from edge cache when possible ---
+    const cache = caches.default;
+    const cacheKey = new Request(c.req.url, { method: 'GET' });
+
+    // Check edge cache first
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+
+    // Cache miss — fetch from R2
     const object = await c.env.R2.get(r2Key);
     if (!object) {
         return c.json({ error: 'File not found' }, 404);
@@ -64,7 +77,7 @@ files.get('/:folder/:filename', async (c) => {
     const download = c.req.query('download') === '1';
     const disposition = download ? `attachment; filename="${filename}"` : 'inline';
 
-    return new Response(object.body, {
+    const response = new Response(object.body, {
         headers: {
             'Content-Type': contentType,
             'Content-Disposition': disposition,
@@ -73,6 +86,14 @@ files.get('/:folder/:filename', async (c) => {
             'Cache-Control': 'public, max-age=31536000, immutable',
         },
     });
+
+    // Store in edge cache asynchronously (don't block the response)
+    // Skip caching download requests since they're one-off
+    if (!download) {
+        c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
+    }
+
+    return response;
 });
 
 export default files;

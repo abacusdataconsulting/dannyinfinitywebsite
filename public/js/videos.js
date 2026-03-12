@@ -81,8 +81,8 @@
             if (thumbnailSrc) {
                 content = '<img src="' + thumbnailSrc + '" alt="' + video.title + '">';
             } else if (video.videoType === 'local' && video.videoSrc) {
-                // Use the video itself as a poster-frame thumbnail
-                content = '<video src="' + video.videoSrc + '" preload="metadata" muted style="width:100%;height:auto;display:block;pointer-events:none;"></video>';
+                // Use a lightweight placeholder instead of loading the full video for thumbnails
+                content = '<div class="video-placeholder"><span class="placeholder-text">' + video.title.slice(0, 10).toUpperCase() + '</span></div>';
             } else {
                 content = '<div class="video-placeholder"><span class="placeholder-text">[' + video.slug.toUpperCase().slice(0, 10) + ']</span></div>';
             }
@@ -173,11 +173,18 @@
         // Load video content
         if (video.videoSrc && video.videoType) {
             if (video.videoType === 'youtube') {
-                videoPlayer.innerHTML = '<iframe src="https://www.youtube.com/embed/' + video.videoSrc + '?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+                videoPlayer.innerHTML = '<iframe src="https://www.youtube.com/embed/' + video.videoSrc + '?autoplay=1&playsinline=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
             } else if (video.videoType === 'vimeo') {
-                videoPlayer.innerHTML = '<iframe src="https://player.vimeo.com/video/' + video.videoSrc + '?autoplay=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+                videoPlayer.innerHTML = '<iframe src="https://player.vimeo.com/video/' + video.videoSrc + '?autoplay=1&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
             } else if (video.videoType === 'local') {
-                videoPlayer.innerHTML = '<video controls autoplay><source src="' + video.videoSrc + '" type="video/mp4">Your browser does not support the video tag.</video>';
+                videoPlayer.innerHTML = '<video controls playsinline webkit-playsinline preload="auto"><source src="' + video.videoSrc + '" type="video/mp4">Your browser does not support the video tag.</video>';
+                // Explicitly play after DOM insertion — preserves user gesture from click
+                var vid = videoPlayer.querySelector('video');
+                if (vid) {
+                    vid.play().catch(function() {
+                        // Autoplay blocked — user can tap play manually
+                    });
+                }
             }
         } else {
             videoPlayer.innerHTML = '<div class="player-placeholder"><span class="play-icon" style="font-size:3rem;margin-left:8px;">&#9654;</span><p>Video Player</p></div>';

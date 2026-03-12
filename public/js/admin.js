@@ -404,23 +404,42 @@
         document.getElementById('new-sheet-btn').style.display = '';
     }
 
-    async function uploadFile(file, folder) {
-        var formData = new FormData();
-        formData.append('file', file);
-        formData.append('folder', folder);
+    function uploadFile(file, folder, onProgress) {
+        return new Promise(function(resolve, reject) {
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('folder', folder);
 
-        var res = await fetch('/api/admin/upload', {
-            method: 'POST',
-            headers: authHeaders(),
-            body: formData
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/admin/upload');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + getToken());
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable && onProgress) {
+                    var pct = Math.round((e.loaded / e.total) * 100);
+                    onProgress(pct);
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(JSON.parse(xhr.responseText));
+                } else {
+                    try {
+                        var err = JSON.parse(xhr.responseText);
+                        reject(new Error(err.error || 'Upload failed'));
+                    } catch (_) {
+                        reject(new Error('Upload failed (' + xhr.status + ')'));
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                reject(new Error('Upload failed — network error'));
+            };
+
+            xhr.send(formData);
         });
-
-        if (!res.ok) {
-            var err = await res.json();
-            throw new Error(err.error || 'Upload failed');
-        }
-
-        return res.json();
     }
 
     async function saveSheet(e) {
@@ -433,7 +452,9 @@
             // Upload PDF if a file was selected
             var pdfFile = sheetPdfInput.files[0];
             if (pdfFile) {
-                var uploadResult = await uploadFile(pdfFile, 'sheets');
+                var uploadResult = await uploadFile(pdfFile, 'sheets', function(pct) {
+                    saveBtn.textContent = 'Uploading... ' + pct + '%';
+                });
                 sheetR2Key.value = uploadResult.r2Key;
             }
 
@@ -835,7 +856,9 @@
             var audioFile = trackAudioInput.files[0];
             if (audioFile) {
                 saveBtn.textContent = 'Uploading audio...';
-                var uploadResult = await uploadFile(audioFile, 'audio');
+                var uploadResult = await uploadFile(audioFile, 'audio', function(pct) {
+                    saveBtn.textContent = 'Uploading audio... ' + pct + '%';
+                });
                 audioR2Key = uploadResult.r2Key;
 
                 // Auto-detect duration if not already set
@@ -1208,7 +1231,9 @@
             var videoFile = videoFileInput.files[0];
             if (videoFile) {
                 saveBtn.textContent = 'Uploading video...';
-                var uploadResult = await uploadFile(videoFile, 'videos');
+                var uploadResult = await uploadFile(videoFile, 'videos', function(pct) {
+                    saveBtn.textContent = 'Uploading video... ' + pct + '%';
+                });
                 videoType = 'local';
                 videoSrc = uploadResult.url;
             }
@@ -1417,7 +1442,9 @@
             // Upload image if selected
             var imageFile = photoImageInput.files[0];
             if (imageFile) {
-                var uploadResult = await uploadFile(imageFile, 'images');
+                var uploadResult = await uploadFile(imageFile, 'images', function(pct) {
+                    saveBtn.textContent = 'Uploading... ' + pct + '%';
+                });
                 photoR2Key.value = uploadResult.r2Key;
             }
 

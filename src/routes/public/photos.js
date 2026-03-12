@@ -2,6 +2,7 @@
  * Public photos API
  */
 import { Hono } from 'hono';
+import { fileUrl } from '../../utils/fileUrl.js';
 
 const publicPhotos = new Hono();
 
@@ -15,7 +16,7 @@ publicPhotos.get('/', async (c) => {
         title: p.title,
         category: p.category,
         orientation: p.orientation || 'landscape',
-        imageUrl: p.image_r2_key ? `/api/files/${p.image_r2_key}` : null,
+        imageUrl: fileUrl(c.env, p.image_r2_key),
         date: p.date,
     }));
 

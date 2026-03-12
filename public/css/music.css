@@ -6,6 +6,7 @@
 .music-container {
     min-height: 100vh;
     padding: 40px 20px;
+    overflow-x: hidden;
 }
 
 /* Page Title */
@@ -60,6 +61,8 @@
 .album-card {
     cursor: pointer;
     transition: transform 0.3s ease;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .album-card:hover {
@@ -391,14 +394,15 @@
 
 .recommendations-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 180px));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 20px;
-    justify-content: center;
 }
 
 .rec-card {
     cursor: pointer;
     transition: transform 0.3s ease;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .rec-card:hover {
@@ -602,8 +606,11 @@
     }
 
     .album-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        grid-template-columns: 1fr;
+        gap: 20px;
+        max-width: 320px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .album-card-title {
@@ -685,8 +692,11 @@
     }
 
     .recommendations-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
+        grid-template-columns: 1fr;
+        gap: 15px;
+        max-width: 320px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .rec-title {
@@ -717,6 +727,10 @@
         padding: 15px 12px;
     }
 
+    .album-grid {
+        max-width: 280px;
+    }
+
     .now-playing-art {
         width: 60vw;
     }
@@ -736,5 +750,9 @@
 
     .track-row {
         padding: 12px 5px;
+    }
+
+    .recommendations-grid {
+        max-width: 280px;
     }
 }

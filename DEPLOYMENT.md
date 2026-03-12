@@ -77,6 +77,7 @@ binding = "ASSETS"
 [vars]
 ENVIRONMENT = "production"
 ALLOWED_ORIGIN = "https://yourdomain.com"  # or "https://abacus.yourname.workers.dev"
+R2_PUBLIC_URL = ""  # Set to "https://files.yourdomain.com" to serve media directly from R2
 
 [[d1_databases]]
 binding = "DB"
@@ -221,7 +222,66 @@ Then redeploy: `npm run deploy`
 
 7. **Session cleanup** — Expired sessions accumulate in the `sessions` table. Consider adding a Cloudflare Cron Trigger to clean them up periodically.
 
-8. **R2 public access** — Files are served through the Worker (`/api/files/:folder/:filename`). This works but uses Worker CPU time. For high-traffic media, consider enabling R2 public bucket access or putting a Cloudflare CDN cache rule in front.
+8. **R2 direct file serving** — See [Media Delivery & R2 Public Access](#media-delivery--r2-public-access) below.
+
+---
+
+## Media Delivery & R2 Public Access
+
+### How media files are served
+
+Media files (audio, video, images, PDFs) are stored in Cloudflare R2 and served to visitors through the Worker at `/api/files/:folder/:filename`.
+
+**Edge caching is built in.** The Worker uses the Cloudflare Cache API to cache full-file responses at the edge. The first request for a file goes through the Worker and fetches from R2; all subsequent requests are served directly from the CDN edge with zero Worker execution. Cached files use a 1-year immutable cache policy (safe because filenames are timestamped).
+
+This works well for most use cases. However, for **large video files** or **high-traffic media**, you can eliminate the Worker proxy entirely by enabling R2 public access.
+
+### Enabling R2 Public Access (recommended for video-heavy sites)
+
+This serves files directly from R2 via a custom subdomain, bypassing the Worker completely.
+
+#### 1. Add a subdomain for files
+
+Go to **Cloudflare Dashboard > your domain > DNS** and add a CNAME record:
+
+| Type | Name | Target | Proxy |
+|------|------|--------|-------|
+| CNAME | `files` | `<your-account-id>.r2.cloudflarestorage.com` | Proxied |
+
+#### 2. Connect the domain to R2
+
+Go to **Cloudflare Dashboard > R2 > abacus-files > Settings > Public access > Custom Domains** and add:
+
+```
+files.yourdomain.com
+```
+
+#### 3. Set the env var
+
+Update `wrangler.toml`:
+
+```toml
+[vars]
+R2_PUBLIC_URL = "https://files.yourdomain.com"
+```
+
+#### 4. Redeploy
+
+```bash
+npm run deploy
+```
+
+All media URLs returned by the API will now point to `https://files.yourdomain.com/...` instead of `/api/files/...`. No frontend changes needed — the public API routes build URLs dynamically using the `R2_PUBLIC_URL` env var.
+
+#### How it works
+
+- When `R2_PUBLIC_URL` is empty (default): files are served through the Worker with edge caching
+- When `R2_PUBLIC_URL` is set: all public API responses return direct R2 URLs, the Worker file route is bypassed entirely
+- The Worker file route (`/api/files/...`) still works as a fallback and for admin use
+
+### Upload progress
+
+The admin dashboard shows real-time upload progress (percentage) on the save button when uploading files. Large video uploads (up to 500MB) will display progress like "Uploading video... 73%".
 
 ---
 
@@ -301,5 +361,6 @@ npm run deploy
 [ ] Test login flow on production URL
 [ ] Test admin dashboard access
 [ ] (Optional) Set up custom domain
+[ ] (Optional) Set up R2 public access for faster media delivery (see Media Delivery section)
 [ ] Change default admin password
 ```

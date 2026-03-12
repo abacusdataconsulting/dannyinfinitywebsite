@@ -2,6 +2,7 @@
  * Public sheet music API
  */
 import { Hono } from 'hono';
+import { fileUrl } from '../../utils/fileUrl.js';
 
 const publicSheetMusic = new Hono();
 
@@ -19,7 +20,7 @@ publicSheetMusic.get('/', async (c) => {
         year: s.year,
         pages: s.pages,
         description: s.description || '',
-        pdfUrl: s.pdf_r2_key ? `/api/files/${s.pdf_r2_key}` : null,
+        pdfUrl: fileUrl(c.env, s.pdf_r2_key),
         tipLink: s.tip_link || '#',
     }));
 

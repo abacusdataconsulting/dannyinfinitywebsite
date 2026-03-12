@@ -2,6 +2,7 @@
  * Public music API
  */
 import { Hono } from 'hono';
+import { fileUrl } from '../../utils/fileUrl.js';
 
 const publicMusic = new Hono();
 
@@ -21,7 +22,7 @@ publicMusic.get('/', async (c) => {
         tracksByAlbum[t.album_id].push({
             title: t.title,
             duration: t.duration,
-            src: t.audio_r2_key ? `/api/files/${t.audio_r2_key}` : '',
+            src: fileUrl(c.env, t.audio_r2_key) || '',
         });
     });
 
