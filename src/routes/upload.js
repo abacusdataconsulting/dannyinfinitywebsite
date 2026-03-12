@@ -30,7 +30,7 @@ const FOLDER_RULES = {
     videos: {
         types: ['video/mp4', 'video/webm', 'video/quicktime', 'video/mov', 'video/x-quicktime'],
         extensions: ['.mp4', '.webm', '.mov'],
-        maxSize: 500 * 1024 * 1024,
+        maxSize: 100 * 1024 * 1024, // Workers platform limit is 100MB
         label: 'video',
     },
 };
@@ -92,10 +92,16 @@ upload.post('/', async (c) => {
     // (e.g. store .mov as video/mp4 so browsers can play it)
     const contentType = EXTENSION_CONTENT_TYPES[ext] || file.type || 'application/octet-stream';
 
-    // Pass the File (Blob) directly to R2 to avoid doubling memory usage
-    await c.env.R2.put(r2Key, file, {
-        httpMetadata: { contentType },
-    });
+    // Convert File to ArrayBuffer for reliable R2 storage
+    // (passing raw File objects can fail in some Workers runtime versions)
+    try {
+        const buffer = await file.arrayBuffer();
+        await c.env.R2.put(r2Key, buffer, {
+            httpMetadata: { contentType },
+        });
+    } catch (e) {
+        return c.json({ error: `Upload to storage failed: ${e.message}` }, 500);
+    }
 
     return c.json({
         success: true,
