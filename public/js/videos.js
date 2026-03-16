@@ -67,7 +67,7 @@
 
         videosData.forEach(function(video, idx) {
             var item = document.createElement('div');
-            item.className = 'video-item';
+            item.className = 'video-item' + (video.orientation === 'portrait' ? ' portrait' : '');
             item.dataset.category = video.category;
             item.dataset.index = idx;
 
@@ -81,10 +81,10 @@
             if (thumbnailSrc) {
                 content = '<img src="' + thumbnailSrc + '" alt="' + video.title + '">';
             } else if (video.videoType === 'local' && video.videoSrc) {
-                // Use a lightweight placeholder instead of loading the full video for thumbnails
-                content = '<div class="video-placeholder"><span class="placeholder-text">' + video.title.slice(0, 10).toUpperCase() + '</span></div>';
+                // Show first frame — #t=0.1 media fragment forces mobile Safari to render a frame
+                content = '<video class="video-thumb" src="' + video.videoSrc + '#t=0.1" muted preload="metadata" playsinline webkit-playsinline></video>';
             } else {
-                content = '<div class="video-placeholder"><span class="placeholder-text">[' + video.slug.toUpperCase().slice(0, 10) + ']</span></div>';
+                content = '<div class="video-placeholder"><span class="placeholder-text">' + video.title + '</span></div>';
             }
 
             var durationBadge = video.duration && video.duration !== '0:00'
@@ -105,6 +105,17 @@
             });
 
             videoGrid.appendChild(item);
+
+            // Once metadata loads, seek to show a frame and set the real aspect ratio
+            var thumb = item.querySelector('.video-thumb');
+            if (thumb) {
+                thumb.addEventListener('loadedmetadata', function() {
+                    this.currentTime = 0.1;
+                    if (this.videoWidth && this.videoHeight) {
+                        this.style.aspectRatio = this.videoWidth + ' / ' + this.videoHeight;
+                    }
+                });
+            }
 
             // Auto-detect duration for local videos if not set
             if ((!video.duration || video.duration === '0:00') && video.videoType === 'local' && video.videoSrc) {

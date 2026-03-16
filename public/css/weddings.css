@@ -1,0 +1,488 @@
+/* ==============================================
+   Weddings Page Styles
+   Standalone warm palette — no global.css dependency
+   ============================================== */
+
+/* CSS Custom Properties */
+:root {
+    --w-bg-primary: #faf8f5;
+    --w-bg-secondary: #f3efe8;
+    --w-bg-hero: #f0ebe3;
+    --w-text-primary: #2c2420;
+    --w-text-secondary: #5c4f46;
+    --w-text-muted: #8a7e74;
+    --w-accent: #b8965a;
+    --w-accent-light: #d4b87c;
+    --w-accent-dark: #9a7b45;
+    --w-border-color: #d4c8b8;
+    --w-border-accent: #b8965a;
+    --w-font-mono: 'Courier New', Courier, monospace;
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--w-font-mono);
+    background-color: var(--w-bg-primary);
+    color: var(--w-text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--w-font-mono);
+    font-weight: normal;
+}
+
+a {
+    color: var(--w-accent);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+a:hover {
+    color: var(--w-accent-light);
+}
+
+/* Container */
+.weddings-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Section Heading */
+.section-heading {
+    font-size: 0.95rem;
+    letter-spacing: 4px;
+    color: var(--w-text-muted);
+    text-align: center;
+    margin-bottom: 50px;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+.section-heading::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 1px;
+    background-color: var(--w-border-accent);
+}
+
+/* ==============================================
+   HERO SECTION
+   ============================================== */
+
+.hero-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--w-bg-hero);
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.hero-content {
+    max-width: 700px;
+}
+
+.hero-pre-heading {
+    font-size: 0.85rem;
+    letter-spacing: 5px;
+    color: var(--w-accent);
+    margin-bottom: 25px;
+}
+
+.hero-heading {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--w-text-primary);
+    margin-bottom: 25px;
+    line-height: 1.2;
+}
+
+.hero-subheading {
+    font-size: 1rem;
+    color: var(--w-text-secondary);
+    line-height: 1.8;
+    margin-bottom: 40px;
+}
+
+.hero-cta {
+    display: inline-block;
+    font-family: var(--w-font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    color: var(--w-accent);
+    border-bottom: 1px solid var(--w-accent);
+    padding-bottom: 5px;
+    transition: all 0.2s ease;
+}
+
+.hero-cta:hover {
+    color: var(--w-accent-dark);
+    border-bottom-color: var(--w-accent-dark);
+}
+
+/* ==============================================
+   SERVICES SECTION
+   ============================================== */
+
+.services-section {
+    padding: 100px 20px;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+}
+
+.service-card {
+    padding: 40px 30px;
+    border: 1px solid var(--w-border-color);
+    background: var(--w-bg-secondary);
+    transition: all 0.2s ease;
+}
+
+.service-card:hover {
+    border-color: var(--w-border-accent);
+}
+
+.service-number {
+    display: block;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    color: var(--w-accent);
+    margin-bottom: 20px;
+}
+
+.service-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--w-text-primary);
+    margin-bottom: 15px;
+}
+
+.service-description {
+    font-size: 0.9rem;
+    color: var(--w-text-secondary);
+    line-height: 1.8;
+}
+
+/* ==============================================
+   INSTRUMENTS SECTION
+   ============================================== */
+
+.instruments-section {
+    padding: 100px 20px;
+    background-color: var(--w-bg-hero);
+}
+
+.instruments-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+}
+
+.instruments-text p {
+    font-size: 0.95rem;
+    color: var(--w-text-secondary);
+    line-height: 1.8;
+    margin-bottom: 20px;
+}
+
+.instruments-text p:last-child {
+    margin-bottom: 0;
+}
+
+.instruments-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.instrument-item {
+    border-left: 3px solid var(--w-border-accent);
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--w-text-primary);
+    transition: all 0.2s ease;
+}
+
+.instrument-item:hover {
+    background-color: var(--w-bg-secondary);
+}
+
+/* ==============================================
+   AUDIO SAMPLES SECTION (PLACEHOLDER)
+   ============================================== */
+
+.samples-section {
+    padding: 100px 20px;
+}
+
+.samples-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.sample-card {
+    text-align: center;
+}
+
+.sample-placeholder {
+    aspect-ratio: 1;
+    background: var(--w-bg-secondary);
+    border: 1px solid var(--w-border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    transition: all 0.2s ease;
+}
+
+.sample-card:hover .sample-placeholder {
+    border-color: var(--w-border-accent);
+}
+
+.sample-icon {
+    font-size: 2.5rem;
+    color: var(--w-accent);
+    opacity: 0.5;
+}
+
+.sample-title {
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    color: var(--w-text-primary);
+    margin-bottom: 5px;
+}
+
+.sample-meta {
+    font-size: 0.8rem;
+    color: var(--w-text-muted);
+    letter-spacing: 1px;
+}
+
+.samples-note {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--w-text-muted);
+    font-style: italic;
+    letter-spacing: 1px;
+}
+
+/* ==============================================
+   TESTIMONIALS SECTION
+   ============================================== */
+
+.testimonials-section {
+    padding: 100px 20px;
+    background-color: var(--w-bg-hero);
+}
+
+.testimonials-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.testimonial-card {
+    border: none;
+    border-left: 3px solid var(--w-border-accent);
+    background: var(--w-bg-secondary);
+    padding: 30px;
+}
+
+.testimonial-text {
+    font-size: 0.95rem;
+    font-style: italic;
+    color: var(--w-text-secondary);
+    line-height: 1.8;
+    margin-bottom: 20px;
+}
+
+.testimonial-attribution {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.testimonial-name {
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    color: var(--w-text-primary);
+    text-transform: uppercase;
+    font-style: normal;
+}
+
+.testimonial-detail {
+    font-size: 0.8rem;
+    color: var(--w-text-muted);
+    letter-spacing: 1px;
+    font-style: normal;
+}
+
+/* ==============================================
+   CONTACT CTA SECTION
+   ============================================== */
+
+.contact-section {
+    padding: 100px 20px;
+    text-align: center;
+}
+
+.contact-content {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.contact-heading {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--w-text-primary);
+    margin-bottom: 20px;
+}
+
+.contact-text {
+    font-size: 0.95rem;
+    color: var(--w-text-secondary);
+    line-height: 1.8;
+    margin-bottom: 35px;
+}
+
+.contact-btn {
+    display: inline-block;
+    font-family: var(--w-font-mono);
+    font-size: 0.9rem;
+    letter-spacing: 3px;
+    padding: 15px 40px;
+    border: 2px solid var(--w-accent);
+    color: var(--w-accent);
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+.contact-btn:hover {
+    background-color: var(--w-accent);
+    color: var(--w-bg-primary);
+}
+
+/* ==============================================
+   FOOTER
+   ============================================== */
+
+.weddings-footer {
+    border-top: 1px solid var(--w-border-color);
+    padding: 25px 20px;
+    text-align: center;
+}
+
+.weddings-footer .footer-text {
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    color: var(--w-text-muted);
+}
+
+/* ==============================================
+   RESPONSIVE
+   ============================================== */
+
+@media (max-width: 768px) {
+    .hero-heading {
+        font-size: 2rem;
+    }
+
+    .hero-subheading {
+        font-size: 0.9rem;
+    }
+
+    .services-section,
+    .instruments-section,
+    .samples-section,
+    .testimonials-section,
+    .contact-section {
+        padding: 70px 20px;
+    }
+
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .instruments-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .samples-grid {
+        grid-template-columns: 1fr;
+        max-width: 300px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-heading {
+        font-size: 1.6rem;
+        letter-spacing: 2px;
+    }
+
+    .hero-pre-heading {
+        font-size: 0.75rem;
+    }
+
+    .section-heading {
+        font-size: 0.85rem;
+    }
+
+    .service-card {
+        padding: 30px 20px;
+    }
+
+    .instruments-list {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-heading {
+        font-size: 1.5rem;
+    }
+
+    .contact-btn {
+        padding: 12px 30px;
+        font-size: 0.85rem;
+    }
+}

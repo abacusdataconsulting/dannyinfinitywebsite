@@ -88,26 +88,51 @@
     transform: translate(-50%, -50%) scale(1.1);
 }
 
-/* Video Thumbnail */
+/* Video Thumbnail — images use orientation class, video-thumb gets real ratio from JS */
 .video-item img {
     width: 100%;
-    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
     display: block;
+}
+
+.video-item.portrait img {
+    aspect-ratio: 9 / 16;
+}
+
+.video-item .video-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.video-item.portrait .video-thumb {
+    aspect-ratio: 9 / 16;
 }
 
 .video-placeholder {
     width: 100%;
+    aspect-ratio: 16 / 9;
     background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 200px;
+    overflow: hidden;
+}
+
+.video-item.portrait .video-placeholder {
+    aspect-ratio: 9 / 16;
 }
 
 .placeholder-text {
     font-size: 0.9rem;
     letter-spacing: 2px;
     opacity: 0.3;
+    text-align: center;
+    padding: 10px;
 }
 
 /* Play Button Overlay */
