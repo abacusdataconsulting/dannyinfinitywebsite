@@ -2,7 +2,9 @@
 
 Single Cloudflare Worker (Hono.js) serving the full site: static pages, API, CMS admin, and Stripe webhook.
 
-to access admin, admin login is user "admin" pass "admin123" will lead to normal home page, manually type in admin.html as extension to get to admin dashboard
+to access admin, admin login is user "DanielWebb" pass "B@njoLUVR67" will lead to normal home page, manually type in admin.html as extension to get to admin dashboard
+
+to point worker to domain name (controlled by cloudlfare) : Worker & Pages > Domains + Routes > click " + ADD" > Custom Domain > select target domain name (records added automatically)
 
 use '''npx wrangler deploy''' to deploy
 

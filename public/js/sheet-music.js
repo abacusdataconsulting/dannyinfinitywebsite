@@ -167,8 +167,11 @@
             downloadBtn.style.opacity = '0.4';
         }
 
-        // Set tip link
-        tipActionBtn.href = sheet.tipLink || '#';
+        // Store sheet context for tip modal
+        tipActionBtn._tipSheet = {
+            sheetMusicId: sheet.numericId,
+            sheetTitle: sheet.title
+        };
 
         // Render PDF preview
         renderFullPreview(sheet);
@@ -210,6 +213,27 @@
         }
     });
 
+    // Per-sheet tip button in preview modal
+    tipActionBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (window.openTipModal && tipActionBtn._tipSheet) {
+            window.openTipModal(tipActionBtn._tipSheet);
+        } else if (window.openTipModal) {
+            window.openTipModal();
+        }
+    });
+
+    // Global tip button
+    var globalTipBtn = document.getElementById('global-tip-btn');
+    if (globalTipBtn) {
+        globalTipBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (window.openTipModal) {
+                window.openTipModal();
+            }
+        });
+    }
+
     // ============================
     // INIT — Fetch sheets from API then render
     // ============================
@@ -219,14 +243,14 @@
             SHEETS = (data.sheets || []).map(function(s) {
                 return {
                     id: s.slug || s.id,
+                    numericId: s.id,
                     title: s.title,
                     composer: s.composer,
                     arrangement: s.arrangement,
                     year: String(s.year),
                     pages: s.pages,
                     description: s.description || '',
-                    pdfUrl: s.pdfUrl || '',
-                    tipLink: s.tipLink || '#'
+                    pdfUrl: s.pdfUrl || ''
                 };
             });
             renderGrid();

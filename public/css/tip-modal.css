@@ -1,0 +1,234 @@
+/* ==============================================
+   Tip Modal — Shared component
+   Drop onto any page with tip-modal.js
+   Requires global.css for CSS variables
+   ============================================== */
+
+/* Overlay */
+.tip-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.92);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.tip-modal-overlay.active {
+    display: flex;
+}
+
+/* Modal Box */
+.tip-modal {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    padding: 40px;
+    max-width: 420px;
+    width: 90%;
+    position: relative;
+    text-align: center;
+    font-family: var(--font-mono);
+}
+
+/* Close button */
+.tip-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.tip-modal-close:hover {
+    opacity: 1;
+    background: transparent;
+}
+
+/* Title */
+.tip-modal-title {
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+/* Subtitle */
+.tip-modal-subtitle {
+    font-size: 0.85rem;
+    opacity: 0.5;
+    letter-spacing: 1px;
+    margin-bottom: 30px;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+/* Preset amount buttons */
+.tip-amounts {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.tip-amount-btn {
+    padding: 12px 20px;
+    border: 2px solid var(--border-color);
+    font-size: 1rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 70px;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+}
+
+.tip-amount-btn:hover,
+.tip-amount-btn.selected {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+/* Custom amount input */
+.tip-custom-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 25px;
+}
+
+.tip-custom-label {
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    opacity: 0.6;
+    color: var(--text-primary);
+}
+
+.tip-custom-input {
+    width: 100px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    text-align: center;
+    border: 2px solid var(--border-color);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+}
+
+.tip-custom-input::placeholder {
+    opacity: 0.3;
+}
+
+.tip-custom-input:focus {
+    outline: none;
+    border-color: var(--text-primary);
+}
+
+/* Submit button */
+.tip-submit-btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    border: 2px dashed var(--border-color);
+    font-size: 0.9rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+}
+
+.tip-submit-btn:hover:not(:disabled) {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+.tip-submit-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.tip-submit-btn:disabled:hover {
+    background: transparent;
+    color: var(--text-primary);
+}
+
+/* Error message */
+.tip-error {
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    margin-top: 12px;
+    min-height: 1.2em;
+}
+
+/* Success Banner */
+.tip-success-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 14px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-color);
+    text-align: center;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    z-index: 3000;
+    animation: tipBannerSlide 0.3s ease-out;
+}
+
+@keyframes tipBannerSlide {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+.tip-success-banner .banner-close {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.tip-success-banner .banner-close:hover {
+    opacity: 1;
+    background: transparent;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .tip-modal {
+        padding: 30px 20px;
+    }
+
+    .tip-amounts {
+        flex-wrap: wrap;
+    }
+
+    .tip-amount-btn {
+        flex: 1;
+        min-width: 60px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+}

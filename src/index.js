@@ -22,6 +22,7 @@ import publicMusic from './routes/public/music.js';
 import publicBlog from './routes/public/blog.js';
 import publicVideos from './routes/public/videos.js';
 import publicPhotos from './routes/public/photos.js';
+import tipRoutes from './routes/tip.js';
 import { adminAuth } from './middleware/auth.js';
 
 const api = new Hono();
@@ -135,6 +136,18 @@ api.route('/api/music', publicMusic);
 api.route('/api/blog', publicBlog);
 api.route('/api/videos', publicVideos);
 api.route('/api/photos', publicPhotos);
+
+// Tip (Stripe Checkout) — public, rate-limited
+api.use('/api/tip/*', async (c, next) => {
+    if (c.req.method !== 'POST') return next();
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`tip:${ip}`, 10, 60_000)) {
+        return c.json({ error: 'Too many requests. Try again in a minute.' }, 429);
+    }
+    await next();
+});
+api.route('/api/tip', tipRoutes);
 
 // File serving (public)
 api.route('/api/files', fileRoutes);

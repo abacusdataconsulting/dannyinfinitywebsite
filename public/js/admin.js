@@ -177,17 +177,19 @@
         if (!append) visitsBody.innerHTML = '';
 
         if (visits.length === 0 && !append) {
-            visitsBody.innerHTML = '<tr class="empty-row"><td colspan="10">No visits recorded yet</td></tr>';
+            visitsBody.innerHTML = '<tr class="empty-row"><td colspan="11">No visits recorded yet</td></tr>';
             return;
         }
 
         visits.forEach(function(visit) {
             var row = document.createElement('tr');
+            var pageUrl = visit.page_url || '/';
             row.innerHTML =
                 '<td title="' + (visit.visited_at || '') + '">' + formatDate(visit.visited_at) + '</td>' +
                 '<td title="' + (visit.client_timestamp || '') + (visit.timezone ? ' (' + visit.timezone + ')' : '') + '">' + formatClientTime(visit.client_timestamp) + '</td>' +
                 '<td>' + (visit.name || '-') + '</td>' +
                 '<td></td>' +
+                '<td>' + pageUrl + '</td>' +
                 '<td></td>' +
                 '<td>' + (visit.os || '-') + (visit.os_version ? ' ' + visit.os_version : '') + '</td>' +
                 '<td>' + (visit.browser || '-') + (visit.browser_version ? ' ' + visit.browser_version : '') + '</td>' +
@@ -198,8 +200,8 @@
             // Add badges
             row.cells[3].innerHTML = '';
             row.cells[3].appendChild(createLoginBadge(visit.login_type));
-            row.cells[4].innerHTML = '';
-            row.cells[4].appendChild(createDeviceBadge(visit.device_type));
+            row.cells[5].innerHTML = '';
+            row.cells[5].appendChild(createDeviceBadge(visit.device_type));
             visitsBody.appendChild(row);
         });
     }
@@ -207,7 +209,7 @@
     async function loadVisits() {
         if (isLoading) return;
         isLoading = true;
-        visitsBody.innerHTML = '<tr class="loading-row"><td colspan="10">Loading...</td></tr>';
+        visitsBody.innerHTML = '<tr class="loading-row"><td colspan="11">Loading...</td></tr>';
 
         try {
             var data = await fetchVisits(0, CONFIG.visitsPerPage);
@@ -218,7 +220,7 @@
             loadMoreBtn.disabled = !hasMoreVisits;
             if (!hasMoreVisits) loadMoreBtn.textContent = 'No More Visits';
         } catch (e) {
-            visitsBody.innerHTML = '<tr class="empty-row"><td colspan="10">Failed to load visits</td></tr>';
+            visitsBody.innerHTML = '<tr class="empty-row"><td colspan="11">Failed to load visits</td></tr>';
         }
         isLoading = false;
     }

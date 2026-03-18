@@ -41,7 +41,7 @@
         return 'Unknown';
     }
 
-    var payload = {
+    var payload = JSON.stringify({
         sessionId: sid,
         pageUrl: location.pathname + location.search,
         referrer: document.referrer || null,
@@ -52,19 +52,14 @@
         language: navigator.language,
         screenWidth: window.screen.width,
         screenHeight: window.screen.height
-    };
+    });
 
-    // Use sendBeacon for reliability (survives page unloads), fall back to fetch
-    var sent = false;
-    if (navigator.sendBeacon) {
-        sent = navigator.sendBeacon('/api/pageview', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-    }
-    if (!sent) {
-        fetch('/api/pageview', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            keepalive: true
-        }).catch(function() {});
-    }
+    // Use fetch as primary — reliable JSON Content-Type across all browsers.
+    // keepalive: true ensures the request completes even if the page navigates away.
+    fetch('/api/pageview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        keepalive: true
+    }).catch(function() {});
 })();

@@ -25,6 +25,10 @@ database_id = "088e6d5d-5424-4bce-af1d-bff30b0cda99"
 binding = "R2"
 bucket_name = "abacus-files"
 
+# Secrets (set via `wrangler secret put <NAME>`):
+# STRIPE_SECRET_KEY — Stripe API key (sk_live_... or sk_test_...)
+# STRIPE_WEBHOOK_SECRET — Stripe webhook signing secret (whsec_...)
+
 # Production environment overrides
 # [env.production]
 # vars = { ENVIRONMENT = "production" }

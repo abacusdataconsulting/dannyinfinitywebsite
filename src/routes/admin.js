@@ -10,21 +10,30 @@ const admin = new Hono();
 admin.use('*', adminAuth);
 
 /**
- * GET /api/admin/visits — Paginated visits
+ * GET /api/admin/visits — Paginated visits (auth visits + page views combined)
  */
 admin.get('/visits', async (c) => {
     const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100);
     const offset = parseInt(c.req.query('offset') || '0');
 
     const visits = await c.env.DB.prepare(`
-        SELECT *
+        SELECT
+            visited_at, client_timestamp, name, login_type, device_type,
+            os, os_version, browser, browser_version, browser_engine,
+            city, region, country, ip_address, '/' as page_url, referrer
         FROM visits
+        UNION ALL
+        SELECT
+            visited_at, NULL as client_timestamp, NULL as name, 'pageview' as login_type, device_type,
+            os, NULL as os_version, browser, NULL as browser_version, NULL as browser_engine,
+            city, region, country, ip_address, page_url, referrer
+        FROM page_views
         ORDER BY visited_at DESC
         LIMIT ? OFFSET ?
     `).bind(limit, offset).all();
 
     const countResult = await c.env.DB.prepare(
-        'SELECT COUNT(*) as total FROM visits'
+        'SELECT (SELECT COUNT(*) FROM visits) + (SELECT COUNT(*) FROM page_views) as total'
     ).first();
 
     return c.json({

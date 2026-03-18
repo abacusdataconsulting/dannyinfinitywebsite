@@ -6,6 +6,7 @@
     <title>Danny Infinity | Sheet Music</title>
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/sheet-music.css">
+    <link rel="stylesheet" href="css/tip-modal.css">
     <!-- PDF.js from CDN (legacy build exposes window.pdfjsLib) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- Google Analytics 4 — replace GA_MEASUREMENT_ID with your real ID (G-XXXXXXXXXX) -->
@@ -45,7 +46,7 @@
                     <p class="tip-title">Support the Music</p>
                     <p class="tip-description">If you enjoy the sheet music, consider leaving a tip to support future releases.</p>
                 </div>
-                <a href="#" class="tip-btn" id="global-tip-btn" data-stripe-link="YOUR_STRIPE_PAYMENT_LINK_HERE">[LEAVE A TIP]</a>
+                <a href="#" class="tip-btn" id="global-tip-btn">[LEAVE A TIP]</a>
             </div>
         </section>
 
@@ -63,7 +64,7 @@
                     <p class="preview-description" id="preview-description"></p>
                     <div class="preview-actions">
                         <a href="#" class="action-btn download-btn" id="download-btn">[DOWNLOAD PDF]</a>
-                        <a href="#" class="action-btn tip-action-btn" id="tip-action-btn" data-stripe-link="YOUR_STRIPE_PAYMENT_LINK_HERE">[LEAVE A TIP]</a>
+                        <a href="#" class="action-btn tip-action-btn" id="tip-action-btn">[LEAVE A TIP]</a>
                     </div>
                 </div>
             </div>
@@ -78,6 +79,7 @@
         </footer>
     </div>
 
+    <script src="js/tip-modal.js"></script>
     <script src="js/sheet-music.js"></script>
     <script src="js/tracker.js"></script>
 </body>

@@ -169,6 +169,11 @@
     color: var(--text-secondary);
 }
 
+.login-badge.pageview {
+    background-color: rgba(100, 180, 255, 0.2);
+    color: #64b4ff;
+}
+
 /* Device badges */
 .device-badge {
     display: inline-block;
