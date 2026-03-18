@@ -6,6 +6,9 @@
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/admin.css">
+    <!-- Google Analytics 4 — replace GA_MEASUREMENT_ID with your real ID (G-XXXXXXXXXX) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','GA_MEASUREMENT_ID');</script>
 </head>
 <body>
     <div class="admin-container">
@@ -19,6 +22,7 @@
 
         <nav class="admin-nav">
             <button class="nav-btn active" data-tab="visits">Visits</button>
+            <button class="nav-btn" data-tab="pageviews">Page Views</button>
             <button class="nav-btn" data-tab="users">Users</button>
             <button class="nav-btn" data-tab="stats">Stats</button>
             <button class="nav-btn" data-tab="sheet-music">Sheet Music</button>
@@ -61,6 +65,38 @@
 
                 <div class="load-more-container">
                     <button class="load-more-btn" id="load-more-btn">Load More</button>
+                </div>
+            </section>
+
+            <!-- Page Views Tab -->
+            <section class="tab-content" id="pageviews-tab">
+                <div class="section-header">
+                    <h2>Page Views</h2>
+                    <span class="visit-count" id="pageview-count"></span>
+                </div>
+
+                <div class="table-container">
+                    <table class="visits-table" id="pageviews-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Page</th>
+                                <th>Device</th>
+                                <th>OS</th>
+                                <th>Browser</th>
+                                <th>Location</th>
+                                <th>IP</th>
+                                <th>Referrer</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pageviews-body">
+                            <!-- Page views loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="load-more-container">
+                    <button class="load-more-btn" id="load-more-pv-btn">Load More</button>
                 </div>
             </section>
 

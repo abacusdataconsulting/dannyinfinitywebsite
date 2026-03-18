@@ -7,6 +7,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { csrf } from 'hono/csrf';
 import authRoutes from './routes/auth.js';
 import visitRoutes from './routes/visits.js';
+import pageviewRoutes from './routes/pageviews.js';
 import adminRoutes from './routes/admin.js';
 import uploadRoutes from './routes/upload.js';
 import fileRoutes from './routes/files.js';
@@ -117,6 +118,7 @@ api.use('/api/user/register', async (c, next) => {
 // ------------------------------------
 api.route('/api/user', authRoutes);
 api.route('/api/visit', visitRoutes);
+api.route('/api/pageview', pageviewRoutes);
 api.route('/api/admin', adminRoutes);
 
 // CMS admin routes

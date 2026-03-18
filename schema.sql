@@ -52,12 +52,35 @@ CREATE TABLE IF NOT EXISTS sessions (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- Page Views table — passive tracking for every page load across the site
+CREATE TABLE IF NOT EXISTS page_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT,
+    page_url TEXT NOT NULL,
+    referrer TEXT,
+    ip_address TEXT,
+    country TEXT,
+    city TEXT,
+    region TEXT,
+    user_agent TEXT,
+    device_type TEXT,
+    os TEXT,
+    browser TEXT,
+    language TEXT,
+    screen_width INTEGER,
+    screen_height INTEGER,
+    visited_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_users_name ON users(name);
 CREATE INDEX IF NOT EXISTS idx_visits_user_id ON visits(user_id);
 CREATE INDEX IF NOT EXISTS idx_visits_visited_at ON visits(visited_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_page_views_visited_at ON page_views(visited_at);
+CREATE INDEX IF NOT EXISTS idx_page_views_session_id ON page_views(session_id);
+CREATE INDEX IF NOT EXISTS idx_page_views_page_url ON page_views(page_url);
 
 -- Insert a guest user (no password)
 INSERT OR IGNORE INTO users (name, is_admin)

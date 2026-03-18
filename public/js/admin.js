@@ -12,6 +12,8 @@
     // State
     let currentVisitsOffset = 0;
     let hasMoreVisits = true;
+    let currentPVOffset = 0;
+    let hasMorePV = true;
     let isLoading = false;
 
     // Auth helper
@@ -60,6 +62,11 @@
     const tracksEditor = document.getElementById('tracks-editor');
     const tracksEditorTitle = document.getElementById('tracks-editor-title');
     const tracksList = document.getElementById('tracks-list');
+
+    // Page Views DOM
+    const pageviewsBody = document.getElementById('pageviews-body');
+    const pageviewCount = document.getElementById('pageview-count');
+    const loadMorePVBtn = document.getElementById('load-more-pv-btn');
 
     // Donations DOM
     const donationsStats = document.getElementById('donations-stats');
@@ -273,6 +280,79 @@
     }
 
     // =========================================
+    // PAGE VIEWS
+    // =========================================
+    async function fetchPageViews(offset, limit) {
+        var res = await fetch('/api/admin/pageviews?offset=' + offset + '&limit=' + limit, { headers: authHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch page views');
+        return res.json();
+    }
+
+    function renderPageViews(pvList, append) {
+        if (!append) pageviewsBody.innerHTML = '';
+        if (pvList.length === 0 && !append) {
+            pageviewsBody.innerHTML = '<tr class="empty-row"><td colspan="8">No page views recorded yet</td></tr>';
+            return;
+        }
+        pvList.forEach(function(pv) {
+            var row = document.createElement('tr');
+            var loc = [pv.city, pv.region, pv.country].filter(Boolean).join(', ');
+            var ref = pv.referrer || '-';
+            if (ref.length > 40) ref = ref.substring(0, 40) + '...';
+            row.innerHTML =
+                '<td title="' + (pv.visited_at || '') + '">' + formatDate(pv.visited_at) + '</td>' +
+                '<td>' + (pv.page_url || '-') + '</td>' +
+                '<td></td>' +
+                '<td>' + (pv.os || '-') + '</td>' +
+                '<td>' + (pv.browser || '-') + '</td>' +
+                '<td>' + (loc || '-') + '</td>' +
+                '<td>' + (pv.ip_address || '-') + '</td>' +
+                '<td title="' + (pv.referrer || '') + '">' + ref + '</td>';
+            row.cells[2].innerHTML = '';
+            row.cells[2].appendChild(createDeviceBadge(pv.device_type));
+            pageviewsBody.appendChild(row);
+        });
+    }
+
+    async function loadPageViews() {
+        if (isLoading) return;
+        isLoading = true;
+        pageviewsBody.innerHTML = '<tr class="loading-row"><td colspan="8">Loading...</td></tr>';
+        try {
+            var data = await fetchPageViews(0, CONFIG.visitsPerPage);
+            currentPVOffset = data.pageviews.length;
+            hasMorePV = data.hasMore;
+            renderPageViews(data.pageviews);
+            pageviewCount.textContent = 'Showing ' + data.pageviews.length + ' of ' + data.total;
+            loadMorePVBtn.disabled = !hasMorePV;
+            if (!hasMorePV) loadMorePVBtn.textContent = 'No More Page Views';
+        } catch (e) {
+            pageviewsBody.innerHTML = '<tr class="empty-row"><td colspan="8">Failed to load page views</td></tr>';
+        }
+        isLoading = false;
+    }
+
+    async function loadMorePageViews() {
+        if (isLoading || !hasMorePV) return;
+        isLoading = true;
+        loadMorePVBtn.disabled = true;
+        loadMorePVBtn.textContent = 'Loading...';
+        try {
+            var data = await fetchPageViews(currentPVOffset, CONFIG.visitsPerPage);
+            currentPVOffset += data.pageviews.length;
+            hasMorePV = data.hasMore;
+            renderPageViews(data.pageviews, true);
+            pageviewCount.textContent = 'Showing ' + currentPVOffset + ' of ' + data.total;
+            loadMorePVBtn.disabled = !hasMorePV;
+            loadMorePVBtn.textContent = hasMorePV ? 'Load More' : 'No More Page Views';
+        } catch (e) {
+            loadMorePVBtn.textContent = 'Failed - Try Again';
+            loadMorePVBtn.disabled = false;
+        }
+        isLoading = false;
+    }
+
+    // =========================================
     // STATS
     // =========================================
     async function loadStats() {
@@ -284,10 +364,13 @@
             statsGrid.innerHTML = '';
 
             var items = [
-                { label: 'Total Visits', value: stats.totalVisits },
-                { label: 'Unique Visitors', value: stats.uniqueVisitors },
+                { label: 'Total Page Views', value: stats.totalPageViews || 0 },
+                { label: 'Page Views Today', value: stats.pageViewsToday || 0 },
+                { label: 'Unique Sessions', value: stats.uniquePageSessions || 0 },
+                { label: 'Auth Visits', value: stats.totalVisits },
+                { label: 'Unique IPs (Auth)', value: stats.uniqueVisitors },
                 { label: 'Registered Users', value: stats.totalUsers },
-                { label: 'Visits Today', value: stats.visitsToday },
+                { label: 'Auth Visits Today', value: stats.visitsToday },
                 { label: 'Desktop', value: (stats.deviceStats || {}).desktop || 0 },
                 { label: 'Mobile', value: (stats.deviceStats || {}).mobile || 0 },
                 { label: 'Tablet', value: (stats.deviceStats || {}).tablet || 0 },
@@ -303,6 +386,32 @@
                     '<div class="stat-label">' + stat.label + '</div>';
                 statsGrid.appendChild(card);
             });
+
+            // Top Pages list
+            if (stats.topPages && stats.topPages.length > 0) {
+                var pagesCard = document.createElement('div');
+                pagesCard.className = 'stat-card stat-card-wide';
+                var pagesHtml = '<div class="stat-label" style="margin-bottom:8px;">Top Pages</div>';
+                stats.topPages.forEach(function(p) {
+                    pagesHtml += '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.85rem;">' +
+                        '<span>' + p.page_url + '</span><span style="opacity:0.7;">' + p.count + '</span></div>';
+                });
+                pagesCard.innerHTML = pagesHtml;
+                statsGrid.appendChild(pagesCard);
+            }
+
+            // Top Countries list
+            if (stats.topCountries && stats.topCountries.length > 0) {
+                var countriesCard = document.createElement('div');
+                countriesCard.className = 'stat-card stat-card-wide';
+                var countriesHtml = '<div class="stat-label" style="margin-bottom:8px;">Top Countries</div>';
+                stats.topCountries.forEach(function(c) {
+                    countriesHtml += '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.85rem;">' +
+                        '<span>' + c.country + '</span><span style="opacity:0.7;">' + c.count + '</span></div>';
+                });
+                countriesCard.innerHTML = countriesHtml;
+                statsGrid.appendChild(countriesCard);
+            }
         } catch (e) {
             statsGrid.innerHTML = '<div class="stat-card"><div class="stat-label">Failed to load stats</div></div>';
         }
@@ -1587,7 +1696,8 @@
         // Lazy-load tab data
         if (!tabLoaded[tabName]) {
             tabLoaded[tabName] = true;
-            if (tabName === 'users') loadUsers();
+            if (tabName === 'pageviews') loadPageViews();
+            else if (tabName === 'users') loadUsers();
             else if (tabName === 'stats') loadStats();
             else if (tabName === 'sheet-music') loadSheets();
             else if (tabName === 'music') loadAlbums();
@@ -1623,6 +1733,7 @@
 
         // Event listeners
         loadMoreBtn.addEventListener('click', loadMoreVisits);
+        loadMorePVBtn.addEventListener('click', loadMorePageViews);
         logoutBtn.addEventListener('click', logout);
 
         navBtns.forEach(function(btn) {

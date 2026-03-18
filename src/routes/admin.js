@@ -103,6 +103,36 @@ admin.get('/stats', async (c) => {
         LIMIT 5
     `).all();
 
+    // Page view stats
+    const totalPageViews = await c.env.DB.prepare(
+        'SELECT COUNT(*) as count FROM page_views'
+    ).first();
+
+    const pageViewsToday = await c.env.DB.prepare(
+        "SELECT COUNT(*) as count FROM page_views WHERE date(visited_at) = date('now')"
+    ).first();
+
+    const uniquePageSessions = await c.env.DB.prepare(
+        'SELECT COUNT(DISTINCT session_id) as count FROM page_views WHERE session_id IS NOT NULL'
+    ).first();
+
+    const topPages = await c.env.DB.prepare(`
+        SELECT page_url, COUNT(*) as count
+        FROM page_views
+        GROUP BY page_url
+        ORDER BY count DESC
+        LIMIT 10
+    `).all();
+
+    const topCountries = await c.env.DB.prepare(`
+        SELECT country, COUNT(*) as count
+        FROM page_views
+        WHERE country IS NOT NULL
+        GROUP BY country
+        ORDER BY count DESC
+        LIMIT 10
+    `).all();
+
     // Convert arrays to objects
     const deviceObj = {};
     deviceStats.results.forEach(d => { deviceObj[d.device_type] = d.count; });
@@ -119,6 +149,38 @@ admin.get('/stats', async (c) => {
         loginStats: loginObj,
         osStats: osStats.results,
         browserStats: browserStats.results,
+        totalPageViews: totalPageViews.count,
+        pageViewsToday: pageViewsToday.count,
+        uniquePageSessions: uniquePageSessions.count,
+        topPages: topPages.results,
+        topCountries: topCountries.results,
+    });
+});
+
+/**
+ * GET /api/admin/pageviews — Paginated page views
+ */
+admin.get('/pageviews', async (c) => {
+    const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100);
+    const offset = parseInt(c.req.query('offset') || '0');
+
+    const pageviews = await c.env.DB.prepare(`
+        SELECT *
+        FROM page_views
+        ORDER BY visited_at DESC
+        LIMIT ? OFFSET ?
+    `).bind(limit, offset).all();
+
+    const countResult = await c.env.DB.prepare(
+        'SELECT COUNT(*) as total FROM page_views'
+    ).first();
+
+    return c.json({
+        pageviews: pageviews.results,
+        total: countResult.total,
+        hasMore: offset + pageviews.results.length < countResult.total,
+        limit,
+        offset,
     });
 });
 

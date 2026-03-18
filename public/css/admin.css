@@ -253,6 +253,11 @@
     text-align: center;
 }
 
+.stat-card-wide {
+    grid-column: span 2;
+    text-align: left;
+}
+
 .stat-value {
     font-size: 2.5rem;
     font-weight: 700;
