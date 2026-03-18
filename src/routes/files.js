@@ -34,26 +34,55 @@ files.get('/:folder/:filename', async (c) => {
     const rangeHeader = c.req.header('Range');
 
     // Range requests bypass cache (needed for video/audio seeking)
+    // Safari sends an initial "bytes=0-1" probe — must return exact 206 with Content-Range
     if (rangeHeader) {
-        const object = await c.env.R2.get(r2Key, { range: c.req.raw.headers });
-        if (!object) {
-            return c.json({ error: 'File not found' }, 404);
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+        // Parse Range header explicitly (Safari compat — don't rely on R2 header extraction)
+        const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+        if (!match) {
+            // Malformed range — fetch full object and return 200
+            const object = await c.env.R2.get(r2Key);
+            if (!object) return c.json({ error: 'File not found' }, 404);
+            return new Response(object.body, {
+                status: 200,
+                headers: {
+                    'Content-Type': contentType,
+                    'Content-Length': String(object.size),
+                    'Accept-Ranges': 'bytes',
+                    'Cache-Control': 'public, max-age=31536000, immutable',
+                },
+            });
         }
 
-        const contentType = MIME_TYPES[ext] || object.httpMetadata?.contentType || 'application/octet-stream';
-        const headers = {
-            'Content-Type': contentType,
-            'Accept-Ranges': 'bytes',
-            'Cache-Control': 'public, max-age=31536000, immutable',
-        };
+        const rangeStart = parseInt(match[1]);
+        const rangeEnd = match[2] ? parseInt(match[2]) : undefined;
 
-        if (object.range) {
-            const { offset, length } = object.range;
-            headers['Content-Range'] = `bytes ${offset}-${offset + length - 1}/${object.size}`;
-            headers['Content-Length'] = String(length);
+        // Build explicit R2Range so response always has predictable fields
+        const r2Range = { offset: rangeStart };
+        if (rangeEnd !== undefined) {
+            r2Range.length = rangeEnd - rangeStart + 1;
         }
 
-        return new Response(object.body, { status: 206, headers });
+        const object = await c.env.R2.get(r2Key, { range: r2Range });
+        if (!object) return c.json({ error: 'File not found' }, 404);
+
+        const totalSize = object.size;  // always full file size
+        const actualEnd = rangeEnd !== undefined
+            ? Math.min(rangeEnd, totalSize - 1)
+            : totalSize - 1;
+        const contentLength = actualEnd - rangeStart + 1;
+
+        return new Response(object.body, {
+            status: 206,
+            headers: {
+                'Content-Type': contentType,
+                'Content-Range': `bytes ${rangeStart}-${actualEnd}/${totalSize}`,
+                'Content-Length': String(contentLength),
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'public, max-age=31536000, immutable',
+            },
+        });
     }
 
     // --- Full-file requests: serve from edge cache when possible ---

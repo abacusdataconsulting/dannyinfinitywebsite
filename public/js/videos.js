@@ -37,24 +37,99 @@
     }
 
     /**
+     * Capture a single frame from a video URL and return it as a data-URL image.
+     *
+     * Safari iOS refuses to load video data for off-DOM elements. The fix is to
+     * insert a hidden, muted, playsinline video into the DOM and call play().
+     * Safari iOS explicitly allows autoplay for muted+playsinline videos, which
+     * forces the browser to fetch frame data so we can draw it to a canvas.
+     */
+    function captureVideoFrame(src, callback) {
+        var video = document.createElement('video');
+        video.muted = true;
+        video.setAttribute('muted', '');          // belt-and-suspenders for Safari
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.preload = 'auto';
+
+        // Must be in the DOM for Safari iOS to autoplay — hide it off-screen
+        video.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0.001;pointer-events:none;z-index:-9999';
+        document.body.appendChild(video);
+
+        var done = false;
+        function finish(dataUrl, w, h, duration) {
+            if (done) return;
+            done = true;
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+            if (video.parentNode) video.parentNode.removeChild(video);
+            callback(dataUrl, w, h, duration);
+        }
+
+        video.addEventListener('seeked', function() {
+            try {
+                var canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 320;
+                canvas.height = video.videoHeight || 180;
+                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                var dur = (video.duration && isFinite(video.duration)) ? video.duration : 0;
+                finish(canvas.toDataURL('image/jpeg', 0.7), video.videoWidth, video.videoHeight, dur);
+            } catch (e) {
+                finish(null);
+            }
+        });
+
+        video.addEventListener('loadeddata', function() {
+            video.pause();
+            video.currentTime = 0.1;
+        });
+
+        video.addEventListener('error', function() { finish(null); });
+        setTimeout(function() { finish(null); }, 12000);
+
+        video.src = src;
+        // Trigger load — muted+playsinline autoplay is allowed on Safari iOS
+        video.play().catch(function() {});
+    }
+
+    /**
      * Auto-detect duration from a local video URL
      * Returns a promise that resolves with the duration string
+     * Uses loadeddata event for Safari compatibility
      */
     function detectVideoDuration(src) {
         return new Promise(function(resolve) {
             var video = document.createElement('video');
             video.preload = 'metadata';
-            video.onloadedmetadata = function() {
-                var secs = Math.floor(video.duration);
-                var mins = Math.floor(secs / 60);
-                var remainder = secs % 60;
-                resolve(mins + ':' + String(remainder).padStart(2, '0'));
-                video.src = '';
-            };
-            video.onerror = function() {
-                resolve(null);
-                video.src = '';
-            };
+            video.muted = true;
+            video.playsInline = true;
+
+            var resolved = false;
+            function done(dur) {
+                if (resolved) return;
+                resolved = true;
+                resolve(dur);
+                video.removeAttribute('src');
+                video.load();
+            }
+
+            function extractDuration() {
+                if (video.duration && isFinite(video.duration)) {
+                    var secs = Math.floor(video.duration);
+                    var mins = Math.floor(secs / 60);
+                    var remainder = secs % 60;
+                    done(mins + ':' + String(remainder).padStart(2, '0'));
+                }
+            }
+
+            video.onloadedmetadata = extractDuration;
+            video.onloadeddata = extractDuration;
+            video.onerror = function() { done(null); };
+            // Timeout fallback — Safari may stall on metadata
+            setTimeout(function() { done(null); }, 8000);
+
             video.src = src;
         });
     }
@@ -78,11 +153,13 @@
             }
 
             var content;
+            var needsFrameCapture = false;
             if (thumbnailSrc) {
                 content = '<img src="' + thumbnailSrc + '" alt="' + video.title + '">';
             } else if (video.videoType === 'local' && video.videoSrc) {
-                // Show first frame — #t=0.1 media fragment forces mobile Safari to render a frame
-                content = '<video class="video-thumb" src="' + video.videoSrc + '#t=0.1" muted preload="metadata" playsinline webkit-playsinline></video>';
+                // Transparent pixel placeholder — captureVideoFrame will replace with real frame
+                content = '<img class="video-thumb" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="' + video.title + '">';
+                needsFrameCapture = true;
             } else {
                 content = '<div class="video-placeholder"><span class="placeholder-text">' + video.title + '</span></div>';
             }
@@ -106,19 +183,31 @@
 
             videoGrid.appendChild(item);
 
-            // Once metadata loads, seek to show a frame and set the real aspect ratio
-            var thumb = item.querySelector('.video-thumb');
-            if (thumb) {
-                thumb.addEventListener('loadedmetadata', function() {
-                    this.currentTime = 0.1;
-                    if (this.videoWidth && this.videoHeight) {
-                        this.style.aspectRatio = this.videoWidth + ' / ' + this.videoHeight;
-                    }
-                });
-            }
-
-            // Auto-detect duration for local videos if not set
-            if ((!video.duration || video.duration === '0:00') && video.videoType === 'local' && video.videoSrc) {
+            // Capture first frame via offscreen video + canvas (works reliably in Safari)
+            if (needsFrameCapture) {
+                (function(thumbItem, videoSrc, videoIdx) {
+                    captureVideoFrame(videoSrc, function(dataUrl, w, h, duration) {
+                        var thumbImg = thumbItem.querySelector('.video-thumb');
+                        if (thumbImg && dataUrl) {
+                            thumbImg.src = dataUrl;
+                            if (w && h) {
+                                thumbImg.style.aspectRatio = w + ' / ' + h;
+                            }
+                        }
+                        // Also backfill duration if we got it from the same load
+                        if (duration && (!videosData[videoIdx].duration || videosData[videoIdx].duration === '0:00')) {
+                            var secs = Math.floor(duration);
+                            var mins = Math.floor(secs / 60);
+                            var remainder = secs % 60;
+                            var dur = mins + ':' + String(remainder).padStart(2, '0');
+                            videosData[videoIdx].duration = dur;
+                            var badge = document.getElementById('dur-' + videoIdx);
+                            if (badge) badge.textContent = dur;
+                        }
+                    });
+                })(item, video.videoSrc, idx);
+            } else if ((!video.duration || video.duration === '0:00') && video.videoType === 'local' && video.videoSrc) {
+                // Detect duration for local videos that already have a thumbnail image
                 (function(videoIdx) {
                     detectVideoDuration(video.videoSrc).then(function(dur) {
                         if (dur) {
@@ -188,14 +277,27 @@
             } else if (video.videoType === 'vimeo') {
                 videoPlayer.innerHTML = '<iframe src="https://player.vimeo.com/video/' + video.videoSrc + '?autoplay=1&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
             } else if (video.videoType === 'local') {
-                videoPlayer.innerHTML = '<video controls playsinline webkit-playsinline preload="auto"><source src="' + video.videoSrc + '" type="video/mp4">Your browser does not support the video tag.</video>';
-                // Explicitly play after DOM insertion — preserves user gesture from click
-                var vid = videoPlayer.querySelector('video');
-                if (vid) {
-                    vid.play().catch(function() {
-                        // Autoplay blocked — user can tap play manually
-                    });
-                }
+                // Build video element programmatically — Safari needs load() called explicitly
+                var vid = document.createElement('video');
+                vid.controls = true;
+                vid.playsInline = true;
+                vid.setAttribute('webkit-playsinline', '');
+                vid.preload = 'auto';
+
+                var source = document.createElement('source');
+                source.src = video.videoSrc;
+                // Match type to actual file extension
+                source.type = video.videoSrc.match(/\.webm(\?|#|$)/i) ? 'video/webm' : 'video/mp4';
+                vid.appendChild(source);
+
+                videoPlayer.innerHTML = '';
+                videoPlayer.appendChild(vid);
+
+                // Explicit load() is required for Safari to begin fetching
+                vid.load();
+                vid.play().catch(function() {
+                    // Autoplay blocked — user can tap play manually
+                });
             }
         } else {
             videoPlayer.innerHTML = '<div class="player-placeholder"><span class="play-icon" style="font-size:3rem;margin-left:8px;">&#9654;</span><p>Video Player</p></div>';
