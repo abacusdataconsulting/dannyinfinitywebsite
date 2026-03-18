@@ -5,6 +5,11 @@
 (function() {
     'use strict';
 
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     // DOM Elements
     var videoGrid = document.getElementById('video-grid');
     var filterBtns = document.querySelectorAll('.filter-btn');
@@ -155,13 +160,13 @@
             var content;
             var needsFrameCapture = false;
             if (thumbnailSrc) {
-                content = '<img src="' + thumbnailSrc + '" alt="' + video.title + '">';
+                content = '<img src="' + escapeHtml(thumbnailSrc) + '" alt="' + escapeHtml(video.title) + '">';
             } else if (video.videoType === 'local' && video.videoSrc) {
                 // Transparent pixel placeholder — captureVideoFrame will replace with real frame
-                content = '<img class="video-thumb" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="' + video.title + '">';
+                content = '<img class="video-thumb" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="' + escapeHtml(video.title) + '">';
                 needsFrameCapture = true;
             } else {
-                content = '<div class="video-placeholder"><span class="placeholder-text">' + video.title + '</span></div>';
+                content = '<div class="video-placeholder"><span class="placeholder-text">' + escapeHtml(video.title) + '</span></div>';
             }
 
             var durationBadge = video.duration && video.duration !== '0:00'
@@ -173,8 +178,8 @@
                 '<div class="play-button"><span class="play-icon">&#9654;</span></div>' +
                 durationBadge +
                 '<div class="video-overlay">' +
-                    '<span class="video-overlay-title">' + video.title + '</span>' +
-                    '<span class="video-overlay-meta">' + (categoryLabels[video.category] || video.category) + ' // ' + video.year + '</span>' +
+                    '<span class="video-overlay-title">' + escapeHtml(video.title) + '</span>' +
+                    '<span class="video-overlay-meta">' + escapeHtml(categoryLabels[video.category] || video.category) + ' // ' + escapeHtml(video.year) + '</span>' +
                 '</div>';
 
             item.addEventListener('click', function() {
@@ -273,9 +278,19 @@
         // Load video content
         if (video.videoSrc && video.videoType) {
             if (video.videoType === 'youtube') {
-                videoPlayer.innerHTML = '<iframe src="https://www.youtube.com/embed/' + video.videoSrc + '?autoplay=1&playsinline=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+                var ytIframe = document.createElement('iframe');
+                ytIframe.src = 'https://www.youtube.com/embed/' + encodeURIComponent(video.videoSrc) + '?autoplay=1&playsinline=1';
+                ytIframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+                ytIframe.allowFullscreen = true;
+                videoPlayer.innerHTML = '';
+                videoPlayer.appendChild(ytIframe);
             } else if (video.videoType === 'vimeo') {
-                videoPlayer.innerHTML = '<iframe src="https://player.vimeo.com/video/' + video.videoSrc + '?autoplay=1&playsinline=1" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+                var vimeoIframe = document.createElement('iframe');
+                vimeoIframe.src = 'https://player.vimeo.com/video/' + encodeURIComponent(video.videoSrc) + '?autoplay=1&playsinline=1';
+                vimeoIframe.allow = 'autoplay; fullscreen; picture-in-picture';
+                vimeoIframe.allowFullscreen = true;
+                videoPlayer.innerHTML = '';
+                videoPlayer.appendChild(vimeoIframe);
             } else if (video.videoType === 'local') {
                 // Build video element programmatically — Safari needs load() called explicitly
                 var vid = document.createElement('video');

@@ -38,7 +38,8 @@ api.use('/api/*', cors({
         if (!origin) return '*';
         if (c.env.ENVIRONMENT === 'development') return origin;
         // In production, restrict to your actual domain
-        const allowed = c.env.ALLOWED_ORIGIN || '*';
+        const allowed = c.env.ALLOWED_ORIGIN;
+        if (!allowed || allowed === '*') return null;
         return origin === allowed ? origin : null;
     },
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -110,6 +111,27 @@ api.use('/api/user/register', async (c, next) => {
     const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
     if (rateLimit(`register:${ip}`, 5, 60_000)) {
         return c.json({ error: 'Too many registration attempts. Try again in a minute.' }, 429);
+    }
+    await next();
+});
+
+// Rate limit visit and pageview logging
+api.use('/api/visit', async (c, next) => {
+    if (c.req.method !== 'POST') return next();
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`visit:${ip}`, 30, 60_000)) {
+        return c.json({ error: 'Too many requests' }, 429);
+    }
+    await next();
+});
+
+api.use('/api/pageview', async (c, next) => {
+    if (c.req.method !== 'POST') return next();
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`pageview:${ip}`, 60, 60_000)) {
+        return c.json({ error: 'Too many requests' }, 429);
     }
     await next();
 });

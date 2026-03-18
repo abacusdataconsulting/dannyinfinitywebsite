@@ -1,6 +1,11 @@
 (function() {
     'use strict';
 
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     // ============================
     // MUSIC DATA (loaded from API)
     // ============================
@@ -61,13 +66,13 @@
             card.dataset.albumId = album.id;
             card.innerHTML =
                 '<div class="album-art">' +
-                    '<div class="album-art-gradient ' + album.gradient + '">' +
-                        '<span class="album-art-label">' + album.type.toUpperCase() + '</span>' +
+                    '<div class="album-art-gradient ' + escapeHtml(album.gradient) + '">' +
+                        '<span class="album-art-label">' + escapeHtml(album.type.toUpperCase()) + '</span>' +
                     '</div>' +
                 '</div>' +
                 '<div class="album-card-info">' +
-                    '<div class="album-card-title">' + album.title + '</div>' +
-                    '<div class="album-card-meta">' + album.type + ' // ' + album.year + ' // ' + album.tracks.length + ' tracks</div>' +
+                    '<div class="album-card-title">' + escapeHtml(album.title) + '</div>' +
+                    '<div class="album-card-meta">' + escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + ' // ' + album.tracks.length + ' tracks</div>' +
                 '</div>';
             card.addEventListener('click', function() {
                 openAlbum(album);
@@ -119,9 +124,9 @@
                     '<svg width="16" height="16" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>' +
                 '</span>' +
                 '<div class="track-row-info">' +
-                    '<span class="track-row-title">' + track.title + '</span>' +
+                    '<span class="track-row-title">' + escapeHtml(track.title) + '</span>' +
                 '</div>' +
-                '<span class="track-row-duration">' + track.duration + '</span>';
+                '<span class="track-row-duration">' + escapeHtml(track.duration) + '</span>';
             row.addEventListener('click', function() {
                 playTrack(index);
             });
@@ -137,11 +142,11 @@
             card.className = 'rec-card';
             card.innerHTML =
                 '<div class="rec-art">' +
-                    '<div class="rec-art-gradient ' + album.gradient + '"></div>' +
+                    '<div class="rec-art-gradient ' + escapeHtml(album.gradient) + '"></div>' +
                 '</div>' +
                 '<div class="rec-info">' +
-                    '<div class="rec-title">' + album.title + '</div>' +
-                    '<div class="rec-meta">' + album.type + ' // ' + album.year + '</div>' +
+                    '<div class="rec-title">' + escapeHtml(album.title) + '</div>' +
+                    '<div class="rec-meta">' + escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + '</div>' +
                 '</div>';
             card.addEventListener('click', function() {
                 stopPlayback();

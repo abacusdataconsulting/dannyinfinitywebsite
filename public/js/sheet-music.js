@@ -1,6 +1,11 @@
 (function() {
     'use strict';
 
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     // ============================
     // SHEET MUSIC DATA (loaded from API)
     // ============================
@@ -46,13 +51,13 @@
 
             card.innerHTML =
                 '<div class="sheet-info">' +
-                    '<div class="sheet-title">' + sheet.title + '</div>' +
-                    '<div class="sheet-meta">' + sheet.arrangement + ' // ' + sheet.year + '</div>' +
+                    '<div class="sheet-title">' + escapeHtml(sheet.title) + '</div>' +
+                    '<div class="sheet-meta">' + escapeHtml(sheet.arrangement) + ' // ' + escapeHtml(sheet.year) + '</div>' +
                 '</div>' +
-                '<div class="sheet-preview" id="preview-' + sheet.id + '">' +
+                '<div class="sheet-preview" id="preview-' + escapeHtml(sheet.id) + '">' +
                     '<div class="sheet-placeholder">' +
                         '<span class="sheet-placeholder-icon">&#9835;</span>' +
-                        '<span class="sheet-placeholder-text">' + sheet.pages + ' pages</span>' +
+                        '<span class="sheet-placeholder-text">' + escapeHtml(sheet.pages) + ' pages</span>' +
                     '</div>' +
                 '</div>' +
                 '<div class="sheet-see-more">' +
@@ -147,10 +152,10 @@
 
         // Build detail fields conditionally
         var fields = '';
-        if (sheet.composer) fields += '<p class="preview-field"><span class="field-label">Composer:</span> ' + sheet.composer + '</p>';
-        if (sheet.arrangement) fields += '<p class="preview-field"><span class="field-label">Arrangement:</span> ' + sheet.arrangement + '</p>';
-        if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Date:</span> ' + sheet.year + '</p>';
-        if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + sheet.pages + '</p>';
+        if (sheet.composer) fields += '<p class="preview-field"><span class="field-label">Composer:</span> ' + escapeHtml(sheet.composer) + '</p>';
+        if (sheet.arrangement) fields += '<p class="preview-field"><span class="field-label">Arrangement:</span> ' + escapeHtml(sheet.arrangement) + '</p>';
+        if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Date:</span> ' + escapeHtml(sheet.year) + '</p>';
+        if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + escapeHtml(sheet.pages) + '</p>';
         previewFields.innerHTML = fields;
 
         previewDescription.textContent = sheet.description;

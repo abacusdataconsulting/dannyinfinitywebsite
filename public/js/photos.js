@@ -5,6 +5,11 @@
 (function() {
     'use strict';
 
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     // DOM Elements
     var galleryGrid = document.getElementById('gallery-grid');
     var filterBtns = document.querySelectorAll('.filter-btn');
@@ -37,14 +42,14 @@
             var orientClass = photo.orientation === 'portrait' ? ' portrait' : (photo.orientation === 'square' ? ' square' : '');
 
             var content = photo.imageUrl
-                ? '<img src="' + photo.imageUrl + '" alt="' + photo.title + '">'
-                : '<div class="gallery-placeholder' + orientClass + '"><span class="placeholder-text">[' + photo.category.toUpperCase() + '_' + String(photo.id).padStart(3, '0') + ']</span></div>';
+                ? '<img src="' + escapeHtml(photo.imageUrl) + '" alt="' + escapeHtml(photo.title) + '">'
+                : '<div class="gallery-placeholder' + orientClass + '"><span class="placeholder-text">[' + escapeHtml(photo.category.toUpperCase()) + '_' + String(photo.id).padStart(3, '0') + ']</span></div>';
 
             item.innerHTML =
                 content +
                 '<div class="gallery-overlay">' +
-                    '<span class="photo-title">' + photo.title + '</span>' +
-                    '<span class="photo-date">' + (photo.date ? photo.date.split('-')[0] : '') + '</span>' +
+                    '<span class="photo-title">' + escapeHtml(photo.title) + '</span>' +
+                    '<span class="photo-date">' + escapeHtml(photo.date ? photo.date.split('-')[0] : '') + '</span>' +
                 '</div>';
 
             item.addEventListener('click', function() {

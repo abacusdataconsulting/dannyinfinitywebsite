@@ -18,9 +18,22 @@ tip.post('/create-session', async (c) => {
         return c.json({ error: 'Amount must be between $1.00 and $1,000.00' }, 400);
     }
 
+    const amount_raw = body.amount;
+    if (typeof amount_raw !== 'number' || !Number.isInteger(amount_raw)) {
+        return c.json({ error: 'Amount must be a whole number of cents' }, 400);
+    }
+
     const sheetMusicId = body.sheetMusicId ? String(body.sheetMusicId) : '';
     const sheetTitle = body.sheetTitle || '';
-    const returnPath = body.returnPath || '/sheet-music.html';
+
+    // Validate returnPath: must be a relative path, no protocol or double-slash
+    let returnPath = '/sheet-music.html';
+    if (body.returnPath && typeof body.returnPath === 'string'
+        && body.returnPath.startsWith('/')
+        && !body.returnPath.startsWith('//')
+        && !/^\/[a-z]+:/i.test(body.returnPath)) {
+        returnPath = body.returnPath;
+    }
 
     const productName = sheetTitle
         ? 'Tip — ' + sheetTitle

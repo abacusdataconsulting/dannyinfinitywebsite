@@ -24,6 +24,7 @@ auth.get('/check/:name', async (c) => {
         });
     }
 
+    // Return same shape to avoid timing-based enumeration
     return c.json({ recognized: false });
 });
 
@@ -135,6 +136,20 @@ auth.post('/login', async (c) => {
             isAdmin: Boolean(user.is_admin),
         },
     });
+});
+
+/**
+ * POST /api/user/logout — Revoke session token
+ */
+auth.post('/logout', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        await c.env.DB.prepare(
+            'DELETE FROM sessions WHERE token = ?'
+        ).bind(token).run();
+    }
+    return c.json({ success: true });
 });
 
 export default auth;

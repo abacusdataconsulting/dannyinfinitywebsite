@@ -5,6 +5,11 @@
 (function() {
     'use strict';
 
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     const CONFIG = {
         visitsPerPage: 50
     };
@@ -185,17 +190,17 @@
             var row = document.createElement('tr');
             var pageUrl = visit.page_url || '/';
             row.innerHTML =
-                '<td title="' + (visit.visited_at || '') + '">' + formatDate(visit.visited_at) + '</td>' +
-                '<td title="' + (visit.client_timestamp || '') + (visit.timezone ? ' (' + visit.timezone + ')' : '') + '">' + formatClientTime(visit.client_timestamp) + '</td>' +
-                '<td>' + (visit.name || '-') + '</td>' +
+                '<td title="' + escapeHtml(visit.visited_at) + '">' + formatDate(visit.visited_at) + '</td>' +
+                '<td title="' + escapeHtml(visit.client_timestamp) + (visit.timezone ? ' (' + escapeHtml(visit.timezone) + ')' : '') + '">' + formatClientTime(visit.client_timestamp) + '</td>' +
+                '<td>' + escapeHtml(visit.name || '-') + '</td>' +
                 '<td></td>' +
-                '<td>' + pageUrl + '</td>' +
+                '<td>' + escapeHtml(pageUrl) + '</td>' +
                 '<td></td>' +
-                '<td>' + (visit.os || '-') + (visit.os_version ? ' ' + visit.os_version : '') + '</td>' +
-                '<td>' + (visit.browser || '-') + (visit.browser_version ? ' ' + visit.browser_version : '') + '</td>' +
-                '<td class="engine-cell">' + (visit.browser_engine || '-') + '</td>' +
-                '<td>' + [visit.city, visit.region, visit.country].filter(Boolean).join(', ') + '</td>' +
-                '<td>' + (visit.ip_address || '-') + '</td>';
+                '<td>' + escapeHtml(visit.os || '-') + (visit.os_version ? ' ' + escapeHtml(visit.os_version) : '') + '</td>' +
+                '<td>' + escapeHtml(visit.browser || '-') + (visit.browser_version ? ' ' + escapeHtml(visit.browser_version) : '') + '</td>' +
+                '<td class="engine-cell">' + escapeHtml(visit.browser_engine || '-') + '</td>' +
+                '<td>' + escapeHtml([visit.city, visit.region, visit.country].filter(Boolean).join(', ')) + '</td>' +
+                '<td>' + escapeHtml(visit.ip_address || '-') + '</td>';
 
             // Add badges
             row.cells[3].innerHTML = '';
@@ -265,8 +270,8 @@
             data.users.forEach(function(user) {
                 var row = document.createElement('tr');
                 row.innerHTML =
-                    '<td>' + user.id + '</td>' +
-                    '<td>' + user.name + '</td>' +
+                    '<td>' + escapeHtml(user.id) + '</td>' +
+                    '<td>' + escapeHtml(user.name) + '</td>' +
                     '<td></td>' +
                     '<td>' + (user.has_password ? 'Yes' : 'No') + '</td>' +
                     '<td>' + formatDate(user.created_at) + '</td>' +
@@ -302,14 +307,14 @@
             var ref = pv.referrer || '-';
             if (ref.length > 40) ref = ref.substring(0, 40) + '...';
             row.innerHTML =
-                '<td title="' + (pv.visited_at || '') + '">' + formatDate(pv.visited_at) + '</td>' +
-                '<td>' + (pv.page_url || '-') + '</td>' +
+                '<td title="' + escapeHtml(pv.visited_at) + '">' + formatDate(pv.visited_at) + '</td>' +
+                '<td>' + escapeHtml(pv.page_url || '-') + '</td>' +
                 '<td></td>' +
-                '<td>' + (pv.os || '-') + '</td>' +
-                '<td>' + (pv.browser || '-') + '</td>' +
-                '<td>' + (loc || '-') + '</td>' +
-                '<td>' + (pv.ip_address || '-') + '</td>' +
-                '<td title="' + (pv.referrer || '') + '">' + ref + '</td>';
+                '<td>' + escapeHtml(pv.os || '-') + '</td>' +
+                '<td>' + escapeHtml(pv.browser || '-') + '</td>' +
+                '<td>' + escapeHtml(loc || '-') + '</td>' +
+                '<td>' + escapeHtml(pv.ip_address || '-') + '</td>' +
+                '<td title="' + escapeHtml(pv.referrer) + '">' + escapeHtml(ref) + '</td>';
             row.cells[2].innerHTML = '';
             row.cells[2].appendChild(createDeviceBadge(pv.device_type));
             pageviewsBody.appendChild(row);
@@ -396,7 +401,7 @@
                 var pagesHtml = '<div class="stat-label" style="margin-bottom:8px;">Top Pages</div>';
                 stats.topPages.forEach(function(p) {
                     pagesHtml += '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.85rem;">' +
-                        '<span>' + p.page_url + '</span><span style="opacity:0.7;">' + p.count + '</span></div>';
+                        '<span>' + escapeHtml(p.page_url) + '</span><span style="opacity:0.7;">' + escapeHtml(p.count) + '</span></div>';
                 });
                 pagesCard.innerHTML = pagesHtml;
                 statsGrid.appendChild(pagesCard);
@@ -409,7 +414,7 @@
                 var countriesHtml = '<div class="stat-label" style="margin-bottom:8px;">Top Countries</div>';
                 stats.topCountries.forEach(function(c) {
                     countriesHtml += '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:0.85rem;">' +
-                        '<span>' + c.country + '</span><span style="opacity:0.7;">' + c.count + '</span></div>';
+                        '<span>' + escapeHtml(c.country) + '</span><span style="opacity:0.7;">' + escapeHtml(c.count) + '</span></div>';
                 });
                 countriesCard.innerHTML = countriesHtml;
                 statsGrid.appendChild(countriesCard);
@@ -455,9 +460,9 @@
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
-                    '<div class="cms-item-title">' + sheet.title + '</div>' +
+                    '<div class="cms-item-title">' + escapeHtml(sheet.title) + '</div>' +
                     '<div class="cms-item-meta">' +
-                        sheet.arrangement + ' // ' + sheet.year + ' // ' + sheet.pages + ' pages' +
+                        escapeHtml(sheet.arrangement) + ' // ' + escapeHtml(sheet.year) + ' // ' + escapeHtml(sheet.pages) + ' pages' +
                         ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span> ' +
                         pdfStatus +
                     '</div>' +
@@ -703,9 +708,9 @@
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
-                    '<div class="cms-item-title">' + album.title + '</div>' +
+                    '<div class="cms-item-title">' + escapeHtml(album.title) + '</div>' +
                     '<div class="cms-item-meta">' +
-                        album.type + ' // ' + album.year + ' // ' + (album.trackCount || 0) + ' tracks' +
+                        escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + ' // ' + escapeHtml(album.trackCount || 0) + ' tracks' +
                         ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span>' +
                     '</div>' +
                 '</div>' +
@@ -874,8 +879,8 @@
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
-                    '<div class="cms-item-title">' + track.track_number + '. ' + track.title + '</div>' +
-                    '<div class="cms-item-meta">' + track.duration + ' ' + audioTag + '</div>' +
+                    '<div class="cms-item-title">' + escapeHtml(track.track_number) + '. ' + escapeHtml(track.title) + '</div>' +
+                    '<div class="cms-item-meta">' + escapeHtml(track.duration) + ' ' + audioTag + '</div>' +
                 '</div>' +
                 '<div class="cms-item-actions">' +
                     '<button class="cms-btn cms-btn-sm" data-action="edit-track">Edit</button>' +
@@ -1116,8 +1121,8 @@
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
-                    '<div class="cms-item-title">' + post.title + '</div>' +
-                    '<div class="cms-item-meta">[' + (post.tag || 'UPDATE') + '] // ' + (post.published_at || '-') +
+                    '<div class="cms-item-title">' + escapeHtml(post.title) + '</div>' +
+                    '<div class="cms-item-meta">[' + escapeHtml(post.tag || 'UPDATE') + '] // ' + escapeHtml(post.published_at || '-') +
                         ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span></div>' +
                 '</div>' +
                 '<div class="cms-item-actions">' +
@@ -1259,12 +1264,12 @@
             item.className = 'cms-list-item';
             var statusClass = video.is_published ? 'published' : 'draft';
             var statusText = video.is_published ? 'Published' : 'Draft';
-            var srcTag = video.video_type ? '<span class="cms-tag pdf">' + video.video_type + '</span>' : '<span class="cms-tag no-pdf">No source</span>';
+            var srcTag = video.video_type ? '<span class="cms-tag pdf">' + escapeHtml(video.video_type) + '</span>' : '<span class="cms-tag no-pdf">No source</span>';
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
-                    '<div class="cms-item-title">' + video.title + '</div>' +
-                    '<div class="cms-item-meta">' + video.category + ' // ' + video.orientation + ' // ' + video.duration +
+                    '<div class="cms-item-title">' + escapeHtml(video.title) + '</div>' +
+                    '<div class="cms-item-meta">' + escapeHtml(video.category) + ' // ' + escapeHtml(video.orientation) + ' // ' + escapeHtml(video.duration) +
                         ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span> ' + srcTag + '</div>' +
                 '</div>' +
                 '<div class="cms-item-actions">' +
@@ -1492,8 +1497,8 @@
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
-                    '<div class="cms-item-title">' + photo.title + '</div>' +
-                    '<div class="cms-item-meta">' + photo.category + ' // ' + photo.orientation + ' // ' + (photo.date || '-') +
+                    '<div class="cms-item-title">' + escapeHtml(photo.title) + '</div>' +
+                    '<div class="cms-item-meta">' + escapeHtml(photo.category) + ' // ' + escapeHtml(photo.orientation) + ' // ' + escapeHtml(photo.date || '-') +
                         ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span> ' + imgTag + '</div>' +
                 '</div>' +
                 '<div class="cms-item-actions">' +
@@ -1668,11 +1673,11 @@
                 var row = document.createElement('tr');
                 row.innerHTML =
                     '<td>' + formatDate(d.created_at) + '</td>' +
-                    '<td>' + (d.donor_name || '-') + '</td>' +
-                    '<td>' + (d.donor_email || '-') + '</td>' +
-                    '<td>' + (d.sheet_title || '-') + '</td>' +
+                    '<td>' + escapeHtml(d.donor_name || '-') + '</td>' +
+                    '<td>' + escapeHtml(d.donor_email || '-') + '</td>' +
+                    '<td>' + escapeHtml(d.sheet_title || '-') + '</td>' +
                     '<td>$' + ((d.amount || 0) / 100).toFixed(2) + '</td>' +
-                    '<td>' + (d.currency || 'usd').toUpperCase() + '</td>';
+                    '<td>' + escapeHtml((d.currency || 'usd').toUpperCase()) + '</td>';
                 donationsBody.appendChild(row);
             });
         } catch (e) {

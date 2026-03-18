@@ -1,6 +1,11 @@
 (function() {
     'use strict';
 
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     // Update year
     document.getElementById('current-year').textContent = new Date().getFullYear();
 
@@ -26,10 +31,10 @@
 
                 article.innerHTML =
                     '<div class="post-header">' +
-                        '<span class="post-date">' + dateStr + '</span>' +
-                        '<span class="post-tag">[' + (post.tag || 'UPDATE') + ']</span>' +
+                        '<span class="post-date">' + escapeHtml(dateStr) + '</span>' +
+                        '<span class="post-tag">[' + escapeHtml(post.tag || 'UPDATE') + ']</span>' +
                     '</div>' +
-                    '<h2 class="post-title">' + post.title + '</h2>' +
+                    '<h2 class="post-title">' + escapeHtml(post.title) + '</h2>' +
                     '<div class="post-body">' + (post.body || '') + '</div>' +
                     '<div class="post-footer">' +
                         '<span class="post-terminal">&gt; END_OF_POST</span>' +
