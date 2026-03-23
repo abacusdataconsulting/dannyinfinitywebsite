@@ -16,7 +16,7 @@
     };
 
     // The text to be typed out
-    const WELCOME_TEXT = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
+    const WELCOME_TEXT = "Welcome to Danny Infinity's webiste! Please provide your name, if you would like.";
 
     // DOM Elements
     const typedTextEl = document.getElementById('typed-text');
