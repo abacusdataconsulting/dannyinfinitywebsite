@@ -10,7 +10,7 @@
     document.getElementById('current-year').textContent = new Date().getFullYear();
 
 
-    // Load and render blog posts
+    // Load and render writing posts
     var postsContainer = document.getElementById('blog-posts');
 
     fetch('/api/blog')
