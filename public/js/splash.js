@@ -16,7 +16,7 @@
     };
 
     // The text to be typed out
-    const WELCOME_TEXT = "Welcome to Danny Infinity's webiste! Please provide your name, if you would like.";
+    const WELCOME_TEXT = "Welcome to Danny Infinity's website! Please provide your name, if you would like.";
 
     // DOM Elements
     const typedTextEl = document.getElementById('typed-text');
