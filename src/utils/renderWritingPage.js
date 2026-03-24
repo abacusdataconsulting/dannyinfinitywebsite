@@ -33,7 +33,7 @@ export async function renderWritingPage(slug, env, request) {
 
     const excerpt = escapeHtml(makeExcerpt(post.body));
     const safeTitle = escapeHtml(post.title);
-    const canonicalUrl = `https://dannyinfinity.com/writings/${encodeURIComponent(post.slug)}`;
+    const canonicalUrl = `https://dannyinfinity.com/blog/${encodeURIComponent(post.slug)}`;
     const dateStr = post.published_at ? post.published_at.replace(/-/g, '.') : '';
     const isoDate = post.published_at || '';
 

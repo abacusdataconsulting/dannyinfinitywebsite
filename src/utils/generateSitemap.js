@@ -40,7 +40,7 @@ export async function generateSitemap(env) {
             const lastmod = post.published_at ? `\n    <lastmod>${escapeXml(post.published_at)}</lastmod>` : '';
             urls.push(
                 `  <url>
-    <loc>${base}/writings/${escapeXml(post.slug)}</loc>${lastmod}
+    <loc>${base}/blog/${escapeXml(post.slug)}</loc>${lastmod}
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>`

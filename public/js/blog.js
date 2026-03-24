@@ -23,7 +23,7 @@
     // Update year
     document.getElementById('current-year').textContent = new Date().getFullYear();
 
-    // Load and render writings posts
+    // Load and render writings listing
     var postsContainer = document.getElementById('blog-posts');
 
     fetch('/api/blog')
@@ -43,20 +43,16 @@
                 var dateStr = post.published_at ? post.published_at.replace(/-/g, '.') : '';
                 var slug = post.slug || '';
                 var excerpt = makeExcerpt(post.body);
+                var href = slug ? '/blog/' + encodeURIComponent(slug) : '#';
 
                 article.innerHTML =
                     '<div class="post-header">' +
                         '<span class="post-date">' + escapeHtml(dateStr) + '</span>' +
                         '<span class="post-tag">[' + escapeHtml(post.tag || 'UPDATE') + ']</span>' +
                     '</div>' +
-                    (slug
-                        ? '<h2 class="post-title"><a href="/writings/' + escapeHtml(slug) + '">' + escapeHtml(post.title) + '</a></h2>'
-                        : '<h2 class="post-title">' + escapeHtml(post.title) + '</h2>') +
-                    '<p class="post-excerpt" style="opacity:0.7;margin:8px 0 16px;font-size:0.9rem;">' + escapeHtml(excerpt) + '</p>' +
-                    '<div class="post-body">' + (post.body || '') + '</div>' +
-                    '<div class="post-footer">' +
-                        '<span class="post-terminal">&gt; END_OF_POST</span>' +
-                    '</div>';
+                    '<h2 class="post-title"><a href="' + escapeHtml(href) + '">' + escapeHtml(post.title) + '</a></h2>' +
+                    '<p class="post-excerpt" style="opacity:0.7;margin:8px 0 16px;font-size:0.9rem;line-height:1.5;">' + escapeHtml(excerpt) + '</p>' +
+                    '<a href="' + escapeHtml(href) + '" class="post-read-more" style="font-size:0.85rem;color:var(--text-secondary);border-bottom:1px solid var(--text-secondary);">Read more &rarr;</a>';
 
                 postsContainer.appendChild(article);
             });

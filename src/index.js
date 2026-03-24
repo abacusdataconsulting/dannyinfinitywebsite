@@ -268,13 +268,18 @@ export default {
             });
         }
 
-        // --- Individual writing pages: /writings/[slug] ---
-        if (url.pathname === '/writings' || url.pathname === '/writings/') {
+        // --- Individual blog post pages: /blog/[slug] ---
+        // Redirect /writings/* to /blog/* for any old links
+        if (url.pathname.startsWith('/writings/')) {
+            const slug = url.pathname.slice('/writings/'.length);
+            return Response.redirect(new URL('/blog/' + slug, url.origin).toString(), 301);
+        }
+        if (url.pathname === '/writings') {
             return Response.redirect(new URL('/blog.html', url.origin).toString(), 301);
         }
-        const writingMatch = url.pathname.match(/^\/writings\/([a-z0-9-]+)$/);
-        if (writingMatch) {
-            return renderWritingPage(writingMatch[1], env, request);
+        const blogPostMatch = url.pathname.match(/^\/blog\/([a-z0-9-]+)$/);
+        if (blogPostMatch) {
+            return renderWritingPage(blogPostMatch[1], env, request);
         }
 
         // Route /api/* to the Hono app
