@@ -6,9 +6,22 @@
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function stripHtml(html) {
+        if (!html) return '';
+        var tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function makeExcerpt(html, maxLen) {
+        maxLen = maxLen || 200;
+        var text = stripHtml(html);
+        if (text.length <= maxLen) return text;
+        return text.slice(0, maxLen).replace(/\s+\S*$/, '') + '…';
+    }
+
     // Update year
     document.getElementById('current-year').textContent = new Date().getFullYear();
-
 
     // Load and render writings posts
     var postsContainer = document.getElementById('blog-posts');
@@ -28,13 +41,18 @@
                 article.className = 'blog-post';
 
                 var dateStr = post.published_at ? post.published_at.replace(/-/g, '.') : '';
+                var slug = post.slug || '';
+                var excerpt = makeExcerpt(post.body);
 
                 article.innerHTML =
                     '<div class="post-header">' +
                         '<span class="post-date">' + escapeHtml(dateStr) + '</span>' +
                         '<span class="post-tag">[' + escapeHtml(post.tag || 'UPDATE') + ']</span>' +
                     '</div>' +
-                    '<h2 class="post-title">' + escapeHtml(post.title) + '</h2>' +
+                    (slug
+                        ? '<h2 class="post-title"><a href="/writings/' + escapeHtml(slug) + '">' + escapeHtml(post.title) + '</a></h2>'
+                        : '<h2 class="post-title">' + escapeHtml(post.title) + '</h2>') +
+                    '<p class="post-excerpt" style="opacity:0.7;margin:8px 0 16px;font-size:0.9rem;">' + escapeHtml(excerpt) + '</p>' +
                     '<div class="post-body">' + (post.body || '') + '</div>' +
                     '<div class="post-footer">' +
                         '<span class="post-terminal">&gt; END_OF_POST</span>' +

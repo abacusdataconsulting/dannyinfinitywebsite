@@ -721,6 +721,13 @@
      * Play door animation
      */
     function playDoorAnimation(callback) {
+        if (prefersReducedMotion) {
+            // Skip door animation entirely
+            doorAnimation.classList.add('active');
+            if (callback) callback();
+            return;
+        }
+
         doorAnimation.classList.add('active');
         let frame = 0;
 
@@ -860,15 +867,25 @@
     /**
      * Initialize the splash page
      */
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     function init() {
         createMeasureSpan();
 
-        // Start typing after initial delay
-        setTimeout(() => {
-            typeWriter(WELCOME_TEXT, typedTextEl, () => {
-                setTimeout(showInputSection, CONFIG.showInputDelay);
-            });
-        }, CONFIG.startDelay);
+        if (prefersReducedMotion) {
+            // Skip typing animation — show content immediately
+            typedTextEl.textContent = WELCOME_TEXT;
+            if (textCursor) textCursor.style.display = 'none';
+            showInputSection();
+        } else {
+            // Start typing after initial delay
+            setTimeout(() => {
+                typeWriter(WELCOME_TEXT, typedTextEl, () => {
+                    setTimeout(showInputSection, CONFIG.showInputDelay);
+                });
+            }, CONFIG.startDelay);
+        }
 
         // Setup cursor behaviors
         setupInputCursor(userInput, inputCursor);

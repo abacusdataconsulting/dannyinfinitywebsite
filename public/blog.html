@@ -4,6 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Danny Infinity | Writings</title>
+    <meta name="description" content="Writings by Danny Infinity on music production, composition, arranging, and the creative process.">
+    <link rel="canonical" href="https://dannyinfinity.com/blog.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Danny Infinity">
+    <meta property="og:title" content="Danny Infinity | Writings">
+    <meta property="og:description" content="Writings by Danny Infinity on music production, composition, arranging, and the creative process.">
+    <meta property="og:url" content="https://dannyinfinity.com/blog.html">
+    <meta property="og:image" content="https://dannyinfinity.com/assets/og-image.svg">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Danny Infinity | Writings">
+    <meta name="twitter:description" content="Writings by Danny Infinity on music production, composition, arranging, and the creative process.">
+    <meta name="twitter:image" content="https://dannyinfinity.com/assets/og-image.svg">
     <link rel="stylesheet" href="css/global.css">
     <link rel="stylesheet" href="css/blog.css">
     <!-- Google Analytics 4 — replace GA_MEASUREMENT_ID with your real ID (G-XXXXXXXXXX) -->
@@ -11,11 +25,12 @@
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','GA_MEASUREMENT_ID');</script>
 </head>
 <body>
+    <a href="#main-content" class="sr-only sr-only-focusable">Skip to main content</a>
     <div class="blog-container container">
         <!-- Header -->
         <header class="site-header">
             <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
-            <nav class="site-nav">
+            <nav class="site-nav" aria-label="Main navigation">
                 <a href="home.html" class="nav-link">HOME</a>
                 <a href="music.html" class="nav-link">MUSIC</a>
                 <a href="videos.html" class="nav-link">VIDEOS</a>
@@ -26,13 +41,14 @@
         </header>
 
         <!-- Page Title -->
-        <section class="page-title-section">
+        <section class="page-title-section" id="main-content">
             <h1 class="page-title">WRITINGS</h1>
         </section>
 
         <!-- Writings Posts (loaded from API) -->
         <section class="blog-posts" id="blog-posts">
             <!-- Loaded dynamically -->
+            <noscript><p style="text-align:center;padding:40px;opacity:0.7;">JavaScript is required to load writings. Please enable JavaScript or visit individual writing pages directly.</p></noscript>
         </section>
 
         <!-- Footer -->
@@ -43,6 +59,21 @@
             <a href="index.html" class="logout-link">[DISCONNECT]</a>
         </footer>
     </div>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "Writings by Danny Infinity",
+        "url": "https://dannyinfinity.com/blog.html",
+        "author": {
+            "@type": "Person",
+            "name": "Danny Infinity"
+        },
+        "description": "Writings by Danny Infinity on music production, composition, arranging, and the creative process."
+    }
+    </script>
 
     <script src="js/blog.js"></script>
     <script src="js/tracker.js"></script>

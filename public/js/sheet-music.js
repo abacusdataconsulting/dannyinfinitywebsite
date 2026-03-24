@@ -7,6 +7,16 @@
     }
 
     // ============================
+    // TIP SUCCESS: noindex to prevent duplicate content
+    // ============================
+    if (window.location.search.indexOf('tip=success') !== -1) {
+        var noindex = document.createElement('meta');
+        noindex.name = 'robots';
+        noindex.content = 'noindex';
+        document.head.appendChild(noindex);
+    }
+
+    // ============================
     // SHEET MUSIC DATA (loaded from API)
     // ============================
     var SHEETS = [];
@@ -44,15 +54,24 @@
     // ============================
     function renderGrid() {
         sheetsGrid.innerHTML = '';
-        SHEETS.forEach(function(sheet) {
+
+        // Build JSON-LD ItemList for SEO
+        var itemListElements = [];
+
+        SHEETS.forEach(function(sheet, index) {
             var card = document.createElement('div');
             card.className = 'sheet-card';
             card.dataset.sheetId = sheet.id;
 
+            var descSnippet = sheet.description
+                ? '<p class="sheet-description" style="opacity:0.6;font-size:0.8rem;margin-top:4px;">' + escapeHtml(sheet.description.slice(0, 120)) + '</p>'
+                : '';
+
             card.innerHTML =
                 '<div class="sheet-info">' +
-                    '<div class="sheet-title">' + escapeHtml(sheet.title) + '</div>' +
+                    '<h2 class="sheet-title" style="font-size:1rem;margin:0;">' + escapeHtml(sheet.title) + '</h2>' +
                     '<div class="sheet-meta">' + escapeHtml(sheet.arrangement) + ' // ' + escapeHtml(sheet.year) + '</div>' +
+                    descSnippet +
                 '</div>' +
                 '<div class="sheet-preview" id="preview-' + escapeHtml(sheet.id) + '">' +
                     '<div class="sheet-placeholder">' +
@@ -76,7 +95,32 @@
             if (sheet.pdfUrl) {
                 renderThumbnail(sheet);
             }
+
+            // Add to JSON-LD ItemList
+            itemListElements.push({
+                '@type': 'ListItem',
+                position: index + 1,
+                item: {
+                    '@type': 'MusicComposition',
+                    name: sheet.title,
+                    composer: { '@type': 'Person', name: sheet.composer || 'Danny Infinity' },
+                    description: sheet.description || '',
+                }
+            });
         });
+
+        // Inject JSON-LD for sheet music
+        if (itemListElements.length > 0) {
+            var script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.textContent = JSON.stringify({
+                '@context': 'https://schema.org',
+                '@type': 'ItemList',
+                name: 'Sheet Music by Danny Infinity',
+                itemListElement: itemListElements
+            });
+            document.head.appendChild(script);
+        }
     }
 
     // ============================
@@ -161,16 +205,21 @@
         previewDescription.textContent = sheet.description;
         previewDescription.style.display = sheet.description ? '' : 'none';
 
-        // Set download link
+        // Set download link with aria-label
         if (sheet.pdfUrl) {
             downloadBtn.href = sheet.pdfUrl;
             downloadBtn.setAttribute('download', '');
+            downloadBtn.setAttribute('aria-label', 'Download ' + sheet.title + ' sheet music PDF');
             downloadBtn.style.opacity = '1';
         } else {
             downloadBtn.href = '#';
             downloadBtn.removeAttribute('download');
+            downloadBtn.setAttribute('aria-label', 'Download not available');
             downloadBtn.style.opacity = '0.4';
         }
+
+        // Set tip button aria-label
+        tipActionBtn.setAttribute('aria-label', 'Leave a tip for ' + sheet.title);
 
         // Store sheet context for tip modal
         tipActionBtn._tipSheet = {

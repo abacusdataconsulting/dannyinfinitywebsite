@@ -24,6 +24,8 @@ import publicVideos from './routes/public/videos.js';
 import publicPhotos from './routes/public/photos.js';
 import tipRoutes from './routes/tip.js';
 import { adminAuth } from './middleware/auth.js';
+import { renderWritingPage } from './utils/renderWritingPage.js';
+import { generateSitemap } from './utils/generateSitemap.js';
 
 const api = new Hono();
 
@@ -230,6 +232,50 @@ api.all('/api/*', (c) => {
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
+
+        // --- Canonical enforcement: www → bare domain ---
+        if (url.hostname === 'www.dannyinfinity.com') {
+            url.hostname = 'dannyinfinity.com';
+            return Response.redirect(url.toString(), 301);
+        }
+
+        // --- Canonical enforcement: strip trailing slash (except root) ---
+        if (url.pathname !== '/' && url.pathname.endsWith('/')) {
+            url.pathname = url.pathname.slice(0, -1);
+            return Response.redirect(url.toString(), 301);
+        }
+
+        // --- robots.txt ---
+        if (url.pathname === '/robots.txt') {
+            const body = [
+                'User-agent: *',
+                'Allow: /',
+                'Disallow: /admin.html',
+                'Disallow: /api/',
+                '',
+                'Sitemap: https://dannyinfinity.com/sitemap.xml',
+            ].join('\n');
+            return new Response(body, {
+                headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400' },
+            });
+        }
+
+        // --- sitemap.xml ---
+        if (url.pathname === '/sitemap.xml') {
+            const xml = await generateSitemap(env);
+            return new Response(xml, {
+                headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+            });
+        }
+
+        // --- Individual writing pages: /writings/[slug] ---
+        if (url.pathname === '/writings' || url.pathname === '/writings/') {
+            return Response.redirect(new URL('/blog.html', url.origin).toString(), 301);
+        }
+        const writingMatch = url.pathname.match(/^\/writings\/([a-z0-9-]+)$/);
+        if (writingMatch) {
+            return renderWritingPage(writingMatch[1], env, request);
+        }
 
         // Route /api/* to the Hono app
         if (url.pathname.startsWith('/api')) {
