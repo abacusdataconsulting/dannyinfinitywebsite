@@ -10,9 +10,15 @@
 (function() {
     'use strict';
 
-    var PRESETS = [500, 1000, 2500]; // cents
+    var PRESETS = [
+        { cents: 500,  label: '$5',  priceId: 'price_1TRZ6kHHtHBqUIGao40NEFos' },
+        { cents: 1000, label: '$10', priceId: 'price_1TRZ7DHHtHBqUIGasXNJabWH' },
+        { cents: 2500, label: '$25', priceId: 'price_1TRZ7iHHtHBqUIGaTdrasWn9' }
+    ];
+    var CUSTOM_TIP_PRICE_ID = 'price_1TRYyIHHtHBqUIGaGOihMBz4';
     var overlay = null;
     var selectedAmount = null;
+    var selectedPriceId = null;
     var currentOptions = {};
 
     // ============================
@@ -41,13 +47,14 @@
 
         // Render preset buttons
         var amountsContainer = overlay.querySelector('.tip-amounts');
-        PRESETS.forEach(function(cents) {
+        PRESETS.forEach(function(preset) {
             var btn = document.createElement('button');
             btn.className = 'tip-amount-btn';
-            btn.textContent = '$' + (cents / 100);
-            btn.dataset.amount = cents;
+            btn.textContent = preset.label;
+            btn.dataset.amount = preset.cents;
+            btn.dataset.priceId = preset.priceId;
             btn.addEventListener('click', function() {
-                selectPreset(cents);
+                selectPreset(preset);
             });
             amountsContainer.appendChild(btn);
         });
@@ -62,9 +69,11 @@
             var val = parseFloat(customInput.value);
             if (val && val >= 1 && val <= 1000) {
                 selectedAmount = Math.round(val * 100);
+                selectedPriceId = CUSTOM_TIP_PRICE_ID;
                 overlay.querySelector('.tip-submit-btn').disabled = false;
             } else {
                 selectedAmount = null;
+                selectedPriceId = null;
                 overlay.querySelector('.tip-submit-btn').disabled = true;
             }
             overlay.querySelector('.tip-error').textContent = '';
@@ -85,11 +94,12 @@
         overlay.querySelector('.tip-submit-btn').addEventListener('click', handleSubmit);
     }
 
-    function selectPreset(cents) {
-        selectedAmount = cents;
+    function selectPreset(preset) {
+        selectedAmount = preset.cents;
+        selectedPriceId = preset.priceId;
         var presetBtns = overlay.querySelectorAll('.tip-amount-btn');
         for (var i = 0; i < presetBtns.length; i++) {
-            if (parseInt(presetBtns[i].dataset.amount) === cents) {
+            if (parseInt(presetBtns[i].dataset.amount) === preset.cents) {
                 presetBtns[i].classList.add('selected');
             } else {
                 presetBtns[i].classList.remove('selected');
@@ -110,6 +120,7 @@
 
         // Reset state
         selectedAmount = null;
+        selectedPriceId = null;
         var presetBtns = overlay.querySelectorAll('.tip-amount-btn');
         for (var i = 0; i < presetBtns.length; i++) {
             presetBtns[i].classList.remove('selected');
@@ -153,6 +164,7 @@
 
         var payload = {
             amount: selectedAmount,
+            priceId: selectedPriceId,
             returnPath: returnPath
         };
 
