@@ -71,8 +71,23 @@ tip.post('/create-session', async (c) => {
     params.append('success_url', successUrl);
     params.append('cancel_url', cancelUrl);
 
+    // Determine tip type from price selection
+    const tipType = isCustom ? 'custom'
+        : priceId === 'price_1TRZ6kHHtHBqUIGao40NEFos' ? 'preset_5'
+        : priceId === 'price_1TRZ7DHHtHBqUIGasXNJabWH' ? 'preset_10'
+        : priceId === 'price_1TRZ7iHHtHBqUIGaTdrasWn9' ? 'preset_25'
+        : 'unknown';
+
+    params.append('metadata[tip_type]', tipType);
+
     if (sheetMusicId) {
         params.append('metadata[sheet_music_id]', sheetMusicId);
+        params.append('metadata[source]', 'sheet');
+        if (sheetTitle) {
+            params.append('metadata[sheet_title]', sheetTitle);
+        }
+    } else {
+        params.append('metadata[source]', 'general');
     }
 
     const stripeKey = c.env.STRIPE_SECRET_KEY;

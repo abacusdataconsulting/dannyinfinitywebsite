@@ -76,6 +76,21 @@
     // Donations DOM
     const donationsStats = document.getElementById('donations-stats');
     const donationsBody = document.getElementById('donations-body');
+    const donationCount = document.getElementById('donation-count');
+    const donationsBreakdown = document.getElementById('donations-breakdown');
+    const topSheetsList = document.getElementById('top-sheets-list');
+    const donationSearch = document.getElementById('donation-search');
+    const filterSource = document.getElementById('filter-source');
+    const filterTipType = document.getElementById('filter-tip-type');
+    const filterSheet = document.getElementById('filter-sheet');
+    const clearFiltersBtn = document.getElementById('clear-donation-filters');
+    const donationsLoadMore = document.getElementById('donations-load-more');
+    const donationsLoadMoreBtn = document.getElementById('donations-load-more-btn');
+
+    // Donations state
+    let donationsOffset = 0;
+    let hasMoreDonations = true;
+    let donationSearchTimer = null;
 
     /**
      * Check if user is admin
@@ -457,6 +472,9 @@
             var statusClass = sheet.is_published ? 'published' : 'draft';
             var statusText = sheet.is_published ? 'Published' : 'Draft';
             var pdfStatus = sheet.pdf_r2_key ? '<span class="cms-tag pdf">PDF</span>' : '<span class="cms-tag no-pdf">No PDF</span>';
+            var priceTag = sheet.price_cents > 0
+                ? '<span class="cms-tag pdf">$' + (sheet.price_cents / 100).toFixed(2) + '</span>'
+                : '<span class="cms-tag no-pdf">FREE</span>';
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
@@ -464,7 +482,7 @@
                     '<div class="cms-item-meta">' +
                         escapeHtml(sheet.arrangement) + ' // ' + escapeHtml(sheet.year) + ' // ' + escapeHtml(sheet.pages) + ' pages' +
                         ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span> ' +
-                        pdfStatus +
+                        pdfStatus + ' ' + priceTag +
                     '</div>' +
                 '</div>' +
                 '<div class="cms-item-actions">' +
@@ -495,6 +513,7 @@
             document.getElementById('sheet-sort-order').value = sheet.sort_order || 0;
             document.getElementById('sheet-description').value = sheet.description || '';
             document.getElementById('sheet-tip-link').value = sheet.tip_link || '';
+            document.getElementById('sheet-price').value = sheet.price_cents ? (sheet.price_cents / 100).toFixed(2) : '0';
             document.getElementById('sheet-published').checked = !!sheet.is_published;
             sheetR2Key.value = sheet.pdf_r2_key || '';
             sheetDropText.textContent = sheet.pdf_r2_key ? 'Current: ' + sheet.pdf_r2_key.split('/').pop() : 'Drag & drop PDF here or click to browse';
@@ -506,6 +525,7 @@
             document.getElementById('sheet-composer').value = 'Danny Infinity';
             document.getElementById('sheet-year').value = new Date().getFullYear();
             document.getElementById('sheet-published').checked = true;
+            document.getElementById('sheet-price').value = '0';
             sheetDropText.textContent = 'Drag & drop PDF here or click to browse';
         }
 
@@ -583,6 +603,7 @@
                 description: document.getElementById('sheet-description').value || null,
                 sortOrder: parseInt(document.getElementById('sheet-sort-order').value) || 0,
                 tipLink: document.getElementById('sheet-tip-link').value || null,
+                priceCents: Math.round((parseFloat(document.getElementById('sheet-price').value) || 0) * 100),
                 pdfR2Key: sheetR2Key.value || null,
                 isPublished: document.getElementById('sheet-published').checked,
             };
@@ -1632,26 +1653,63 @@
     // =========================================
     // DONATIONS
     // =========================================
+
+    function formatTipType(tipType) {
+        switch (tipType) {
+            case 'preset_5': return '<span class="type-badge preset">$5</span>';
+            case 'preset_10': return '<span class="type-badge preset">$10</span>';
+            case 'preset_25': return '<span class="type-badge preset">$25</span>';
+            case 'custom': return '<span class="type-badge custom">Custom</span>';
+            default: return '<span class="type-badge preset">-</span>';
+        }
+    }
+
+    function formatSource(source, sheetMusicId) {
+        // Infer from sheet_music_id for older records without source field
+        var s = source;
+        if (!s || s === 'unknown') s = sheetMusicId ? 'sheet' : 'general';
+        if (s === 'sheet') return '<span class="source-badge sheet">Sheet</span>';
+        return '<span class="source-badge general">General</span>';
+    }
+
+    function buildDonationFilterQuery() {
+        var params = [];
+        var source = filterSource.value;
+        var tipType = filterTipType.value;
+        var sheetId = filterSheet.value;
+        var search = donationSearch.value.trim();
+        if (source) params.push('source=' + encodeURIComponent(source));
+        if (tipType) params.push('tip_type=' + encodeURIComponent(tipType));
+        if (sheetId) params.push('sheet_music_id=' + encodeURIComponent(sheetId));
+        if (search) params.push('search=' + encodeURIComponent(search));
+        return params.join('&');
+    }
+
     async function loadDonations() {
         donationsStats.innerHTML = '<div class="stat-card"><div class="stat-label">Loading...</div></div>';
-        donationsBody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading...</td></tr>';
+        donationsBody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading...</td></tr>';
+        donationsOffset = 0;
+        hasMoreDonations = true;
 
         try {
-            // Fetch stats and records in parallel
+            var filterQuery = buildDonationFilterQuery();
+
             var [statsRes, listRes] = await Promise.all([
                 fetch('/api/admin/donations/stats', { headers: authHeaders() }),
-                fetch('/api/admin/donations', { headers: authHeaders() })
+                fetch('/api/admin/donations?limit=50&offset=0' + (filterQuery ? '&' + filterQuery : ''), { headers: authHeaders() })
             ]);
 
             var stats = await statsRes.json();
             var list = await listRes.json();
 
-            // Render stats
+            // Stats cards
             donationsStats.innerHTML = '';
             var statItems = [
-                { label: 'Total Donations', value: stats.totalDonations },
-                { label: 'Total Amount', value: '$' + ((stats.totalAmount || 0) / 100).toFixed(2) },
-                { label: 'Unique Donors', value: stats.uniqueDonors }
+                { label: 'Total Tips', value: stats.totalDonations },
+                { label: 'Total Revenue', value: '$' + ((stats.totalAmount || 0) / 100).toFixed(2) },
+                { label: 'Unique Donors', value: stats.uniqueDonors },
+                { label: 'General Tips', value: (stats.generalTips ? stats.generalTips.count : 0) + ' ($' + ((stats.generalTips ? stats.generalTips.amount : 0) / 100).toFixed(2) + ')' },
+                { label: 'Sheet Tips', value: (stats.sheetTips ? stats.sheetTips.count : 0) + ' ($' + ((stats.sheetTips ? stats.sheetTips.amount : 0) / 100).toFixed(2) + ')' }
             ];
 
             statItems.forEach(function(s) {
@@ -1662,29 +1720,326 @@
                 donationsStats.appendChild(card);
             });
 
-            // Render table
-            donationsBody.innerHTML = '';
-            if (list.donations.length === 0) {
-                donationsBody.innerHTML = '<tr class="empty-row"><td colspan="6">No donations recorded yet</td></tr>';
-                return;
+            // Top sheets breakdown
+            if (stats.bySheet && stats.bySheet.length > 0) {
+                donationsBreakdown.style.display = 'block';
+                topSheetsList.innerHTML = '';
+
+                // Populate the sheet filter dropdown
+                filterSheet.innerHTML = '<option value="">All Sheets</option>';
+                stats.bySheet.forEach(function(s) {
+                    var opt = document.createElement('option');
+                    opt.value = s.sheet_music_id;
+                    opt.textContent = s.title;
+                    filterSheet.appendChild(opt);
+                });
+
+                stats.bySheet.forEach(function(s) {
+                    var item = document.createElement('div');
+                    item.className = 'breakdown-item';
+                    item.innerHTML =
+                        '<span class="breakdown-item-title">' + escapeHtml(s.title) + '</span>' +
+                        '<span class="breakdown-item-stats">' +
+                            '<span>' + s.count + ' tip' + (s.count !== 1 ? 's' : '') + '</span>' +
+                            '<span class="breakdown-item-amount">$' + ((s.total_amount || 0) / 100).toFixed(2) + '</span>' +
+                        '</span>';
+                    item.addEventListener('click', function() {
+                        filterSheet.value = s.sheet_music_id;
+                        fetchDonations();
+                    });
+                    topSheetsList.appendChild(item);
+                });
+            } else {
+                donationsBreakdown.style.display = 'none';
             }
 
-            list.donations.forEach(function(d) {
-                var row = document.createElement('tr');
-                row.innerHTML =
-                    '<td>' + formatDate(d.created_at) + '</td>' +
-                    '<td>' + escapeHtml(d.donor_name || '-') + '</td>' +
-                    '<td>' + escapeHtml(d.donor_email || '-') + '</td>' +
-                    '<td>' + escapeHtml(d.sheet_title || '-') + '</td>' +
-                    '<td>$' + ((d.amount || 0) / 100).toFixed(2) + '</td>' +
-                    '<td>' + escapeHtml((d.currency || 'usd').toUpperCase()) + '</td>';
-                donationsBody.appendChild(row);
-            });
+            // Render table
+            renderDonationRows(list.donations, true);
+            donationCount.textContent = list.total + ' total';
+            donationsOffset = list.donations.length;
+            hasMoreDonations = list.donations.length >= 50 && donationsOffset < list.total;
+            donationsLoadMore.style.display = hasMoreDonations ? 'flex' : 'none';
+
         } catch (e) {
             donationsStats.innerHTML = '<div class="stat-card"><div class="stat-label">Failed to load</div></div>';
-            donationsBody.innerHTML = '<tr class="empty-row"><td colspan="6">Failed to load donations</td></tr>';
+            donationsBody.innerHTML = '<tr class="empty-row"><td colspan="7">Failed to load donations</td></tr>';
         }
     }
+
+    function renderDonationRows(donations, clear) {
+        if (clear) donationsBody.innerHTML = '';
+
+        if (donations.length === 0 && clear) {
+            donationsBody.innerHTML = '<tr class="empty-row"><td colspan="7">No donations found</td></tr>';
+            return;
+        }
+
+        donations.forEach(function(d) {
+            var row = document.createElement('tr');
+            row.innerHTML =
+                '<td>' + formatDate(d.created_at) + '</td>' +
+                '<td>' + escapeHtml(d.donor_name || '-') + '</td>' +
+                '<td>' + escapeHtml(d.donor_email || '-') + '</td>' +
+                '<td>' + formatSource(d.source, d.sheet_music_id) + '</td>' +
+                '<td>' + escapeHtml(d.sheet_title || '-') + '</td>' +
+                '<td>' + formatTipType(d.tip_type) + '</td>' +
+                '<td>$' + ((d.amount || 0) / 100).toFixed(2) + '</td>';
+            donationsBody.appendChild(row);
+        });
+    }
+
+    async function fetchDonations() {
+        donationsOffset = 0;
+        hasMoreDonations = true;
+        donationsBody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading...</td></tr>';
+
+        try {
+            var filterQuery = buildDonationFilterQuery();
+            var res = await fetch('/api/admin/donations?limit=50&offset=0' + (filterQuery ? '&' + filterQuery : ''), { headers: authHeaders() });
+            var list = await res.json();
+
+            renderDonationRows(list.donations, true);
+            donationCount.textContent = list.total + ' total';
+            donationsOffset = list.donations.length;
+            hasMoreDonations = list.donations.length >= 50 && donationsOffset < list.total;
+            donationsLoadMore.style.display = hasMoreDonations ? 'flex' : 'none';
+        } catch (e) {
+            donationsBody.innerHTML = '<tr class="empty-row"><td colspan="7">Failed to load donations</td></tr>';
+        }
+    }
+
+    async function loadMoreDonations() {
+        if (!hasMoreDonations) return;
+        donationsLoadMoreBtn.disabled = true;
+        donationsLoadMoreBtn.textContent = 'Loading...';
+
+        try {
+            var filterQuery = buildDonationFilterQuery();
+            var res = await fetch('/api/admin/donations?limit=50&offset=' + donationsOffset + (filterQuery ? '&' + filterQuery : ''), { headers: authHeaders() });
+            var list = await res.json();
+
+            renderDonationRows(list.donations, false);
+            donationsOffset += list.donations.length;
+            hasMoreDonations = list.donations.length >= 50 && donationsOffset < list.total;
+            donationsLoadMore.style.display = hasMoreDonations ? 'flex' : 'none';
+        } catch (e) {
+            // silently fail
+        }
+        donationsLoadMoreBtn.disabled = false;
+        donationsLoadMoreBtn.textContent = 'Load More';
+    }
+
+    // Filter event listeners
+    if (filterSource) filterSource.addEventListener('change', fetchDonations);
+    if (filterTipType) filterTipType.addEventListener('change', fetchDonations);
+    if (filterSheet) filterSheet.addEventListener('change', fetchDonations);
+    if (donationSearch) {
+        donationSearch.addEventListener('input', function() {
+            clearTimeout(donationSearchTimer);
+            donationSearchTimer = setTimeout(fetchDonations, 400);
+        });
+    }
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            donationSearch.value = '';
+            filterSource.value = '';
+            filterTipType.value = '';
+            filterSheet.value = '';
+            fetchDonations();
+        });
+    }
+    if (donationsLoadMoreBtn) {
+        donationsLoadMoreBtn.addEventListener('click', loadMoreDonations);
+    }
+
+    // =========================================
+    // SALES
+    // =========================================
+    var salesStats = document.getElementById('sales-stats');
+    var salesBody = document.getElementById('sales-body');
+    var saleCount = document.getElementById('sale-count');
+    var salesBreakdown = document.getElementById('sales-breakdown');
+    var topSellersList = document.getElementById('top-sellers-list');
+    var saleSearch = document.getElementById('sale-search');
+    var filterSaleSheet = document.getElementById('filter-sale-sheet');
+    var clearSaleFiltersBtn = document.getElementById('clear-sale-filters');
+    var salesLoadMore = document.getElementById('sales-load-more');
+    var salesLoadMoreBtn = document.getElementById('sales-load-more-btn');
+
+    var salesOffset = 0;
+    var hasMoreSales = true;
+    var saleSearchTimer = null;
+
+    function buildSaleFilterQuery() {
+        var params = [];
+        var sheetId = filterSaleSheet ? filterSaleSheet.value : '';
+        var search = saleSearch ? saleSearch.value.trim() : '';
+        if (sheetId) params.push('sheet_music_id=' + encodeURIComponent(sheetId));
+        if (search) params.push('search=' + encodeURIComponent(search));
+        return params.join('&');
+    }
+
+    async function loadSales() {
+        if (salesStats) salesStats.innerHTML = '<div class="stat-card"><div class="stat-label">Loading...</div></div>';
+        if (salesBody) salesBody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading...</td></tr>';
+        salesOffset = 0;
+        hasMoreSales = true;
+
+        try {
+            var filterQuery = buildSaleFilterQuery();
+
+            var [statsRes, listRes] = await Promise.all([
+                fetch('/api/admin/purchases/stats', { headers: authHeaders() }),
+                fetch('/api/admin/purchases?limit=50&offset=0' + (filterQuery ? '&' + filterQuery : ''), { headers: authHeaders() })
+            ]);
+
+            var stats = await statsRes.json();
+            var list = await listRes.json();
+
+            // Stats cards
+            if (salesStats) {
+                salesStats.innerHTML = '';
+                var statItems = [
+                    { label: 'Total Purchases', value: stats.totalPurchases },
+                    { label: 'Total Revenue', value: '$' + ((stats.totalRevenue || 0) / 100).toFixed(2) },
+                    { label: 'Unique Buyers', value: stats.uniqueBuyers }
+                ];
+
+                statItems.forEach(function(s) {
+                    var card = document.createElement('div');
+                    card.className = 'stat-card';
+                    card.innerHTML = '<div class="stat-value">' + s.value + '</div>' +
+                        '<div class="stat-label">' + s.label + '</div>';
+                    salesStats.appendChild(card);
+                });
+            }
+
+            // Top sellers breakdown
+            if (salesBreakdown && stats.bySheet && stats.bySheet.length > 0) {
+                salesBreakdown.style.display = 'block';
+                topSellersList.innerHTML = '';
+
+                if (filterSaleSheet) {
+                    filterSaleSheet.innerHTML = '<option value="">All Sheets</option>';
+                    stats.bySheet.forEach(function(s) {
+                        var opt = document.createElement('option');
+                        opt.value = s.sheet_music_id;
+                        opt.textContent = s.title;
+                        filterSaleSheet.appendChild(opt);
+                    });
+                }
+
+                stats.bySheet.forEach(function(s) {
+                    var item = document.createElement('div');
+                    item.className = 'breakdown-item';
+                    item.innerHTML =
+                        '<span class="breakdown-item-title">' + escapeHtml(s.title) + '</span>' +
+                        '<span class="breakdown-item-stats">' +
+                            '<span>' + s.units_sold + ' sold</span>' +
+                            '<span class="breakdown-item-amount">$' + ((s.total_revenue || 0) / 100).toFixed(2) + '</span>' +
+                        '</span>';
+                    item.addEventListener('click', function() {
+                        if (filterSaleSheet) filterSaleSheet.value = s.sheet_music_id;
+                        fetchSales();
+                    });
+                    topSellersList.appendChild(item);
+                });
+            } else if (salesBreakdown) {
+                salesBreakdown.style.display = 'none';
+            }
+
+            renderSaleRows(list.purchases, true);
+            if (saleCount) saleCount.textContent = list.total + ' total';
+            salesOffset = list.purchases.length;
+            hasMoreSales = list.purchases.length >= 50 && salesOffset < list.total;
+            if (salesLoadMore) salesLoadMore.style.display = hasMoreSales ? 'flex' : 'none';
+
+        } catch (e) {
+            if (salesStats) salesStats.innerHTML = '<div class="stat-card"><div class="stat-label">Failed to load</div></div>';
+            if (salesBody) salesBody.innerHTML = '<tr class="empty-row"><td colspan="6">Failed to load sales</td></tr>';
+        }
+    }
+
+    function renderSaleRows(purchases, clear) {
+        if (!salesBody) return;
+        if (clear) salesBody.innerHTML = '';
+
+        if (purchases.length === 0 && clear) {
+            salesBody.innerHTML = '<tr class="empty-row"><td colspan="6">No purchases found</td></tr>';
+            return;
+        }
+
+        purchases.forEach(function(p) {
+            var row = document.createElement('tr');
+            var itemNames = (p.items || []).map(function(i) { return escapeHtml(i.title); }).join(', ');
+            var tokenExpired = new Date(p.token_expires_at) < new Date();
+            var statusBadge = tokenExpired
+                ? '<span class="source-badge general">Expired</span>'
+                : '<span class="source-badge sheet">Active</span>';
+
+            row.innerHTML =
+                '<td>' + formatDate(p.created_at) + '</td>' +
+                '<td>' + escapeHtml(p.buyer_name || '-') + '</td>' +
+                '<td>' + escapeHtml(p.buyer_email || '-') + '</td>' +
+                '<td>' + (itemNames || '-') + '</td>' +
+                '<td>$' + ((p.amount_total || 0) / 100).toFixed(2) + '</td>' +
+                '<td>' + statusBadge + '</td>';
+            salesBody.appendChild(row);
+        });
+    }
+
+    async function fetchSales() {
+        salesOffset = 0;
+        hasMoreSales = true;
+        if (salesBody) salesBody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading...</td></tr>';
+
+        try {
+            var filterQuery = buildSaleFilterQuery();
+            var res = await fetch('/api/admin/purchases?limit=50&offset=0' + (filterQuery ? '&' + filterQuery : ''), { headers: authHeaders() });
+            var list = await res.json();
+
+            renderSaleRows(list.purchases, true);
+            if (saleCount) saleCount.textContent = list.total + ' total';
+            salesOffset = list.purchases.length;
+            hasMoreSales = list.purchases.length >= 50 && salesOffset < list.total;
+            if (salesLoadMore) salesLoadMore.style.display = hasMoreSales ? 'flex' : 'none';
+        } catch (e) {
+            if (salesBody) salesBody.innerHTML = '<tr class="empty-row"><td colspan="6">Failed to load sales</td></tr>';
+        }
+    }
+
+    async function loadMoreSales() {
+        if (!hasMoreSales) return;
+        if (salesLoadMoreBtn) { salesLoadMoreBtn.disabled = true; salesLoadMoreBtn.textContent = 'Loading...'; }
+
+        try {
+            var filterQuery = buildSaleFilterQuery();
+            var res = await fetch('/api/admin/purchases?limit=50&offset=' + salesOffset + (filterQuery ? '&' + filterQuery : ''), { headers: authHeaders() });
+            var list = await res.json();
+
+            renderSaleRows(list.purchases, false);
+            salesOffset += list.purchases.length;
+            hasMoreSales = list.purchases.length >= 50 && salesOffset < list.total;
+            if (salesLoadMore) salesLoadMore.style.display = hasMoreSales ? 'flex' : 'none';
+        } catch (e) { /* silently fail */ }
+        if (salesLoadMoreBtn) { salesLoadMoreBtn.disabled = false; salesLoadMoreBtn.textContent = 'Load More'; }
+    }
+
+    if (filterSaleSheet) filterSaleSheet.addEventListener('change', fetchSales);
+    if (saleSearch) {
+        saleSearch.addEventListener('input', function() {
+            clearTimeout(saleSearchTimer);
+            saleSearchTimer = setTimeout(fetchSales, 400);
+        });
+    }
+    if (clearSaleFiltersBtn) {
+        clearSaleFiltersBtn.addEventListener('click', function() {
+            if (saleSearch) saleSearch.value = '';
+            if (filterSaleSheet) filterSaleSheet.value = '';
+            fetchSales();
+        });
+    }
+    if (salesLoadMoreBtn) salesLoadMoreBtn.addEventListener('click', loadMoreSales);
 
     // =========================================
     // TAB SWITCHING
@@ -1712,6 +2067,7 @@
             else if (tabName === 'videos') loadVideos();
             else if (tabName === 'photos') loadPhotos();
             else if (tabName === 'donations') loadDonations();
+            else if (tabName === 'sales') loadSales();
         }
     }
 

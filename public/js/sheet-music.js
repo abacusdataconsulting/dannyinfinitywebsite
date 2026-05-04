@@ -6,6 +6,10 @@
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function formatPrice(cents) {
+        return '$' + (cents / 100).toFixed(2);
+    }
+
     // ============================
     // TIP SUCCESS: noindex to prevent duplicate content
     // ============================
@@ -34,6 +38,9 @@
     var previewDescription = document.getElementById('preview-description');
     var downloadBtn = document.getElementById('download-btn');
     var tipActionBtn = document.getElementById('tip-action-btn');
+
+    // Current sheet in preview
+    var currentPreviewSheet = null;
 
     // ============================
     // PDF.js setup (loaded via script tag as window.pdfjsLib)
@@ -67,11 +74,16 @@
                 ? '<p class="sheet-description" style="opacity:0.6;font-size:0.8rem;margin-top:4px;">' + escapeHtml(sheet.description.slice(0, 120)) + '</p>'
                 : '';
 
+            var priceBadge = sheet.price > 0
+                ? '<span class="sheet-price-badge paid">' + formatPrice(sheet.price) + '</span>'
+                : '<span class="sheet-price-badge free">FREE</span>';
+
             card.innerHTML =
                 '<div class="sheet-info">' +
                     '<h2 class="sheet-title" style="font-size:1rem;margin:0;">' + escapeHtml(sheet.title) + '</h2>' +
                     '<div class="sheet-meta">' + escapeHtml(sheet.arrangement) + ' // ' + escapeHtml(sheet.year) + '</div>' +
                     descSnippet +
+                    priceBadge +
                 '</div>' +
                 '<div class="sheet-preview" id="preview-' + escapeHtml(sheet.id) + '">' +
                     '<div class="sheet-placeholder">' +
@@ -91,21 +103,29 @@
 
             sheetsGrid.appendChild(card);
 
-            // Try to render first page thumbnail if PDF exists
+            // Try to render first page thumbnail if PDF exists (free sheets only)
             if (sheet.pdfUrl) {
                 renderThumbnail(sheet);
             }
 
             // Add to JSON-LD ItemList
+            var itemData = {
+                '@type': 'MusicComposition',
+                name: sheet.title,
+                composer: { '@type': 'Person', name: sheet.composer || 'Danny Infinity' },
+                description: sheet.description || '',
+            };
+            if (sheet.price > 0) {
+                itemData.offers = {
+                    '@type': 'Offer',
+                    price: (sheet.price / 100).toFixed(2),
+                    priceCurrency: 'USD'
+                };
+            }
             itemListElements.push({
                 '@type': 'ListItem',
                 position: index + 1,
-                item: {
-                    '@type': 'MusicComposition',
-                    name: sheet.title,
-                    composer: { '@type': 'Person', name: sheet.composer || 'Danny Infinity' },
-                    description: sheet.description || '',
-                }
+                item: itemData
             });
         });
 
@@ -158,7 +178,7 @@
         previewCanvas.style.display = 'none';
 
         if (!sheet.pdfUrl) {
-            previewLoading.textContent = 'No PDF available yet';
+            previewLoading.textContent = sheet.price > 0 ? 'Preview available after purchase' : 'No PDF available yet';
             return;
         }
 
@@ -192,6 +212,7 @@
     // MODAL
     // ============================
     function openPreview(sheet) {
+        currentPreviewSheet = sheet;
         previewTitle.textContent = sheet.title;
 
         // Build detail fields conditionally
@@ -200,32 +221,46 @@
         if (sheet.arrangement) fields += '<p class="preview-field"><span class="field-label">Arrangement:</span> ' + escapeHtml(sheet.arrangement) + '</p>';
         if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Date:</span> ' + escapeHtml(sheet.year) + '</p>';
         if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + escapeHtml(sheet.pages) + '</p>';
+
+        // Show price for paid sheets
+        if (sheet.price > 0) {
+            fields += '<p class="preview-price">' + formatPrice(sheet.price) + '</p>';
+        }
+
         previewFields.innerHTML = fields;
 
         previewDescription.textContent = sheet.description;
         previewDescription.style.display = sheet.description ? '' : 'none';
 
-        // Set download link with aria-label
-        if (sheet.pdfUrl) {
-            downloadBtn.href = sheet.pdfUrl;
-            downloadBtn.setAttribute('download', '');
-            downloadBtn.setAttribute('aria-label', 'Download ' + sheet.title + ' sheet music PDF');
-            downloadBtn.style.opacity = '1';
+        // Configure action buttons based on free vs paid
+        if (sheet.price > 0) {
+            // PAID: show add to cart / in cart button
+            updatePurchaseButton(sheet);
+            tipActionBtn.style.display = 'none';
         } else {
-            downloadBtn.href = '#';
-            downloadBtn.removeAttribute('download');
-            downloadBtn.setAttribute('aria-label', 'Download not available');
-            downloadBtn.style.opacity = '0.4';
+            // FREE: show download + tip
+            if (sheet.pdfUrl) {
+                downloadBtn.href = sheet.pdfUrl;
+                downloadBtn.setAttribute('download', '');
+                downloadBtn.setAttribute('aria-label', 'Download ' + sheet.title + ' sheet music PDF');
+                downloadBtn.style.opacity = '1';
+                downloadBtn.textContent = '[DOWNLOAD PDF]';
+                downloadBtn.className = 'action-btn download-btn';
+            } else {
+                downloadBtn.href = '#';
+                downloadBtn.removeAttribute('download');
+                downloadBtn.setAttribute('aria-label', 'Download not available');
+                downloadBtn.style.opacity = '0.4';
+                downloadBtn.textContent = '[DOWNLOAD PDF]';
+                downloadBtn.className = 'action-btn download-btn';
+            }
+            tipActionBtn.style.display = '';
+            tipActionBtn.setAttribute('aria-label', 'Leave a tip for ' + sheet.title);
+            tipActionBtn._tipSheet = {
+                sheetMusicId: sheet.numericId,
+                sheetTitle: sheet.title
+            };
         }
-
-        // Set tip button aria-label
-        tipActionBtn.setAttribute('aria-label', 'Leave a tip for ' + sheet.title);
-
-        // Store sheet context for tip modal
-        tipActionBtn._tipSheet = {
-            sheetMusicId: sheet.numericId,
-            sheetTitle: sheet.title
-        };
 
         // Render PDF preview
         renderFullPreview(sheet);
@@ -235,12 +270,31 @@
         document.body.style.overflow = 'hidden';
     }
 
+    function updatePurchaseButton(sheet) {
+        var inCart = window.sheetCart && window.sheetCart.has(sheet.numericId);
+
+        if (inCart) {
+            downloadBtn.href = '#';
+            downloadBtn.removeAttribute('download');
+            downloadBtn.textContent = '[IN CART — REMOVE]';
+            downloadBtn.className = 'action-btn in-cart-btn';
+            downloadBtn.style.opacity = '1';
+        } else {
+            downloadBtn.href = '#';
+            downloadBtn.removeAttribute('download');
+            downloadBtn.textContent = '[ADD TO CART — ' + formatPrice(sheet.price) + ']';
+            downloadBtn.className = 'action-btn purchase-btn';
+            downloadBtn.style.opacity = '1';
+        }
+    }
+
     function closePreview() {
         previewModal.classList.remove('active');
         document.body.style.overflow = '';
         previewCanvas.style.display = 'none';
         previewLoading.textContent = 'Loading preview...';
         previewLoading.classList.remove('hidden');
+        currentPreviewSheet = null;
     }
 
     // ============================
@@ -260,10 +314,26 @@
         }
     });
 
-    // Prevent download button default when no PDF
+    // Download / purchase button click
     downloadBtn.addEventListener('click', function(e) {
-        if (downloadBtn.href === '#' || !downloadBtn.hasAttribute('download')) {
+        if (!currentPreviewSheet) return;
+
+        if (currentPreviewSheet.price > 0) {
+            // Paid sheet: toggle cart
             e.preventDefault();
+            if (window.sheetCart) {
+                window.sheetCart.toggle({
+                    sheetId: currentPreviewSheet.numericId,
+                    title: currentPreviewSheet.title,
+                    priceCents: currentPreviewSheet.price
+                });
+                updatePurchaseButton(currentPreviewSheet);
+            }
+        } else {
+            // Free sheet: allow default download behavior, block if no PDF
+            if (!downloadBtn.hasAttribute('download')) {
+                e.preventDefault();
+            }
         }
     });
 
@@ -288,6 +358,13 @@
         });
     }
 
+    // Listen for cart changes to update modal button if open
+    document.addEventListener('cartchange', function() {
+        if (currentPreviewSheet && currentPreviewSheet.price > 0) {
+            updatePurchaseButton(currentPreviewSheet);
+        }
+    });
+
     // ============================
     // INIT — Fetch sheets from API then render
     // ============================
@@ -304,6 +381,7 @@
                     year: String(s.year),
                     pages: s.pages,
                     description: s.description || '',
+                    price: s.price || 0,
                     pdfUrl: s.pdfUrl || ''
                 };
             });

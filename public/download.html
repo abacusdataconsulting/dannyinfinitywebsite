@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Download Your Sheets</title>
+    <meta name="robots" content="noindex">
+    <link rel="stylesheet" href="css/global.css">
+    <style>
+        .download-container {
+            min-height: 100vh;
+            padding: 40px 20px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .download-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .download-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        .download-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.6;
+            letter-spacing: 1px;
+        }
+
+        .download-status {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            opacity: 0.6;
+        }
+
+        .download-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .download-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px;
+            border: 1px solid var(--border-color);
+            transition: background 0.15s;
+        }
+
+        .download-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .download-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .download-item-title {
+            font-weight: 600;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .download-item-meta {
+            font-size: 0.8rem;
+            opacity: 0.5;
+        }
+
+        .download-item-btn {
+            flex-shrink: 0;
+            margin-left: 20px;
+            padding: 10px 20px;
+            border: 2px solid var(--border-color);
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            text-decoration: none;
+        }
+
+        .download-item-btn:hover {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+        }
+
+        .download-all-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 18px;
+            border: 2px solid var(--border-color);
+            font-size: 1rem;
+            letter-spacing: 2px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            margin-bottom: 20px;
+        }
+
+        .download-all-btn:hover {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+        }
+
+        .download-expiry {
+            text-align: center;
+            font-size: 0.8rem;
+            opacity: 0.5;
+            letter-spacing: 1px;
+            margin-bottom: 40px;
+        }
+
+        .download-back {
+            display: block;
+            text-align: center;
+            padding: 12px;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .download-back:hover {
+            opacity: 1;
+        }
+
+        .download-error {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .download-error h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            letter-spacing: 2px;
+        }
+
+        .download-error p {
+            opacity: 0.6;
+            margin-bottom: 25px;
+        }
+    </style>
+</head>
+<body>
+    <div class="download-container">
+        <div class="download-header">
+            <div class="site-logo" style="margin-bottom:20px;">DANNY<span class="logo-accent">INFINITY</span></div>
+            <h1>Your Downloads</h1>
+            <p class="download-subtitle">Thank you for your purchase!</p>
+        </div>
+
+        <div id="download-content">
+            <div class="download-status" id="download-status">Looking up your purchase...</div>
+        </div>
+
+        <a href="sheet-music.html" class="download-back">[BACK TO SHEET MUSIC]</a>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        var contentEl = document.getElementById('download-content');
+        var statusEl = document.getElementById('download-status');
+        var params = new URLSearchParams(window.location.search);
+        var sessionId = params.get('session_id');
+        var token = params.get('token');
+
+        if (!sessionId && !token) {
+            showError('Invalid Link', 'No purchase information found in the URL.');
+            return;
+        }
+
+        if (token) {
+            loadDownloads(token);
+        } else {
+            lookupToken(sessionId, 0);
+        }
+
+        function lookupToken(sid, attempt) {
+            fetch('/api/download/lookup?session_id=' + encodeURIComponent(sid))
+                .then(function(res) {
+                    if (res.status === 404 && attempt < 5) {
+                        statusEl.textContent = 'Confirming your payment...';
+                        setTimeout(function() { lookupToken(sid, attempt + 1); }, 2000);
+                        return null;
+                    }
+                    return res.json().then(function(data) {
+                        if (!res.ok) throw new Error(data.error || 'Purchase not found');
+                        return data;
+                    });
+                })
+                .then(function(data) {
+                    if (!data) return;
+                    // Replace URL so refresh works with token
+                    history.replaceState(null, '', '/download.html?token=' + data.token);
+                    loadDownloads(data.token);
+                })
+                .catch(function(err) {
+                    showError('Purchase Not Found', err.message || 'We could not find your purchase. Please check your email for a receipt.');
+                });
+        }
+
+        function loadDownloads(tkn) {
+            statusEl.textContent = 'Loading your files...';
+
+            fetch('/api/download/' + encodeURIComponent(tkn))
+                .then(function(res) {
+                    return res.json().then(function(data) {
+                        if (!res.ok) throw new Error(data.error || 'Download unavailable');
+                        return data;
+                    });
+                })
+                .then(function(data) {
+                    renderDownloads(data);
+                })
+                .catch(function(err) {
+                    showError('Download Unavailable', err.message);
+                });
+        }
+
+        function renderDownloads(data) {
+            var html = '<div class="download-list">';
+
+            data.items.forEach(function(item) {
+                html +=
+                    '<div class="download-item">' +
+                        '<div class="download-item-info">' +
+                            '<div class="download-item-title">' + esc(item.title) + '</div>' +
+                            '<div class="download-item-meta">' + esc(item.composer || 'Danny Infinity') + ' // ' + esc(item.arrangement || '') + '</div>' +
+                        '</div>' +
+                        '<a href="' + esc(item.downloadUrl) + '" class="download-item-btn">[DOWNLOAD]</a>' +
+                    '</div>';
+            });
+
+            html += '</div>';
+
+            if (data.items.length > 1) {
+                html += '<button class="download-all-btn" id="download-all-btn">[DOWNLOAD ALL]</button>';
+            }
+
+            var expiry = new Date(data.expiresAt);
+            var now = new Date();
+            var hoursLeft = Math.max(0, Math.round((expiry - now) / (1000 * 60 * 60)));
+            html += '<div class="download-expiry">Download links expire in ' + hoursLeft + ' hours</div>';
+
+            contentEl.innerHTML = html;
+
+            // Download All handler
+            var downloadAllBtn = document.getElementById('download-all-btn');
+            if (downloadAllBtn) {
+                downloadAllBtn.addEventListener('click', function() {
+                    data.items.forEach(function(item, idx) {
+                        setTimeout(function() {
+                            var a = document.createElement('a');
+                            a.href = item.downloadUrl;
+                            a.download = '';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                        }, idx * 500);
+                    });
+                });
+            }
+        }
+
+        function showError(title, message) {
+            contentEl.innerHTML =
+                '<div class="download-error">' +
+                    '<h2>' + esc(title) + '</h2>' +
+                    '<p>' + esc(message) + '</p>' +
+                '</div>';
+        }
+
+        function esc(str) {
+            if (str == null) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    })();
+    </script>
+</body>
+</html>

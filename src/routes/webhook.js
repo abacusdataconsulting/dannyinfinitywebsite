@@ -58,28 +58,79 @@ webhook.post('/stripe', async (c) => {
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
         const stripeId = session.id;
+        const metadataType = session.metadata?.type;
 
-        // Idempotent: check if already processed
-        const existing = await c.env.DB.prepare(
-            'SELECT id FROM donations WHERE stripe_payment_id = ?'
-        ).bind(stripeId).first();
+        if (metadataType === 'purchase') {
+            // --- Sheet music purchase ---
+            const existing = await c.env.DB.prepare(
+                'SELECT id FROM purchases WHERE stripe_session_id = ?'
+            ).bind(stripeId).first();
 
-        if (!existing) {
-            const sheetMusicId = session.metadata?.sheet_music_id
-                ? parseInt(session.metadata.sheet_music_id)
-                : null;
+            if (!existing) {
+                // Generate secure download token (64 hex chars = 256 bits)
+                const tokenBytes = new Uint8Array(32);
+                crypto.getRandomValues(tokenBytes);
+                const downloadToken = Array.from(tokenBytes, b => b.toString(16).padStart(2, '0')).join('');
 
-            await c.env.DB.prepare(`
-                INSERT INTO donations (stripe_payment_id, sheet_music_id, amount, currency, donor_email, donor_name)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `).bind(
-                stripeId,
-                sheetMusicId,
-                session.amount_total || 0,
-                session.currency || 'usd',
-                session.customer_details?.email || null,
-                session.customer_details?.name || null
-            ).run();
+                // Token expires in 72 hours
+                const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+
+                const result = await c.env.DB.prepare(`
+                    INSERT INTO purchases (stripe_session_id, buyer_email, buyer_name, amount_total, currency, download_token, token_expires_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                `).bind(
+                    stripeId,
+                    session.customer_details?.email || null,
+                    session.customer_details?.name || null,
+                    session.amount_total || 0,
+                    session.currency || 'usd',
+                    downloadToken,
+                    expiresAt
+                ).run();
+
+                const purchaseId = result.meta.last_row_id;
+
+                // Insert purchase items
+                const sheetIds = (session.metadata?.sheet_ids || '').split(',').filter(Boolean).map(Number);
+                for (const sheetId of sheetIds) {
+                    const sheet = await c.env.DB.prepare(
+                        'SELECT price_cents FROM sheet_music WHERE id = ?'
+                    ).bind(sheetId).first();
+
+                    await c.env.DB.prepare(
+                        'INSERT INTO purchase_items (purchase_id, sheet_music_id, price_cents) VALUES (?, ?, ?)'
+                    ).bind(purchaseId, sheetId, sheet?.price_cents || 0).run();
+                }
+            }
+        } else {
+            // --- Tip / donation ---
+            const existing = await c.env.DB.prepare(
+                'SELECT id FROM donations WHERE stripe_payment_id = ?'
+            ).bind(stripeId).first();
+
+            if (!existing) {
+                const sheetMusicId = session.metadata?.sheet_music_id
+                    ? parseInt(session.metadata.sheet_music_id)
+                    : null;
+                const tipType = session.metadata?.tip_type || 'unknown';
+                const source = session.metadata?.source || (sheetMusicId ? 'sheet' : 'general');
+                const sheetTitle = session.metadata?.sheet_title || null;
+
+                await c.env.DB.prepare(`
+                    INSERT INTO donations (stripe_payment_id, sheet_music_id, amount, currency, donor_email, donor_name, tip_type, source, sheet_title)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `).bind(
+                    stripeId,
+                    sheetMusicId,
+                    session.amount_total || 0,
+                    session.currency || 'usd',
+                    session.customer_details?.email || null,
+                    session.customer_details?.name || null,
+                    tipType,
+                    source,
+                    sheetTitle
+                ).run();
+            }
         }
     }
 

@@ -31,6 +31,7 @@
             <button class="nav-btn" data-tab="videos">Videos</button>
             <button class="nav-btn" data-tab="photos">Photos</button>
             <button class="nav-btn" data-tab="donations">Donations</button>
+            <button class="nav-btn" data-tab="sales">Sales</button>
         </nav>
 
         <main class="admin-content">
@@ -181,9 +182,16 @@
                                 <input type="number" id="sheet-pages" value="1" min="1">
                             </div>
                             <div class="form-group">
+                                <label for="sheet-price">Price (USD, 0 = free)</label>
+                                <input type="number" id="sheet-price" value="0" min="0" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
                                 <label for="sheet-sort-order">Sort Order</label>
                                 <input type="number" id="sheet-sort-order" value="0" min="0">
                             </div>
+                            <div class="form-group"></div>
                         </div>
                         <div class="form-group">
                             <label for="sheet-description">Description</label>
@@ -535,29 +543,122 @@
             <!-- Donations Tab -->
             <section class="tab-content" id="donations-tab">
                 <div class="section-header">
-                    <h2>Donations</h2>
+                    <h2>Tips & Donations</h2>
+                    <span class="donation-count" id="donation-count"></span>
                 </div>
 
+                <!-- Stats Cards -->
                 <div class="stats-grid" id="donations-stats">
                     <!-- Stats loaded dynamically -->
                 </div>
 
-                <div class="table-container" style="margin-top:20px;">
+                <!-- Top Sheets Breakdown -->
+                <div class="donations-breakdown" id="donations-breakdown" style="display:none;">
+                    <h3>Top Tipped Sheets</h3>
+                    <div class="breakdown-list" id="top-sheets-list"></div>
+                </div>
+
+                <!-- Filters -->
+                <div class="donations-filters">
+                    <div class="filter-row">
+                        <input type="text" id="donation-search" class="filter-input" placeholder="Search donor name, email, or sheet...">
+                        <select id="filter-source" class="filter-select">
+                            <option value="">All Sources</option>
+                            <option value="sheet">Sheet Music Tips</option>
+                            <option value="general">General Tips</option>
+                        </select>
+                        <select id="filter-tip-type" class="filter-select">
+                            <option value="">All Amounts</option>
+                            <option value="preset_5">$5 Preset</option>
+                            <option value="preset_10">$10 Preset</option>
+                            <option value="preset_25">$25 Preset</option>
+                            <option value="custom">Custom Amount</option>
+                        </select>
+                        <select id="filter-sheet" class="filter-select">
+                            <option value="">All Sheets</option>
+                            <!-- Populated dynamically from stats -->
+                        </select>
+                        <button class="cms-btn cms-btn-sm" id="clear-donation-filters">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Donations Table -->
+                <div class="table-container" style="margin-top:0;">
                     <table class="donations-table">
                         <thead>
                             <tr>
                                 <th>Date</th>
                                 <th>Donor</th>
                                 <th>Email</th>
+                                <th>Source</th>
                                 <th>Sheet</th>
+                                <th>Type</th>
                                 <th>Amount</th>
-                                <th>Currency</th>
                             </tr>
                         </thead>
                         <tbody id="donations-body">
                             <!-- Loaded dynamically -->
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Load More -->
+                <div class="load-more-container" id="donations-load-more" style="display:none;">
+                    <button class="load-more-btn" id="donations-load-more-btn">Load More</button>
+                </div>
+            </section>
+
+            <!-- Sales Tab -->
+            <section class="tab-content" id="sales-tab">
+                <div class="section-header">
+                    <h2>Sheet Music Sales</h2>
+                    <span class="sale-count" id="sale-count"></span>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="sales-stats">
+                    <!-- Stats loaded dynamically -->
+                </div>
+
+                <!-- Top Sellers -->
+                <div class="donations-breakdown" id="sales-breakdown" style="display:none;">
+                    <h3>Top Selling Sheets</h3>
+                    <div class="breakdown-list" id="top-sellers-list"></div>
+                </div>
+
+                <!-- Filters -->
+                <div class="donations-filters">
+                    <div class="filter-row">
+                        <input type="text" id="sale-search" class="filter-input" placeholder="Search buyer name or email...">
+                        <select id="filter-sale-sheet" class="filter-select">
+                            <option value="">All Sheets</option>
+                        </select>
+                        <button class="cms-btn cms-btn-sm" id="clear-sale-filters">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Sales Table -->
+                <div class="table-container" style="margin-top:0;">
+                    <table class="donations-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Buyer</th>
+                                <th>Email</th>
+                                <th>Items</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sales-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Load More -->
+                <div class="load-more-container" id="sales-load-more" style="display:none;">
+                    <button class="load-more-btn" id="sales-load-more-btn">Load More</button>
                 </div>
             </section>
         </main>

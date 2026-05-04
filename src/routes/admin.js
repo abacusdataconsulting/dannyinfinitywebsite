@@ -194,23 +194,54 @@ admin.get('/pageviews', async (c) => {
 });
 
 /**
- * GET /api/admin/donations — Paginated donation records
+ * GET /api/admin/donations — Paginated donation records with filtering
+ * Query params: limit, offset, source (general|sheet), tip_type, sheet_music_id, search
  */
 admin.get('/donations', async (c) => {
     const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100);
     const offset = parseInt(c.req.query('offset') || '0');
+    const sourceFilter = c.req.query('source') || '';
+    const tipTypeFilter = c.req.query('tip_type') || '';
+    const sheetIdFilter = c.req.query('sheet_music_id') || '';
+    const search = c.req.query('search') || '';
+
+    let where = [];
+    let binds = [];
+
+    if (sourceFilter) {
+        where.push('d.source = ?');
+        binds.push(sourceFilter);
+    }
+    if (tipTypeFilter) {
+        where.push('d.tip_type = ?');
+        binds.push(tipTypeFilter);
+    }
+    if (sheetIdFilter) {
+        where.push('d.sheet_music_id = ?');
+        binds.push(parseInt(sheetIdFilter));
+    }
+    if (search) {
+        where.push('(d.donor_name LIKE ? OR d.donor_email LIKE ? OR COALESCE(d.sheet_title, sm.title) LIKE ?)');
+        const term = '%' + search + '%';
+        binds.push(term, term, term);
+    }
+
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
 
     const donations = await c.env.DB.prepare(`
-        SELECT d.*, sm.title as sheet_title
+        SELECT d.*, COALESCE(d.sheet_title, sm.title) as sheet_title
         FROM donations d
         LEFT JOIN sheet_music sm ON d.sheet_music_id = sm.id
+        ${whereClause}
         ORDER BY d.created_at DESC
         LIMIT ? OFFSET ?
-    `).bind(limit, offset).all();
+    `).bind(...binds, limit, offset).all();
 
     const countResult = await c.env.DB.prepare(
-        'SELECT COUNT(*) as total FROM donations'
-    ).first();
+        `SELECT COUNT(*) as total FROM donations d
+         LEFT JOIN sheet_music sm ON d.sheet_music_id = sm.id
+         ${whereClause}`
+    ).bind(...binds).first();
 
     return c.json({
         donations: donations.results,
@@ -221,7 +252,7 @@ admin.get('/donations', async (c) => {
 });
 
 /**
- * GET /api/admin/donations/stats — Donation statistics
+ * GET /api/admin/donations/stats — Donation statistics with breakdowns
  */
 admin.get('/donations/stats', async (c) => {
     const total = await c.env.DB.prepare(
@@ -232,18 +263,132 @@ admin.get('/donations/stats', async (c) => {
         'SELECT COUNT(DISTINCT donor_email) as count FROM donations WHERE donor_email IS NOT NULL'
     ).first();
 
+    const generalTips = await c.env.DB.prepare(
+        "SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total_amount FROM donations WHERE source = 'general' OR (source = 'unknown' AND sheet_music_id IS NULL)"
+    ).first();
+
+    const sheetTips = await c.env.DB.prepare(
+        "SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total_amount FROM donations WHERE source = 'sheet' OR (source = 'unknown' AND sheet_music_id IS NOT NULL)"
+    ).first();
+
     const bySheet = await c.env.DB.prepare(`
-        SELECT sm.title, COUNT(*) as count, SUM(d.amount) as total_amount
+        SELECT COALESCE(d.sheet_title, sm.title) as title, d.sheet_music_id,
+               COUNT(*) as count, SUM(d.amount) as total_amount
         FROM donations d
-        JOIN sheet_music sm ON d.sheet_music_id = sm.id
+        LEFT JOIN sheet_music sm ON d.sheet_music_id = sm.id
+        WHERE d.sheet_music_id IS NOT NULL
         GROUP BY d.sheet_music_id
         ORDER BY total_amount DESC
+    `).all();
+
+    const byTipType = await c.env.DB.prepare(`
+        SELECT tip_type, COUNT(*) as count, COALESCE(SUM(amount), 0) as total_amount
+        FROM donations
+        GROUP BY tip_type
+        ORDER BY count DESC
     `).all();
 
     return c.json({
         totalDonations: total.count,
         totalAmount: total.total_amount,
         uniqueDonors: uniqueDonors.count,
+        generalTips: { count: generalTips.count, amount: generalTips.total_amount },
+        sheetTips: { count: sheetTips.count, amount: sheetTips.total_amount },
+        bySheet: bySheet.results,
+        byTipType: byTipType.results,
+    });
+});
+
+/**
+ * GET /api/admin/purchases — Paginated purchase records with filtering
+ */
+admin.get('/purchases', async (c) => {
+    const limit = Math.min(parseInt(c.req.query('limit') || '50'), 100);
+    const offset = parseInt(c.req.query('offset') || '0');
+    const sheetIdFilter = c.req.query('sheet_music_id') || '';
+    const search = c.req.query('search') || '';
+
+    let where = [];
+    let binds = [];
+
+    if (sheetIdFilter) {
+        where.push('pi.sheet_music_id = ?');
+        binds.push(parseInt(sheetIdFilter));
+    }
+    if (search) {
+        where.push('(p.buyer_name LIKE ? OR p.buyer_email LIKE ?)');
+        const term = '%' + search + '%';
+        binds.push(term, term);
+    }
+
+    // If filtering by sheet, we need to join purchase_items
+    const needsItemJoin = sheetIdFilter ? true : false;
+    const joinClause = needsItemJoin ? 'JOIN purchase_items pi ON pi.purchase_id = p.id' : '';
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    const purchases = await c.env.DB.prepare(`
+        SELECT DISTINCT p.id, p.stripe_session_id, p.buyer_email, p.buyer_name,
+               p.amount_total, p.currency, p.token_expires_at, p.created_at
+        FROM purchases p
+        ${joinClause}
+        ${whereClause}
+        ORDER BY p.created_at DESC
+        LIMIT ? OFFSET ?
+    `).bind(...binds, limit, offset).all();
+
+    // Get items for each purchase
+    const results = [];
+    for (const p of purchases.results) {
+        const items = await c.env.DB.prepare(`
+            SELECT pi.price_cents, sm.title
+            FROM purchase_items pi
+            JOIN sheet_music sm ON pi.sheet_music_id = sm.id
+            WHERE pi.purchase_id = ?
+        `).bind(p.id).all();
+
+        results.push({
+            ...p,
+            items: items.results
+        });
+    }
+
+    const countResult = await c.env.DB.prepare(
+        `SELECT COUNT(DISTINCT p.id) as total FROM purchases p ${joinClause} ${whereClause}`
+    ).bind(...binds).first();
+
+    return c.json({
+        purchases: results,
+        total: countResult.total,
+        limit,
+        offset,
+    });
+});
+
+/**
+ * GET /api/admin/purchases/stats — Sales statistics
+ */
+admin.get('/purchases/stats', async (c) => {
+    const total = await c.env.DB.prepare(
+        'SELECT COUNT(*) as count, COALESCE(SUM(amount_total), 0) as total_amount FROM purchases'
+    ).first();
+
+    const uniqueBuyers = await c.env.DB.prepare(
+        'SELECT COUNT(DISTINCT buyer_email) as count FROM purchases WHERE buyer_email IS NOT NULL'
+    ).first();
+
+    const bySheet = await c.env.DB.prepare(`
+        SELECT sm.title, pi.sheet_music_id,
+               COUNT(*) as units_sold, SUM(pi.price_cents) as total_revenue
+        FROM purchase_items pi
+        JOIN sheet_music sm ON pi.sheet_music_id = sm.id
+        GROUP BY pi.sheet_music_id
+        ORDER BY units_sold DESC
+    `).all();
+
+    return c.json({
+        totalPurchases: total.count,
+        totalRevenue: total.total_amount,
+        uniqueBuyers: uniqueBuyers.count,
         bySheet: bySheet.results,
     });
 });

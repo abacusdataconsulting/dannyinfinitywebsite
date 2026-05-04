@@ -23,6 +23,8 @@ import publicBlog from './routes/public/blog.js';
 import publicVideos from './routes/public/videos.js';
 import publicPhotos from './routes/public/photos.js';
 import tipRoutes from './routes/tip.js';
+import purchaseRoutes from './routes/purchase.js';
+import downloadRoutes from './routes/download.js';
 import { adminAuth } from './middleware/auth.js';
 import { renderWritingPage } from './utils/renderWritingPage.js';
 import { generateSitemap } from './utils/generateSitemap.js';
@@ -172,6 +174,21 @@ api.use('/api/tip/*', async (c, next) => {
     await next();
 });
 api.route('/api/tip', tipRoutes);
+
+// Purchase (Stripe Checkout for paid sheets) — public, rate-limited
+api.use('/api/purchase/*', async (c, next) => {
+    if (c.req.method !== 'POST') return next();
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`purchase:${ip}`, 10, 60_000)) {
+        return c.json({ error: 'Too many requests. Try again in a minute.' }, 429);
+    }
+    await next();
+});
+api.route('/api/purchase', purchaseRoutes);
+
+// Secure downloads (token-based, public)
+api.route('/api/download', downloadRoutes);
 
 // File serving (public)
 api.route('/api/files', fileRoutes);
