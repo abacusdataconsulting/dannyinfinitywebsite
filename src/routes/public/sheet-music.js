@@ -13,6 +13,7 @@ publicSheetMusic.get('/', async (c) => {
 
     const sheets = result.results.map(s => {
         const isPaid = s.price_cents > 0;
+        const url = fileUrl(c.env, s.pdf_r2_key);
         return {
             id: s.id,
             slug: s.slug,
@@ -23,7 +24,8 @@ publicSheetMusic.get('/', async (c) => {
             pages: s.pages,
             description: s.description || '',
             price: s.price_cents || 0,
-            pdfUrl: isPaid ? null : fileUrl(c.env, s.pdf_r2_key),
+            pdfUrl: isPaid ? null : url,
+            previewUrl: isPaid ? url : null,
             tipLink: s.tip_link || '#',
         };
     });

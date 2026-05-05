@@ -103,8 +103,8 @@
 
             sheetsGrid.appendChild(card);
 
-            // Try to render first page thumbnail if PDF exists (free sheets only)
-            if (sheet.pdfUrl) {
+            // Render first page thumbnail (free or paid preview)
+            if (sheet.pdfUrl || sheet.previewUrl) {
                 renderThumbnail(sheet);
             }
 
@@ -146,13 +146,58 @@
     // ============================
     // PDF RENDERING
     // ============================
+
+    function drawWatermark(ctx, width, height) {
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.fillStyle = '#000';
+        var tileSize = Math.max(16, Math.floor(width / 16));
+        ctx.font = 'bold ' + tileSize + 'px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Rotate and tile the watermark
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(-Math.PI / 6);
+
+        var text = 'DANNYINFINITY.COM';
+        var spacingY = Math.max(100, Math.floor(width / 3));
+        var spacingX = Math.max(200, Math.floor(width / 1.8));
+        for (var y = -height; y < height * 2; y += spacingY) {
+            for (var x = -width; x < width * 2; x += spacingX) {
+                ctx.fillText(text, x - width / 2, y - height / 2);
+            }
+        }
+
+        ctx.restore();
+
+        // Draw a more visible centered watermark
+        ctx.save();
+        ctx.globalAlpha = 0.25;
+        ctx.fillStyle = '#000';
+        var centerSize = Math.max(22, Math.floor(width / 10));
+        ctx.font = 'bold ' + centerSize + 'px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillText('DANNYINFINITY.COM', 0, -centerSize);
+        ctx.fillText('PREVIEW ONLY', 0, centerSize);
+        ctx.restore();
+    }
+
     function renderThumbnail(sheet) {
         var container = document.getElementById('preview-' + sheet.id);
-        if (!container || !sheet.pdfUrl) return;
+        if (!container) return;
+
+        var url = sheet.pdfUrl || sheet.previewUrl;
+        if (!url) return;
+
+        var isPaid = sheet.price > 0;
 
         getPdfjs().then(function(lib) {
             if (!lib) return;
-            return lib.getDocument(sheet.pdfUrl).promise;
+            return lib.getDocument(url).promise;
         }).then(function(pdf) {
             if (!pdf) return;
             return pdf.getPage(1);
@@ -165,6 +210,9 @@
             var ctx = canvas.getContext('2d');
 
             return page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+                if (isPaid) {
+                    drawWatermark(ctx, canvas.width, canvas.height);
+                }
                 container.innerHTML = '';
                 container.appendChild(canvas);
             });
@@ -177,17 +225,21 @@
         previewLoading.classList.remove('hidden');
         previewCanvas.style.display = 'none';
 
-        if (!sheet.pdfUrl) {
-            previewLoading.textContent = sheet.price > 0 ? 'Preview available after purchase' : 'No PDF available yet';
+        var url = sheet.pdfUrl || sheet.previewUrl;
+
+        if (!url) {
+            previewLoading.textContent = sheet.price > 0 ? 'No preview available' : 'No PDF available yet';
             return;
         }
+
+        var isPaid = sheet.price > 0;
 
         getPdfjs().then(function(lib) {
             if (!lib) {
                 previewLoading.textContent = 'PDF viewer unavailable';
                 return;
             }
-            return lib.getDocument(sheet.pdfUrl).promise;
+            return lib.getDocument(url).promise;
         }).then(function(pdf) {
             if (!pdf) return;
             return pdf.getPage(1);
@@ -200,6 +252,9 @@
             var ctx = previewCanvas.getContext('2d');
 
             return page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function() {
+                if (isPaid) {
+                    drawWatermark(ctx, previewCanvas.width, previewCanvas.height);
+                }
                 previewLoading.classList.add('hidden');
                 previewCanvas.style.display = 'block';
             });
@@ -207,6 +262,13 @@
             previewLoading.textContent = 'Failed to load PDF';
         });
     }
+
+    // Prevent right-click save on preview canvas
+    previewCanvas.addEventListener('contextmenu', function(e) {
+        if (currentPreviewSheet && currentPreviewSheet.price > 0) {
+            e.preventDefault();
+        }
+    });
 
     // ============================
     // MODAL
@@ -222,9 +284,10 @@
         if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Date:</span> ' + escapeHtml(sheet.year) + '</p>';
         if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + escapeHtml(sheet.pages) + '</p>';
 
-        // Show price for paid sheets
+        // Show price and preview notice for paid sheets
         if (sheet.price > 0) {
             fields += '<p class="preview-price">' + formatPrice(sheet.price) + '</p>';
+            fields += '<p class="preview-field" style="opacity:0.5;font-size:0.8rem;font-style:italic;">Page 1 preview only — purchase for full PDF</p>';
         }
 
         previewFields.innerHTML = fields;
@@ -382,7 +445,8 @@
                     pages: s.pages,
                     description: s.description || '',
                     price: s.price || 0,
-                    pdfUrl: s.pdfUrl || ''
+                    pdfUrl: s.pdfUrl || '',
+                    previewUrl: s.previewUrl || ''
                 };
             });
             renderGrid();

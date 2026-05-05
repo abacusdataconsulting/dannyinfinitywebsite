@@ -1,5 +1,7 @@
 /**
- * Cart — lightweight page-scoped shopping cart for paid sheet music
+ * Cart — session-persistent shopping cart for paid sheet music
+ * Injects a [CART] link into the site-nav on every page.
+ * Cart data persists across pages via sessionStorage.
  *
  * Usage:
  *   window.sheetCart.add({ sheetId, title, priceCents })
@@ -8,13 +10,28 @@
  *   window.sheetCart.items()
  *   window.sheetCart.count()
  *   window.sheetCart.checkout()
+ *   window.sheetCart.openModal()
  */
 (function() {
     'use strict';
 
-    var cart = [];
+    var STORAGE_KEY = 'sheetCart';
+    var cart = loadCart();
     var overlay = null;
-    var widget = null;
+    var navLink = null;
+    var floatingBtn = null;
+
+    function loadCart() {
+        try {
+            var data = sessionStorage.getItem(STORAGE_KEY);
+            return data ? JSON.parse(data) : [];
+        } catch (e) { return []; }
+    }
+
+    function saveCart() {
+        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(cart)); }
+        catch (e) { /* quota exceeded */ }
+    }
 
     function escapeHtml(str) {
         if (str == null) return '';
@@ -26,24 +43,53 @@
     }
 
     // ============================
-    // WIDGET (floating cart button)
+    // NAV LINK (injected into site-nav)
     // ============================
-    function ensureWidget() {
-        if (widget) return;
-        widget = document.createElement('div');
-        widget.className = 'cart-widget';
-        widget.innerHTML =
-            '<span class="cart-widget-icon">&#9733;</span>' +
-            '<span class="cart-widget-count">0</span>';
-        widget.addEventListener('click', openCartModal);
-        document.body.appendChild(widget);
+    function ensureNavLink() {
+        if (navLink) return;
+        var nav = document.querySelector('.site-nav');
+        if (!nav) return;
+
+        navLink = document.createElement('a');
+        navLink.href = '#';
+        navLink.className = 'nav-link cart-nav-link';
+        navLink.innerHTML = '<span class="cart-nav-text">CART</span> <span class="cart-nav-count">(0)</span>';
+        navLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            openCartModal();
+        });
+        nav.appendChild(navLink);
     }
 
-    function updateWidget() {
-        ensureWidget();
-        var countEl = widget.querySelector('.cart-widget-count');
-        countEl.textContent = cart.length;
-        widget.classList.toggle('has-items', cart.length > 0);
+    function updateNavLink() {
+        ensureNavLink();
+        if (!navLink) return;
+        var countEl = navLink.querySelector('.cart-nav-count');
+        countEl.textContent = '(' + cart.length + ')';
+        navLink.classList.toggle('cart-has-items', cart.length > 0);
+    }
+
+    // ============================
+    // FLOATING CHECKOUT BUTTON (sheets page only)
+    // ============================
+    function ensureFloatingBtn() {
+        if (floatingBtn) return;
+        // Only show on sheets page
+        if (window.location.pathname.indexOf('sheet-music') === -1) return;
+
+        floatingBtn = document.createElement('button');
+        floatingBtn.className = 'cart-floating-btn';
+        floatingBtn.innerHTML = '[CHECKOUT <span class="cart-floating-count">(0)</span>]';
+        floatingBtn.addEventListener('click', openCartModal);
+        document.body.appendChild(floatingBtn);
+    }
+
+    function updateFloatingBtn() {
+        ensureFloatingBtn();
+        if (!floatingBtn) return;
+        var countEl = floatingBtn.querySelector('.cart-floating-count');
+        countEl.textContent = '(' + cart.length + ')';
+        floatingBtn.classList.toggle('visible', cart.length > 0);
     }
 
     // ============================
@@ -91,6 +137,7 @@
             listEl.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
             totalEl.textContent = '';
             checkoutBtn.disabled = true;
+            checkoutBtn.textContent = '[CHECKOUT]';
             return;
         }
 
@@ -138,13 +185,17 @@
             title: item.title,
             priceCents: item.priceCents
         });
-        updateWidget();
+        saveCart();
+        updateNavLink();
+        updateFloatingBtn();
         fireChange();
     }
 
     function removeFromCart(sheetId) {
         cart = cart.filter(function(i) { return i.sheetId !== sheetId; });
-        updateWidget();
+        saveCart();
+        updateNavLink();
+        updateFloatingBtn();
         fireChange();
     }
 
@@ -186,6 +237,9 @@
         })
         .then(function(data) {
             if (data.url) {
+                // Clear cart on successful checkout redirect
+                cart = [];
+                saveCart();
                 window.location.href = data.url;
             } else {
                 throw new Error('No checkout URL returned');
@@ -218,5 +272,7 @@
         openModal: openCartModal
     };
 
-    updateWidget();
+    // Init: inject nav link, floating button, and set initial state
+    updateNavLink();
+    updateFloatingBtn();
 })();

@@ -28,9 +28,15 @@ purchase.post('/create-session', async (c) => {
 
     // Look up all sheets
     const placeholders = uniqueIds.map(() => '?').join(',');
-    const sheets = await c.env.DB.prepare(
-        `SELECT id, title, price_cents, is_published FROM sheet_music WHERE id IN (${placeholders})`
-    ).bind(...uniqueIds).all();
+    let sheets;
+    try {
+        sheets = await c.env.DB.prepare(
+            `SELECT id, title, price_cents, is_published FROM sheet_music WHERE id IN (${placeholders})`
+        ).bind(...uniqueIds).all();
+    } catch (dbErr) {
+        console.error('DB error:', dbErr.message);
+        return c.json({ error: 'Database error — price_cents column may not exist. Run migration 010.' }, 500);
+    }
 
     const sheetMap = new Map();
     for (const s of sheets.results) {
@@ -96,8 +102,9 @@ purchase.post('/create-session', async (c) => {
         const data = await res.json();
 
         if (!res.ok) {
-            console.error('Stripe error:', data.error?.message);
-            return c.json({ error: 'Failed to create checkout session' }, 502);
+            const errMsg = data.error?.message || 'Unknown Stripe error';
+            console.error('Stripe error:', errMsg, 'type:', data.error?.type, 'param:', data.error?.param);
+            return c.json({ error: errMsg }, 502);
         }
 
         return c.json({ url: data.url });

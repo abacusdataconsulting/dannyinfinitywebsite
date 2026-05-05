@@ -512,7 +512,6 @@
             document.getElementById('sheet-pages').value = sheet.pages;
             document.getElementById('sheet-sort-order').value = sheet.sort_order || 0;
             document.getElementById('sheet-description').value = sheet.description || '';
-            document.getElementById('sheet-tip-link').value = sheet.tip_link || '';
             document.getElementById('sheet-price').value = sheet.price_cents ? (sheet.price_cents / 100).toFixed(2) : '0';
             document.getElementById('sheet-published').checked = !!sheet.is_published;
             sheetR2Key.value = sheet.pdf_r2_key || '';
@@ -602,7 +601,6 @@
                 pages: parseInt(document.getElementById('sheet-pages').value) || 1,
                 description: document.getElementById('sheet-description').value || null,
                 sortOrder: parseInt(document.getElementById('sheet-sort-order').value) || 0,
-                tipLink: document.getElementById('sheet-tip-link').value || null,
                 priceCents: Math.round((parseFloat(document.getElementById('sheet-price').value) || 0) * 100),
                 pdfR2Key: sheetR2Key.value || null,
                 isPublished: document.getElementById('sheet-published').checked,
