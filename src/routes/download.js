@@ -1,24 +1,67 @@
 /**
  * Download route — secure, token-based PDF downloads for purchases
+ * Includes a Stripe API fallback if the webhook hasn't processed yet.
  */
 import { Hono } from 'hono';
+import { createPurchaseFromSession } from './webhook.js';
 
 const download = new Hono();
 
 /**
  * GET /api/download/lookup?session_id=cs_xxx
- * Returns the download token for a Stripe session (post-checkout redirect)
+ * Returns the download token for a Stripe session (post-checkout redirect).
+ * Falls back to Stripe API if webhook hasn't created the record yet.
  */
 download.get('/lookup', async (c) => {
     const sessionId = c.req.query('session_id');
     if (!sessionId) return c.json({ error: 'Missing session_id' }, 400);
 
-    const purchase = await c.env.DB.prepare(
+    // Check if webhook already created the purchase
+    let purchase = await c.env.DB.prepare(
         'SELECT download_token, token_expires_at FROM purchases WHERE stripe_session_id = ?'
     ).bind(sessionId).first();
 
+    // Fallback: if not found, verify directly with Stripe and create the record
     if (!purchase) {
-        return c.json({ error: 'not_ready' }, 404);
+        const stripeKey = c.env.STRIPE_SECRET_KEY;
+        if (!stripeKey) {
+            return c.json({ error: 'not_ready' }, 404);
+        }
+
+        try {
+            const res = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sessionId), {
+                headers: { 'Authorization': 'Bearer ' + stripeKey },
+            });
+
+            if (!res.ok) {
+                console.error('Stripe session lookup failed:', res.status);
+                return c.json({ error: 'not_ready' }, 404);
+            }
+
+            const session = await res.json();
+
+            // Verify this is a completed purchase
+            if (session.payment_status !== 'paid' || session.metadata?.type !== 'purchase') {
+                return c.json({ error: 'Invalid or incomplete session' }, 400);
+            }
+
+            // Create the purchase record (same logic as webhook)
+            await createPurchaseFromSession(c.env.DB, session);
+
+            // Re-fetch the record we just created
+            purchase = await c.env.DB.prepare(
+                'SELECT download_token, token_expires_at FROM purchases WHERE stripe_session_id = ?'
+            ).bind(sessionId).first();
+
+            if (!purchase) {
+                return c.json({ error: 'Failed to create purchase record' }, 500);
+            }
+
+            console.log('DOWNLOAD: Created purchase via fallback for session', sessionId);
+        } catch (err) {
+            console.error('DOWNLOAD fallback error:', err.message);
+            return c.json({ error: 'not_ready' }, 404);
+        }
     }
 
     if (new Date(purchase.token_expires_at) < new Date()) {

@@ -48,13 +48,10 @@
                 article.innerHTML =
                     '<div class="post-header">' +
                         '<span class="post-date">' + escapeHtml(dateStr) + '</span>' +
-                        '<span class="post-tag">[' + escapeHtml(post.tag || 'UPDATE') + ']</span>' +
                     '</div>' +
                     '<h2 class="post-title"><a href="' + escapeHtml(href) + '">' + escapeHtml(post.title) + '</a></h2>' +
-                    '<p class="post-excerpt" style="opacity:0.7;margin:8px 0 16px;font-size:0.9rem;line-height:1.5;">' + escapeHtml(excerpt) + '</p>' +
-                    '<div style="text-align:center;margin-top:20px;">' +
-                        '<a href="' + escapeHtml(href) + '" class="post-read-more" style="display:inline-block;font-size:1.1rem;padding:10px 28px;color:var(--text-primary);border:2px solid var(--border-color);letter-spacing:2px;transition:all 0.2s ease;">READ MORE &rarr;</a>' +
-                    '</div>';
+                    '<p class="post-excerpt">' + escapeHtml(excerpt) + '</p>' +
+                    '<a href="' + escapeHtml(href) + '" class="post-read-more">READ MORE &rarr;</a>';
 
                 postsContainer.appendChild(article);
             });

@@ -65,7 +65,7 @@ export async function renderWritingPage(slug, env, request) {
     <div class="blog-container container">
         <!-- Header -->
         <header class="site-header">
-            <div class="site-logo">DANNY<span class="logo-accent">INFINITY</span></div>
+            <a href="/home.html" class="site-logo">DANNY<span class="logo-accent">INFINITY</span></a>
             <nav class="site-nav" aria-label="Main navigation">
                 <a href="/home.html" class="nav-link">HOME</a>
                 <a href="/music.html" class="nav-link">MUSIC</a>
@@ -79,7 +79,6 @@ export async function renderWritingPage(slug, env, request) {
         <article class="blog-post" id="main-content">
             <div class="post-header">
                 <span class="post-date">${escapeHtml(dateStr)}</span>
-                <span class="post-tag">[${escapeHtml(post.tag || 'UPDATE')}]</span>
             </div>
             <h1 class="post-title">${safeTitle}</h1>
             <div class="post-body">${post.body || ''}</div>
@@ -114,6 +113,7 @@ export async function renderWritingPage(slug, env, request) {
     })}
     </script>
 
+    <script src="/js/cart.js"></script>
     <script src="/js/tracker.js"></script>
 </body>
 </html>`;
