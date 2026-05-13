@@ -125,7 +125,6 @@ export async function renderSheetPage(slug, env, request) {
             <div class="footer-content">
                 <p class="footer-text">&gt; DANNY INFINITY // <span>${new Date().getFullYear()}</span></p>
             </div>
-            <a href="/index.html" class="logout-link">[DISCONNECT]</a>
         </footer>
     </div>
 

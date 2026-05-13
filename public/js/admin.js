@@ -93,21 +93,35 @@
      */
     function checkAdminAccess() {
         const accessLevel = sessionStorage.getItem('accessLevel');
-        const user = sessionStorage.getItem('user');
+        const user = sessionStorage.getItem('user') || localStorage.getItem('userData');
 
-        if (accessLevel !== 'member' || !user) {
-            return false;
-        }
+        if (!user) return false;
 
-        if (user) {
+        // Allow if accessLevel is 'member' (splash login) or if localStorage has user data (cookie auth)
+        var hasSession = accessLevel === 'member' || localStorage.getItem('userData');
+        if (!hasSession) return false;
+
+        try {
             const userData = JSON.parse(user);
             if (userData.isAdmin) {
                 adminUser.textContent = 'Logged in as ' + userData.name;
                 return true;
             }
-        }
+        } catch (e) {}
 
         return false;
+    }
+
+    /**
+     * Handle expired/missing session — prompt re-login
+     */
+    function handleSessionExpired() {
+        accessDenied.classList.remove('hidden');
+        accessDenied.innerHTML = '<div style="text-align:center;padding:40px;">' +
+            '<h2 style="letter-spacing:2px;margin-bottom:15px;">Session Expired</h2>' +
+            '<p style="opacity:0.6;margin-bottom:20px;">Please log in again through the main page.</p>' +
+            '<a href="index.html" style="padding:12px 30px;border:2px solid var(--border-color);letter-spacing:2px;font-size:0.9rem;">[LOG IN]</a>' +
+        '</div>';
     }
 
     /**
@@ -173,6 +187,10 @@
             '/api/admin/visits?offset=' + offset + '&limit=' + limit,
             { headers: authHeaders() }
         );
+        if (response.status === 401) {
+            handleSessionExpired();
+            throw new Error('Session expired');
+        }
         if (!response.ok) throw new Error('Failed to fetch visits');
         return response.json();
     }
@@ -1512,6 +1530,81 @@
             if (!res.ok) throw new Error('Delete failed');
             loadPosts();
         } catch (err) { alert('Error: ' + err.message); }
+    }
+
+    // =========================================
+    // BLOG TOOLBAR
+    // =========================================
+    var postToolbar = document.getElementById('post-toolbar');
+    if (postToolbar) {
+        var BLOG_TEMPLATE =
+            '<h2>Section Title</h2>\n\n' +
+            '<p>Your opening paragraph goes here. Set the scene, introduce the topic, or share what inspired this post.</p>\n\n' +
+            '<p>Continue with more detail here. Each paragraph should be wrapped in &lt;p&gt; tags for proper spacing.</p>\n\n' +
+            '<h3>Subsection</h3>\n\n' +
+            '<p>Use &lt;h3&gt; for smaller section headings within the post.</p>\n\n' +
+            '<p>You can use <strong>bold text</strong> for emphasis or <em>italics</em> for a softer tone.</p>\n\n' +
+            '<blockquote>\n  <p>Use blockquotes for quotes, callouts, or highlighted thoughts.</p>\n</blockquote>\n\n' +
+            '<ul>\n  <li>Bullet point one</li>\n  <li>Bullet point two</li>\n  <li>Bullet point three</li>\n</ul>\n\n' +
+            '<p>Wrap up with a closing thought or call to action.</p>\n\n' +
+            '<p><em>— Danny Infinity</em></p>';
+
+        postToolbar.addEventListener('click', function(e) {
+            var btn = e.target.closest('[data-insert], [data-wrap]');
+            if (!btn) return;
+            e.preventDefault();
+
+            var textarea = document.getElementById('post-body');
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var selected = textarea.value.substring(start, end);
+            var before = textarea.value.substring(0, start);
+            var after = textarea.value.substring(end);
+            var insert = '';
+            var cursorOffset = 0;
+
+            var wrapTag = btn.getAttribute('data-wrap');
+            var insertType = btn.getAttribute('data-insert');
+
+            if (wrapTag) {
+                // Wrap selected text (or placeholder) in tag
+                var inner = selected || 'text here';
+                insert = '<' + wrapTag + '>' + inner + '</' + wrapTag + '>';
+                cursorOffset = wrapTag.length + 2; // position after opening tag
+            } else if (insertType === 'template') {
+                if (textarea.value.trim() && !confirm('This will replace the current content. Continue?')) return;
+                textarea.value = BLOG_TEMPLATE;
+                textarea.focus();
+                textarea.setSelectionRange(4, 17); // select "Section Title"
+                return;
+            } else if (insertType === 'link') {
+                var linkText = selected || 'link text';
+                insert = '<a href="https://">' + linkText + '</a>';
+                cursorOffset = 9; // position inside href=""
+            } else if (insertType === 'ul') {
+                insert = '<ul>\n  <li>' + (selected || 'Item') + '</li>\n  <li>Item</li>\n</ul>';
+                cursorOffset = 10;
+            } else if (insertType === 'ol') {
+                insert = '<ol>\n  <li>' + (selected || 'Item') + '</li>\n  <li>Item</li>\n</ol>';
+                cursorOffset = 10;
+            } else if (insertType === 'blockquote') {
+                insert = '<blockquote>\n  <p>' + (selected || 'Quote text here') + '</p>\n</blockquote>';
+                cursorOffset = 18;
+            } else if (insertType === 'hr') {
+                insert = '\n<hr>\n';
+                cursorOffset = insert.length;
+            } else if (insertType === 'br') {
+                insert = '<br>\n';
+                cursorOffset = insert.length;
+            }
+
+            if (insert) {
+                textarea.value = before + insert + after;
+                textarea.focus();
+                var newPos = start + cursorOffset;
+                textarea.setSelectionRange(newPos, newPos);
+            }
+        });
     }
 
     // =========================================

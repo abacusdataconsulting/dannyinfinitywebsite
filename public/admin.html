@@ -427,7 +427,21 @@
                         </div>
                         <div class="form-group">
                             <label for="post-body">Body (HTML)</label>
-                            <textarea id="post-body" rows="10" style="resize:vertical;"></textarea>
+                            <div class="post-toolbar" id="post-toolbar" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+                                <button type="button" class="cms-btn cms-btn-sm" data-insert="template" title="Insert full post template">Template</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-wrap="p" title="Paragraph">&lt;p&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-wrap="h2" title="Heading 2">&lt;h2&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-wrap="h3" title="Heading 3">&lt;h3&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-wrap="strong" title="Bold">&lt;b&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-wrap="em" title="Italic">&lt;i&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-insert="link" title="Link">&lt;a&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-insert="ul" title="Unordered List">&lt;ul&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-insert="ol" title="Ordered List">&lt;ol&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-insert="blockquote" title="Blockquote">&lt;quote&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-insert="hr" title="Horizontal Rule">&lt;hr&gt;</button>
+                                <button type="button" class="cms-btn cms-btn-sm" data-insert="br" title="Line Break">&lt;br&gt;</button>
+                            </div>
+                            <textarea id="post-body" rows="20" style="resize:vertical;"></textarea>
                         </div>
                         <div class="form-group">
                             <label class="toggle-label">
