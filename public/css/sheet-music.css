@@ -119,6 +119,8 @@
     cursor: pointer;
     transition: all 0.3s ease;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .sheet-card:hover {
@@ -136,6 +138,7 @@
     justify-content: center;
     overflow: hidden;
     position: relative;
+    flex-shrink: 0;
 }
 
 .sheet-preview canvas {
@@ -163,6 +166,10 @@
 .sheet-info {
     padding: 15px 20px;
     border-bottom: 1px solid var(--border-color);
+    height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .sheet-title {
@@ -170,18 +177,32 @@
     font-weight: 600;
     letter-spacing: 1px;
     margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sheet-meta {
     font-size: 0.8rem;
     opacity: 0.5;
     letter-spacing: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sheet-description {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .sheet-see-more {
     padding: 12px 20px;
     text-align: center;
     border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
 }
 
 .see-more-link {
@@ -224,17 +245,26 @@
     top: 20px;
     right: 30px;
     background: none;
-    border: none;
-    font-size: 3rem;
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    font-size: 2rem;
     cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
+    opacity: 0.9;
+    transition: all 0.2s ease;
     z-index: 1001;
+    color: var(--text-primary);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .modal-close:hover {
     opacity: 1;
-    background: transparent;
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border-color: var(--text-primary);
 }
 
 .modal-content {

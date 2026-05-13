@@ -71,6 +71,7 @@
     var previewTitle = document.getElementById('preview-title');
     var previewFields = document.getElementById('preview-fields');
     var previewDescription = document.getElementById('preview-description');
+    var buyNowBtn = document.getElementById('buy-now-btn');
     var downloadBtn = document.getElementById('download-btn');
     var tipActionBtn = document.getElementById('tip-action-btn');
 
@@ -238,9 +239,7 @@
             card.className = 'sheet-card';
             card.dataset.sheetId = sheet.id;
 
-            var descSnippet = sheet.description
-                ? '<p class="sheet-description" style="opacity:0.6;font-size:0.8rem;margin-top:4px;">' + escapeHtml(sheet.description.slice(0, 120)) + '</p>'
-                : '';
+            var descSnippet = '<p class="sheet-description" style="opacity:0.6;font-size:0.8rem;margin-top:4px;">' + (sheet.description ? escapeHtml(sheet.description) : '&nbsp;') + '</p>';
 
             var priceBadge = '';
             if (sheet.owned) {
@@ -449,20 +448,31 @@
         if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Date:</span> ' + escapeHtml(sheet.year) + '</p>';
         if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + escapeHtml(sheet.pages) + '</p>';
 
-        if (sheet.owned) {
-            fields += '<p class="preview-field" style="color:#4ade80;font-size:0.85rem;letter-spacing:1px;">PURCHASED — Full PDF access</p>';
-        } else if (sheet.price > 0) {
-            fields += '<p class="preview-price">' + formatPrice(sheet.price) + '</p>';
-            fields += '<p class="preview-field" style="opacity:0.5;font-size:0.8rem;font-style:italic;">Page 1 preview only — purchase for full PDF</p>';
-        }
-
         previewFields.innerHTML = fields;
 
         previewDescription.textContent = sheet.description;
         previewDescription.style.display = sheet.description ? '' : 'none';
 
+        var noticeEl = document.getElementById('preview-notice');
         if (sheet.owned) {
-            // OWNED: show download button (user library download)
+            noticeEl.textContent = 'PURCHASED — Full PDF access';
+            noticeEl.style.display = '';
+            noticeEl.style.color = '#4ade80';
+            noticeEl.style.fontStyle = 'normal';
+            noticeEl.style.letterSpacing = '1px';
+        } else if (sheet.price > 0) {
+            noticeEl.textContent = 'Page 1 preview only — purchase for full PDF';
+            noticeEl.style.display = '';
+            noticeEl.style.color = '';
+            noticeEl.style.fontStyle = 'italic';
+            noticeEl.style.letterSpacing = '';
+        } else {
+            noticeEl.style.display = 'none';
+        }
+
+        if (sheet.owned) {
+            // PURCHASED: show download button
+            buyNowBtn.style.display = 'none';
             downloadBtn.href = '/api/user/library/download/' + sheet.numericId;
             downloadBtn.setAttribute('download', '');
             downloadBtn.setAttribute('aria-label', 'Download ' + sheet.title + ' sheet music PDF');
@@ -470,8 +480,6 @@
             downloadBtn.textContent = '[DOWNLOAD PDF]';
             downloadBtn.className = 'action-btn download-btn';
             downloadBtn.onclick = function(e) {
-                // Let the default link behavior handle the download
-                // Need to add auth header via fetch for authenticated download
                 e.preventDefault();
                 var a = document.createElement('a');
                 fetch('/api/user/library/download/' + sheet.numericId, {
@@ -493,12 +501,15 @@
             };
             tipActionBtn.style.display = 'none';
         } else if (sheet.price > 0) {
-            // PAID: show add to cart / in cart button
+            // PAID: show buy now + add to cart
+            buyNowBtn.style.display = '';
+            buyNowBtn.textContent = '[BUY NOW — ' + formatPrice(sheet.price) + ']';
             downloadBtn.onclick = null;
             updatePurchaseButton(sheet);
             tipActionBtn.style.display = 'none';
         } else {
             // FREE: show download + tip
+            buyNowBtn.style.display = 'none';
             downloadBtn.onclick = null;
             if (sheet.pdfUrl) {
                 downloadBtn.href = sheet.pdfUrl;
@@ -527,6 +538,11 @@
 
         previewModal.classList.add('active');
         document.body.style.overflow = 'hidden';
+
+        // Push slug URL for SEO and shareability
+        if (sheet.id && window.history.pushState) {
+            history.pushState({ sheetSlug: sheet.id }, '', '/sheets/' + encodeURIComponent(sheet.id));
+        }
     }
 
     function updatePurchaseButton(sheet) {
@@ -547,12 +563,20 @@
         }
     }
 
+    var closingFromPopstate = false;
+
     function closePreview() {
         previewModal.classList.remove('active');
         document.body.style.overflow = '';
         previewCanvas.style.display = 'none';
         previewLoading.textContent = 'Loading preview...';
         previewLoading.classList.remove('hidden');
+
+        // Restore original URL (skip if triggered by browser back button)
+        if (!closingFromPopstate && window.history.pushState) {
+            history.pushState(null, '', '/sheet-music.html');
+        }
+        closingFromPopstate = false;
         currentPreviewSheet = null;
     }
 
@@ -594,6 +618,42 @@
                 e.preventDefault();
             }
         }
+    });
+
+    // Buy Now — direct checkout for a single sheet
+    buyNowBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (!currentPreviewSheet || !currentPreviewSheet.price) return;
+
+        buyNowBtn.style.pointerEvents = 'none';
+        buyNowBtn.textContent = '[PROCESSING...]';
+
+        fetch('/api/purchase/create-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: [{ sheetId: currentPreviewSheet.numericId }],
+                returnPath: window.location.pathname
+            })
+        })
+        .then(function(res) {
+            return res.json().then(function(data) {
+                if (!res.ok) throw new Error(data.error || 'Something went wrong');
+                return data;
+            });
+        })
+        .then(function(data) {
+            if (data.url) {
+                window.location.href = data.url;
+            } else {
+                throw new Error('No checkout URL returned');
+            }
+        })
+        .catch(function(err) {
+            alert('Checkout error: ' + err.message);
+            buyNowBtn.style.pointerEvents = '';
+            buyNowBtn.textContent = '[BUY NOW — ' + formatPrice(currentPreviewSheet.price) + ']';
+        });
     });
 
     tipActionBtn.addEventListener('click', function(e) {
@@ -656,11 +716,28 @@
                     };
                 });
                 renderGrid();
+                // Auto-open sheet if hash is present (e.g. /sheet-music.html#slug)
+                openSheetFromHash();
             })
             .catch(function() {
                 sheetsGrid.innerHTML = '<div style="text-align:center;padding:40px;opacity:0.5;">Failed to load sheet music</div>';
             });
     }
+
+    function openSheetFromHash() {
+        var hash = window.location.hash.replace('#', '');
+        if (!hash) return;
+        var sheet = SHEETS.find(function(s) { return s.id === hash; });
+        if (sheet) openPreview(sheet);
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', function() {
+        if (previewModal.classList.contains('active')) {
+            closingFromPopstate = true;
+            closePreview();
+        }
+    });
 
     // Listen for auth changes from the global account widget (cart.js logout)
     document.addEventListener('userAuthChanged', function() {

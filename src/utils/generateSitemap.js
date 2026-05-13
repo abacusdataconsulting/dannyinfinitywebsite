@@ -50,6 +50,26 @@ export async function generateSitemap(env) {
         // If DB query fails, still return static pages
     }
 
+    // Query published public sheet music for dynamic entries
+    try {
+        const result = await env.DB.prepare(
+            "SELECT slug, updated_at FROM sheet_music WHERE is_published = 1 AND visibility = 'public' ORDER BY sort_order ASC"
+        ).all();
+
+        for (const sheet of result.results || []) {
+            const lastmod = sheet.updated_at ? `\n    <lastmod>${escapeXml(sheet.updated_at.split(' ')[0])}</lastmod>` : '';
+            urls.push(
+                `  <url>
+    <loc>${base}/sheets/${escapeXml(sheet.slug)}</loc>${lastmod}
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>`
+            );
+        }
+    } catch (e) {
+        // If DB query fails, still return other pages
+    }
+
     return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.join('\n')}

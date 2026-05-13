@@ -28,6 +28,7 @@ import downloadRoutes from './routes/download.js';
 import libraryRoutes from './routes/user-library.js';
 import { adminAuth } from './middleware/auth.js';
 import { renderWritingPage } from './utils/renderWritingPage.js';
+import { renderSheetPage } from './utils/renderSheetPage.js';
 import { generateSitemap } from './utils/generateSitemap.js';
 
 const api = new Hono();
@@ -300,6 +301,12 @@ export default {
         const blogPostMatch = url.pathname.match(/^\/blog\/([a-z0-9-]+)$/);
         if (blogPostMatch) {
             return renderWritingPage(blogPostMatch[1], env, request);
+        }
+
+        // --- Individual sheet music pages: /sheets/[slug] ---
+        const sheetMatch = url.pathname.match(/^\/sheets\/([a-z0-9-]+)$/);
+        if (sheetMatch) {
+            return renderSheetPage(sheetMatch[1], env, request);
         }
 
         // Route /api/* to the Hono app
