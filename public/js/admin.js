@@ -21,17 +21,13 @@
     let hasMorePV = true;
     let isLoading = false;
 
-    // Auth helper
-    function getToken() {
-        return sessionStorage.getItem('authToken');
-    }
-
+    // Auth helper (session token is in httpOnly cookie, sent automatically)
     function authHeaders() {
-        return { 'Authorization': 'Bearer ' + getToken() };
+        return {};
     }
 
     function jsonAuthHeaders() {
-        return { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' };
+        return { 'Content-Type': 'application/json' };
     }
 
     // DOM Elements
@@ -98,9 +94,8 @@
     function checkAdminAccess() {
         const accessLevel = sessionStorage.getItem('accessLevel');
         const user = sessionStorage.getItem('user');
-        const token = getToken();
 
-        if (accessLevel !== 'member' || !token) {
+        if (accessLevel !== 'member' || !user) {
             return false;
         }
 
@@ -838,7 +833,7 @@
 
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/api/admin/upload');
-            xhr.setRequestHeader('Authorization', 'Bearer ' + getToken());
+            // Session cookie sent automatically by browser
 
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable && onProgress) {
@@ -2365,7 +2360,9 @@
     // LOGOUT
     // =========================================
     function logout() {
+        fetch('/api/user/logout', { method: 'POST' }).catch(function() {});
         sessionStorage.clear();
+        localStorage.removeItem('userData');
         window.location.href = 'index.html';
     }
 

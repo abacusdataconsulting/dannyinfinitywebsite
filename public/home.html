@@ -78,11 +78,10 @@
         (function() {
             const userName = sessionStorage.getItem('userName');
             const accessLevel = sessionStorage.getItem('accessLevel') || 'guest';
-            const authToken = sessionStorage.getItem('authToken') || localStorage.getItem('userAuthToken');
             const userRaw = sessionStorage.getItem('user') || localStorage.getItem('userData');
 
-            // Show auth-gated links based on access level or localStorage auth
-            var hasAuth = (accessLevel === 'member' && authToken) || localStorage.getItem('userAuthToken');
+            // Show auth-gated links based on stored user data
+            var hasAuth = (accessLevel === 'member' && userRaw) || localStorage.getItem('userData');
             if (hasAuth) {
                 document.getElementById('account-link').style.display = '';
 

@@ -35,7 +35,7 @@ purchase.post('/create-session', async (c) => {
         ).bind(...uniqueIds).all();
     } catch (dbErr) {
         console.error('DB error:', dbErr.message);
-        return c.json({ error: 'Database error — price_cents column may not exist. Run migration 010.' }, 500);
+        return c.json({ error: 'Database error' }, 500);
     }
 
     const sheetMap = new Map();
@@ -102,9 +102,8 @@ purchase.post('/create-session', async (c) => {
         const data = await res.json();
 
         if (!res.ok) {
-            const errMsg = data.error?.message || 'Unknown Stripe error';
-            console.error('Stripe error:', errMsg, 'type:', data.error?.type, 'param:', data.error?.param);
-            return c.json({ error: errMsg }, 502);
+            console.error('Stripe error:', data.error?.message, 'type:', data.error?.type, 'param:', data.error?.param);
+            return c.json({ error: 'Payment processing error' }, 502);
         }
 
         return c.json({ url: data.url });

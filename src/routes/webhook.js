@@ -149,7 +149,7 @@ webhook.post('/stripe', async (c) => {
             }
         } catch (err) {
             console.error('WEBHOOK ERROR:', err.message, 'session:', session.id, 'type:', metadataType);
-            return c.json({ error: 'Processing failed: ' + err.message }, 500);
+            return c.json({ error: 'Processing failed' }, 500);
         }
     }
 

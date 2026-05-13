@@ -55,7 +55,7 @@ pageviews.post('/', async (c) => {
     } catch (e) {
         // Never crash the worker — log and return error for debugging
         console.error('pageview error:', e.message);
-        return c.json({ ok: false, error: e.message }, 400);
+        return c.json({ ok: false }, 400);
     }
 });
 

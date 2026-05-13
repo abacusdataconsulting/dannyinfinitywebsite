@@ -468,11 +468,8 @@
             const result = await response.json();
 
             if (result.success) {
-                // Store token in session
-                sessionStorage.setItem('authToken', result.token);
+                // Store user info for UI (session token is in httpOnly cookie)
                 sessionStorage.setItem('user', JSON.stringify(result.user));
-                // Sync to localStorage so auth persists across the site
-                localStorage.setItem('userAuthToken', result.token);
                 localStorage.setItem('userData', JSON.stringify(result.user));
                 return { success: true, user: result.user };
             }
@@ -642,7 +639,6 @@
      */
     function continueAsGuest() {
         sessionStorage.setItem('accessLevel', 'guest');
-        sessionStorage.removeItem('authToken');
         sessionStorage.removeItem('user');
         proceedToAnimation();
     }
@@ -813,12 +809,10 @@
         const userName = sessionStorage.getItem('userName');
         const accessLevel = sessionStorage.getItem('accessLevel') || 'guest';
         const user = sessionStorage.getItem('user');
-        const authToken = sessionStorage.getItem('authToken');
 
         // Determine login type (guest, member, or admin)
-        // Only check user data if they actually logged in (have auth token)
         let loginType = 'guest';
-        if (accessLevel === 'member' && authToken && user) {
+        if (accessLevel === 'member' && user) {
             const userData = JSON.parse(user);
             loginType = userData.isAdmin ? 'admin' : 'member';
         }

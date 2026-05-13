@@ -1,13 +1,24 @@
 /**
+ * User authentication middleware
+ */
+import { getCookie } from 'hono/cookie';
+
+function extractToken(c) {
+    const cookieToken = getCookie(c, 'session_token');
+    if (cookieToken) return cookieToken;
+    const authHeader = c.req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) return authHeader.substring(7);
+    return null;
+}
+
+/**
  * Optional user authentication middleware
  * Sets c.user if a valid session token is provided, but does NOT reject unauthorized requests.
  * Use this on public routes that optionally show extra content for logged-in users.
  */
-
 export async function optionalUserAuth(c, next) {
-    const authHeader = c.req.header('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
+    const token = extractToken(c);
+    if (token) {
         const session = await c.env.DB.prepare(`
             SELECT s.user_id, u.name, u.is_admin
             FROM sessions s
@@ -31,12 +42,11 @@ export async function optionalUserAuth(c, next) {
  * Rejects requests without a valid session token.
  */
 export async function requireUserAuth(c, next) {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractToken(c);
+    if (!token) {
         return c.json({ error: 'Authentication required' }, 401);
     }
 
-    const token = authHeader.substring(7);
     const session = await c.env.DB.prepare(`
         SELECT s.user_id, u.name, u.is_admin
         FROM sessions s

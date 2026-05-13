@@ -60,9 +60,9 @@ publicSheetMusic.get('/', optionalUserAuth, async (c) => {
             visibility: s.visibility || 'public',
             // Free sheets: always provide PDF URL
             // Paid sheets the user owns: provide PDF URL
-            // Paid sheets not owned: provide preview URL only
+            // Paid sheets not owned: no URL (prevents direct download bypass)
             pdfUrl: (!isPaid || hasAccess) ? url : null,
-            previewUrl: (isPaid && !hasAccess) ? url : null,
+            previewUrl: null,
             owned: hasAccess && isPaid,
             tipLink: s.tip_link || '#',
         };

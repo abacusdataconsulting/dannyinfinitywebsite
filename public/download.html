@@ -405,13 +405,12 @@
         // ACCOUNT LINKING SECTION
         // ============================
         function showAccountSection() {
-            // Check if already logged in
-            var existingToken = localStorage.getItem('userAuthToken');
+            // Check if already logged in (cookie handles auth)
             var existingUser = localStorage.getItem('userData');
 
-            if (existingToken && existingUser) {
+            if (existingUser) {
                 // Auto-link the purchase
-                linkPurchaseToAccount(existingToken, JSON.parse(existingUser));
+                linkPurchaseToAccount(JSON.parse(existingUser));
                 return;
             }
 
@@ -452,7 +451,7 @@
         function renderRegisterForm() {
             return '<form class="account-form" id="account-form" data-mode="register">' +
                 '<input type="text" name="username" placeholder="Choose a username" required minlength="2" autocomplete="username">' +
-                '<input type="password" name="password" placeholder="Choose a password" required minlength="4" autocomplete="new-password">' +
+                '<input type="password" name="password" placeholder="Choose a password" required minlength="8" autocomplete="new-password">' +
                 '<button type="submit" class="account-submit-btn">[CREATE ACCOUNT & SAVE PURCHASE]</button>' +
             '</form>';
         }
@@ -514,12 +513,11 @@
                     return data;
                 })
                 .then(function(loginData) {
-                    // Store auth
-                    localStorage.setItem('userAuthToken', loginData.token);
+                    // Store user info for UI (session token in httpOnly cookie)
                     localStorage.setItem('userData', JSON.stringify(loginData.user));
 
-                    // Link purchase
-                    linkPurchaseToAccount(loginData.token, loginData.user);
+                    // Link purchase (cookie sent automatically)
+                    linkPurchaseToAccount(loginData.user);
                 })
                 .catch(function(err) {
                     msgEl.innerHTML = '<div class="account-message error">' + esc(err.message) + '</div>';
@@ -529,15 +527,12 @@
             });
         }
 
-        function linkPurchaseToAccount(authToken, user) {
+        function linkPurchaseToAccount(user) {
             if (!currentDownloadToken) return;
 
             fetch('/api/user/library/link-purchase', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + authToken
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ downloadToken: currentDownloadToken })
             })
             .then(function(res) {

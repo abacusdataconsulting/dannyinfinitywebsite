@@ -11,36 +11,27 @@
     }
 
     // ============================
-    // AUTH STATE
+    // AUTH STATE (user info only — session token is in httpOnly cookie)
     // ============================
     var currentUser = null;
-    var authToken = null;
 
     function loadAuthState() {
-        authToken = localStorage.getItem('userAuthToken');
         var userData = localStorage.getItem('userData');
-        if (authToken && userData) {
+        if (userData) {
             try { currentUser = JSON.parse(userData); } catch (e) { currentUser = null; }
+        } else {
+            currentUser = null;
         }
     }
 
-    function saveAuthState(token, user) {
-        authToken = token;
+    function saveAuthState(user) {
         currentUser = user;
-        localStorage.setItem('userAuthToken', token);
         localStorage.setItem('userData', JSON.stringify(user));
     }
 
     function clearAuthState() {
-        authToken = null;
         currentUser = null;
-        localStorage.removeItem('userAuthToken');
         localStorage.removeItem('userData');
-    }
-
-    function getAuthHeaders() {
-        if (!authToken) return {};
-        return { 'Authorization': 'Bearer ' + authToken };
     }
 
     loadAuthState();
@@ -124,7 +115,7 @@
                 '<h2 style="text-align:center;letter-spacing:2px;margin-bottom:20px;font-size:1.1rem;">' + title + '</h2>' +
                 '<form id="auth-modal-form" style="display:flex;flex-direction:column;gap:12px;">' +
                     '<input type="text" name="username" placeholder="Username" required minlength="2" autocomplete="username" style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
-                    '<input type="password" name="password" placeholder="Password" required ' + (mode === 'register' ? 'minlength="4" autocomplete="new-password"' : 'autocomplete="current-password"') + ' style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
+                    '<input type="password" name="password" placeholder="Password" required ' + (mode === 'register' ? 'minlength="8" autocomplete="new-password"' : 'autocomplete="current-password"') + ' style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
                     '<button type="submit" id="auth-submit-btn" style="padding:14px;border:2px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:2px;cursor:pointer;transition:all 0.2s;">' + submitText + '</button>' +
                 '</form>' +
                 '<div id="auth-message" style="text-align:center;font-size:0.8rem;padding:8px 0;letter-spacing:1px;min-height:20px;"></div>' +
@@ -198,7 +189,7 @@
             }
 
             doAuth.then(function(loginData) {
-                saveAuthState(loginData.token, loginData.user);
+                saveAuthState(loginData.user);
                 closeAuthModal();
                 renderAccountBar();
                 fetchAndRenderSheets();
@@ -482,9 +473,7 @@
             downloadBtn.onclick = function(e) {
                 e.preventDefault();
                 var a = document.createElement('a');
-                fetch('/api/user/library/download/' + sheet.numericId, {
-                    headers: getAuthHeaders()
-                }).then(function(res) {
+                fetch('/api/user/library/download/' + sheet.numericId).then(function(res) {
                     if (!res.ok) throw new Error('Download failed');
                     return res.blob();
                 }).then(function(blob) {
@@ -685,12 +674,10 @@
     // FETCH & RENDER
     // ============================
     function fetchAndRenderSheets() {
-        var headers = getAuthHeaders();
-
-        fetch('/api/sheet-music', { headers: headers })
+        fetch('/api/sheet-music')
             .then(function(res) {
-                // If auth token was rejected, clear it and retry without auth
-                if (res.status === 401 && authToken) {
+                // If session cookie expired, clear UI state
+                if (res.status === 401 && currentUser) {
                     clearAuthState();
                     renderAccountBar();
                     return fetch('/api/sheet-music').then(function(r) { return r.json(); });

@@ -412,8 +412,8 @@ admin.post('/users/create', async (c) => {
     if (!body.name || body.name.trim().length < 2) {
         return c.json({ error: 'Name must be at least 2 characters' }, 400);
     }
-    if (!body.password || body.password.length < 4) {
-        return c.json({ error: 'Password must be at least 4 characters' }, 400);
+    if (!body.password || body.password.length < 8) {
+        return c.json({ error: 'Password must be at least 8 characters' }, 400);
     }
 
     const existing = await c.env.DB.prepare(
@@ -450,11 +450,16 @@ admin.put('/users/:id', async (c) => {
         ).bind(body.isAdmin ? 1 : 0, id).run();
     }
 
-    if (body.password && body.password.length >= 4) {
+    if (body.password && body.password.length >= 8) {
         const { hash, salt } = await hashPasswordPBKDF2(body.password);
         await c.env.DB.prepare(
             'UPDATE users SET password_hash = ?, password_salt = ?, password_version = 2 WHERE id = ?'
         ).bind(hash, salt, id).run();
+
+        // Revoke all sessions for this user (force re-login with new password)
+        await c.env.DB.prepare(
+            'DELETE FROM sessions WHERE user_id = ?'
+        ).bind(id).run();
     }
 
     return c.json({ success: true });

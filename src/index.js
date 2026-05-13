@@ -40,8 +40,8 @@ api.use('*', secureHeaders());
 
 api.use('/api/*', cors({
     origin: (origin, c) => {
-        // In development allow same-origin (origin will be null or localhost)
-        if (!origin) return '*';
+        // Reject requests with no Origin header (non-browser / file:// / redirects)
+        if (!origin) return null;
         if (c.env.ENVIRONMENT === 'development') return origin;
         // In production, restrict to your actual domain
         const allowed = c.env.ALLOWED_ORIGIN;
@@ -107,6 +107,15 @@ api.use('/api/user/login', async (c, next) => {
     const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
     if (rateLimit(`login:${ip}`, 5, 60_000)) {
         return c.json({ error: 'Too many login attempts. Try again in a minute.' }, 429);
+    }
+    await next();
+});
+
+api.use('/api/user/check/*', async (c, next) => {
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`check:${ip}`, 10, 60_000)) {
+        return c.json({ error: 'Too many requests. Try again in a minute.' }, 429);
     }
     await next();
 });
@@ -191,7 +200,15 @@ api.use('/api/purchase/*', async (c, next) => {
 });
 api.route('/api/purchase', purchaseRoutes);
 
-// Secure downloads (token-based, public)
+// Secure downloads (token-based, public, rate-limited)
+api.use('/api/download/*', async (c, next) => {
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`download:${ip}`, 20, 60_000)) {
+        return c.json({ error: 'Too many requests. Try again in a minute.' }, 429);
+    }
+    await next();
+});
 api.route('/api/download', downloadRoutes);
 
 // File serving (public)

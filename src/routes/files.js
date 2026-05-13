@@ -104,7 +104,8 @@ files.get('/:folder/:filename', async (c) => {
     const contentType = MIME_TYPES[ext] || object.httpMetadata?.contentType || 'application/octet-stream';
 
     const download = c.req.query('download') === '1';
-    const disposition = download ? `attachment; filename="${filename}"` : 'inline';
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const disposition = download ? `attachment; filename="${safeFilename}"` : 'inline';
 
     const response = new Response(object.body, {
         headers: {

@@ -279,9 +279,8 @@
 
     function getStoredUser() {
         try {
-            var token = localStorage.getItem('userAuthToken');
             var data = localStorage.getItem('userData');
-            if (token && data) return { token: token, user: JSON.parse(data) };
+            if (data) return { user: JSON.parse(data) };
         } catch (e) {}
         return null;
     }
@@ -331,7 +330,7 @@
                 '<form id="acct-pw-form" style="display:flex;flex-direction:column;gap:12px;">' +
                     '<label style="font-size:0.8rem;letter-spacing:1px;opacity:0.6;">Change Password</label>' +
                     '<input type="password" name="current" placeholder="Current password" required autocomplete="current-password" style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
-                    '<input type="password" name="newpw" placeholder="New password (min 4 chars)" required minlength="4" autocomplete="new-password" style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
+                    '<input type="password" name="newpw" placeholder="New password (min 8 chars)" required minlength="8" autocomplete="new-password" style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
                     '<button type="submit" id="acct-pw-btn" style="padding:14px;border:2px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:2px;cursor:pointer;transition:all 0.2s;">[UPDATE PASSWORD]</button>' +
                 '</form>' +
                 '<div id="acct-message" style="text-align:center;font-size:0.8rem;padding:8px 0;letter-spacing:1px;min-height:20px;"></div>' +
@@ -355,7 +354,7 @@
             btn.textContent = 'Updating...';
             msg.textContent = '';
 
-            // Verify current password by logging in
+            // Log in to set session cookie, then change password
             fetch('/api/user/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -364,18 +363,10 @@
             .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, data: d }; }); })
             .then(function(result) {
                 if (!result.ok) throw new Error('Current password is incorrect');
-                // Now register with new password by using the check flow
-                // Actually we need a password change endpoint. Let's use login + re-register approach.
-                // We'll call the user register endpoint — but user already exists.
-                // Best approach: log in (verified above), then we need a change-password endpoint.
-                // For now, the simplest safe approach: just tell them to contact admin if no endpoint exists.
-                // Actually, let me just add an API call for self-password-change.
+                // Session cookie set by login, sent automatically
                 return fetch('/api/user/change-password', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + result.data.token
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw })
                 });
             })
@@ -398,16 +389,9 @@
 
         // Logout
         document.getElementById('acct-logout-btn').addEventListener('click', function() {
-            var token = localStorage.getItem('userAuthToken');
-            if (token) {
-                fetch('/api/user/logout', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                }).catch(function() {});
-            }
-            localStorage.removeItem('userAuthToken');
+            // Cookie sent automatically; server clears it
+            fetch('/api/user/logout', { method: 'POST' }).catch(function() {});
             localStorage.removeItem('userData');
-            sessionStorage.removeItem('authToken');
             sessionStorage.removeItem('user');
             modal.remove();
             if (accountLink) { accountLink.remove(); accountLink = null; }

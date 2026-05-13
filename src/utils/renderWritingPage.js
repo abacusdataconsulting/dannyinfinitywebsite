@@ -16,6 +16,21 @@ function stripHtml(html) {
     return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
 
+function sanitizeHtml(html) {
+    if (!html) return '';
+    // Remove <script> tags and their content
+    html = html.replace(/<script[\s>][\s\S]*?<\/script>/gi, '');
+    // Remove on* event handlers (onclick, onerror, onload, etc.)
+    html = html.replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    // Remove javascript: URLs in href/src/action attributes
+    html = html.replace(/(href|src|action)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, '$1=""');
+    // Remove <iframe>, <object>, <embed>, <form>, <base>, <meta>, <link>, <style> tags
+    html = html.replace(/<\/?(iframe|object|embed|form|base|meta|link|style)[\s>][^>]*>/gi, '');
+    // Remove data: URLs in src attributes (potential XSS vector)
+    html = html.replace(/(src)\s*=\s*(?:"data:[^"]*"|'data:[^']*')/gi, '$1=""');
+    return html;
+}
+
 function makeExcerpt(html, maxLen = 160) {
     const text = stripHtml(html);
     if (text.length <= maxLen) return text;
@@ -81,7 +96,7 @@ export async function renderWritingPage(slug, env, request) {
                 <span class="post-date">${escapeHtml(dateStr)}</span>
             </div>
             <h1 class="post-title">${safeTitle}</h1>
-            <div class="post-body">${post.body || ''}</div>
+            <div class="post-body">${sanitizeHtml(post.body || '')}</div>
             <div class="post-footer">
                 <span class="post-terminal">&gt; END_OF_POST</span>
             </div>

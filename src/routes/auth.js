@@ -2,7 +2,30 @@
  * Auth routes — user check, register, login
  */
 import { Hono } from 'hono';
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import { hashPasswordPBKDF2, verifyPassword, generateToken } from '../lib/crypto.js';
+
+function extractToken(c) {
+    const cookieToken = getCookie(c, 'session_token');
+    if (cookieToken) return cookieToken;
+    const authHeader = c.req.header('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) return authHeader.substring(7);
+    return null;
+}
+
+function setSessionCookie(c, token) {
+    setCookie(c, 'session_token', token, {
+        httpOnly: true,
+        secure: c.env.ENVIRONMENT === 'production',
+        sameSite: 'Lax',
+        path: '/api',
+        maxAge: 7 * 24 * 60 * 60,
+    });
+}
+
+function clearSessionCookie(c) {
+    deleteCookie(c, 'session_token', { path: '/api' });
+}
 
 const auth = new Hono();
 
@@ -20,12 +43,12 @@ auth.get('/check/:name', async (c) => {
         return c.json({
             recognized: true,
             name: user.name,
-            hasPassword: Boolean(user.has_password),
+            hasPassword: true,
         });
     }
 
-    // Return same shape to avoid timing-based enumeration
-    return c.json({ recognized: false });
+    // Uniform response shape to prevent enumeration
+    return c.json({ recognized: false, name: '', hasPassword: false });
 });
 
 /**
@@ -47,17 +70,12 @@ auth.post('/register', async (c) => {
         return c.json({ error: 'User already exists' }, 409);
     }
 
-    // Hash password with PBKDF2 if provided
-    let passwordHash = null;
-    let passwordSalt = null;
-    let passwordVersion = null;
-
-    if (body.password) {
-        const result = await hashPasswordPBKDF2(body.password);
-        passwordHash = result.hash;
-        passwordSalt = result.salt;
-        passwordVersion = 2;
+    if (!body.password || body.password.length < 8) {
+        return c.json({ error: 'Password must be at least 8 characters' }, 400);
     }
+
+    const { hash: passwordHash, salt: passwordSalt } = await hashPasswordPBKDF2(body.password);
+    const passwordVersion = 2;
 
     const result = await c.env.DB.prepare(
         'INSERT INTO users (name, password_hash, password_salt, password_version) VALUES (?, ?, ?, ?)'
@@ -88,30 +106,32 @@ auth.post('/login', async (c) => {
         return c.json({ error: 'User not found' }, 404);
     }
 
-    // If user has password, validate it
-    if (user.password_hash) {
-        if (!body.password) {
-            return c.json({ error: 'Password required' }, 401);
-        }
+    // Require password for all accounts
+    if (!user.password_hash) {
+        return c.json({ error: 'Account requires a password. Please contact the administrator.' }, 401);
+    }
 
-        const valid = await verifyPassword(
-            body.password,
-            user.password_hash,
-            user.password_salt,
-            user.password_version
-        );
+    if (!body.password) {
+        return c.json({ error: 'Password required' }, 401);
+    }
 
-        if (!valid) {
-            return c.json({ error: 'Invalid password' }, 401);
-        }
+    const valid = await verifyPassword(
+        body.password,
+        user.password_hash,
+        user.password_salt,
+        user.password_version
+    );
 
-        // Transparent migration: upgrade legacy SHA-256 to PBKDF2
-        if (!user.password_version || user.password_version < 2) {
-            const upgraded = await hashPasswordPBKDF2(body.password);
-            await c.env.DB.prepare(
-                'UPDATE users SET password_hash = ?, password_salt = ?, password_version = 2 WHERE id = ?'
-            ).bind(upgraded.hash, upgraded.salt, user.id).run();
-        }
+    if (!valid) {
+        return c.json({ error: 'Invalid password' }, 401);
+    }
+
+    // Transparent migration: upgrade legacy SHA-256 to PBKDF2
+    if (!user.password_version || user.password_version < 2) {
+        const upgraded = await hashPasswordPBKDF2(body.password);
+        await c.env.DB.prepare(
+            'UPDATE users SET password_hash = ?, password_salt = ?, password_version = 2 WHERE id = ?'
+        ).bind(upgraded.hash, upgraded.salt, user.id).run();
     }
 
     // Generate session token
@@ -127,9 +147,11 @@ auth.post('/login', async (c) => {
         'UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?'
     ).bind(user.id).run();
 
+    // Set httpOnly session cookie (not accessible to JavaScript)
+    setSessionCookie(c, token);
+
     return c.json({
         success: true,
-        token,
         user: {
             id: user.id,
             name: user.name,
@@ -142,13 +164,13 @@ auth.post('/login', async (c) => {
  * POST /api/user/logout — Revoke session token
  */
 auth.post('/logout', async (c) => {
-    const authHeader = c.req.header('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-        const token = authHeader.substring(7);
+    const token = extractToken(c);
+    if (token) {
         await c.env.DB.prepare(
             'DELETE FROM sessions WHERE token = ?'
         ).bind(token).run();
     }
+    clearSessionCookie(c);
     return c.json({ success: true });
 });
 
@@ -157,12 +179,11 @@ auth.post('/logout', async (c) => {
  * Body: { currentPassword, newPassword }
  */
 auth.post('/change-password', async (c) => {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = extractToken(c);
+    if (!token) {
         return c.json({ error: 'Authentication required' }, 401);
     }
 
-    const token = authHeader.substring(7);
     const session = await c.env.DB.prepare(`
         SELECT s.user_id, u.name, u.password_hash, u.password_salt, u.password_version
         FROM sessions s
@@ -179,8 +200,8 @@ auth.post('/change-password', async (c) => {
     if (!body.currentPassword) {
         return c.json({ error: 'Current password is required' }, 400);
     }
-    if (!body.newPassword || body.newPassword.length < 4) {
-        return c.json({ error: 'New password must be at least 4 characters' }, 400);
+    if (!body.newPassword || body.newPassword.length < 8) {
+        return c.json({ error: 'New password must be at least 8 characters' }, 400);
     }
 
     // Verify current password
@@ -201,6 +222,12 @@ auth.post('/change-password', async (c) => {
         'UPDATE users SET password_hash = ?, password_salt = ?, password_version = 2 WHERE id = ?'
     ).bind(hash, salt, session.user_id).run();
 
+    // Revoke all existing sessions for this user (force re-login)
+    await c.env.DB.prepare(
+        'DELETE FROM sessions WHERE user_id = ?'
+    ).bind(session.user_id).run();
+
+    clearSessionCookie(c);
     return c.json({ success: true });
 });
 

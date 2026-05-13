@@ -25,6 +25,12 @@ async function main() {
         process.exit(1);
     }
 
+    // Validate name to prevent SQL injection (alphanumeric, spaces, hyphens, underscores only)
+    if (!/^[a-zA-Z0-9 _-]+$/.test(name)) {
+        console.error('Error: Name may only contain letters, numbers, spaces, hyphens, and underscores');
+        process.exit(1);
+    }
+
     // Generate 16-byte salt
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const saltHex = Array.from(salt, b => b.toString(16).padStart(2, '0')).join('');
@@ -40,7 +46,8 @@ async function main() {
     );
     const hashHex = Array.from(new Uint8Array(hashBuffer), b => b.toString(16).padStart(2, '0')).join('');
 
-    const sql = `INSERT OR REPLACE INTO users (name, password_hash, password_salt, password_version, is_admin) VALUES ('${name}', '${hashHex}', '${saltHex}', 2, 1);`;
+    const safeName = name.replace(/'/g, "''");
+    const sql = `INSERT OR REPLACE INTO users (name, password_hash, password_salt, password_version, is_admin) VALUES ('${safeName}', '${hashHex}', '${saltHex}', 2, 1);`;
 
     console.log('\n--- Admin User SQL ---');
     console.log(sql);
