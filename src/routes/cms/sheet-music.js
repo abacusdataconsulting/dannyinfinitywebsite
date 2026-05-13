@@ -37,8 +37,8 @@ sheetMusic.post('/', async (c) => {
 
     const slug = slugify(body.title);
     const result = await c.env.DB.prepare(`
-        INSERT INTO sheet_music (slug, title, composer, arrangement, year, pages, description, pdf_r2_key, tip_link, sort_order, is_published, price_cents)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO sheet_music (slug, title, composer, arrangement, year, pages, description, pdf_r2_key, tip_link, sort_order, is_published, price_cents, visibility)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
         slug,
         body.title,
@@ -51,7 +51,8 @@ sheetMusic.post('/', async (c) => {
         body.tipLink || null,
         body.sortOrder || 0,
         body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : 1,
-        body.priceCents || 0
+        body.priceCents || 0,
+        body.visibility || 'public'
     ).run();
 
     return c.json({ success: true, id: result.meta.last_row_id });
@@ -71,7 +72,7 @@ sheetMusic.put('/:id', async (c) => {
         UPDATE sheet_music SET
             slug = ?, title = ?, composer = ?, arrangement = ?, year = ?,
             pages = ?, description = ?, pdf_r2_key = ?, tip_link = ?, sort_order = ?,
-            is_published = ?, price_cents = ?, updated_at = CURRENT_TIMESTAMP
+            is_published = ?, price_cents = ?, visibility = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `).bind(
         slug,
@@ -86,6 +87,7 @@ sheetMusic.put('/:id', async (c) => {
         body.sortOrder ?? existing.sort_order,
         body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : existing.is_published,
         body.priceCents !== undefined ? body.priceCents : existing.price_cents,
+        body.visibility ?? existing.visibility ?? 'public',
         id
     ).run();
 

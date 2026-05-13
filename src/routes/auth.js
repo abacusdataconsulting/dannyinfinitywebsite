@@ -152,4 +152,56 @@ auth.post('/logout', async (c) => {
     return c.json({ success: true });
 });
 
+/**
+ * POST /api/user/change-password — Change own password (requires valid session)
+ * Body: { currentPassword, newPassword }
+ */
+auth.post('/change-password', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ error: 'Authentication required' }, 401);
+    }
+
+    const token = authHeader.substring(7);
+    const session = await c.env.DB.prepare(`
+        SELECT s.user_id, u.name, u.password_hash, u.password_salt, u.password_version
+        FROM sessions s
+        JOIN users u ON s.user_id = u.id
+        WHERE s.token = ? AND s.expires_at > datetime('now')
+    `).bind(token).first();
+
+    if (!session) {
+        return c.json({ error: 'Invalid or expired session' }, 401);
+    }
+
+    const body = await c.req.json();
+
+    if (!body.currentPassword) {
+        return c.json({ error: 'Current password is required' }, 400);
+    }
+    if (!body.newPassword || body.newPassword.length < 4) {
+        return c.json({ error: 'New password must be at least 4 characters' }, 400);
+    }
+
+    // Verify current password
+    const valid = await verifyPassword(
+        body.currentPassword,
+        session.password_hash,
+        session.password_salt,
+        session.password_version
+    );
+
+    if (!valid) {
+        return c.json({ error: 'Current password is incorrect' }, 401);
+    }
+
+    // Hash new password
+    const { hash, salt } = await hashPasswordPBKDF2(body.newPassword);
+    await c.env.DB.prepare(
+        'UPDATE users SET password_hash = ?, password_salt = ?, password_version = 2 WHERE id = ?'
+    ).bind(hash, salt, session.user_id).run();
+
+    return c.json({ success: true });
+});
+
 export default auth;

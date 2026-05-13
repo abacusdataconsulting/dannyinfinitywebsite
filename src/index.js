@@ -25,6 +25,7 @@ import publicPhotos from './routes/public/photos.js';
 import tipRoutes from './routes/tip.js';
 import purchaseRoutes from './routes/purchase.js';
 import downloadRoutes from './routes/download.js';
+import libraryRoutes from './routes/user-library.js';
 import { adminAuth } from './middleware/auth.js';
 import { renderWritingPage } from './utils/renderWritingPage.js';
 import { generateSitemap } from './utils/generateSitemap.js';
@@ -143,6 +144,8 @@ api.use('/api/pageview', async (c, next) => {
 // ------------------------------------
 // Mount routes
 // ------------------------------------
+// User library must be mounted before general /api/user to avoid prefix conflict
+api.route('/api/user/library', libraryRoutes);
 api.route('/api/user', authRoutes);
 api.route('/api/visit', visitRoutes);
 api.route('/api/pageview', pageviewRoutes);

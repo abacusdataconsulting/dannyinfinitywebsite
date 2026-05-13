@@ -269,20 +269,34 @@
     // =========================================
     // USERS
     // =========================================
+    let usersData = [];
+
     async function loadUsers() {
-        usersBody.innerHTML = '<tr class="loading-row"><td colspan="6">Loading...</td></tr>';
+        usersBody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading...</td></tr>';
 
         try {
             var res = await fetch('/api/admin/users', { headers: authHeaders() });
             var data = await res.json();
+            usersData = data.users || [];
             usersBody.innerHTML = '';
 
-            if (data.users.length === 0) {
-                usersBody.innerHTML = '<tr class="empty-row"><td colspan="6">No users registered</td></tr>';
+            if (usersData.length === 0) {
+                usersBody.innerHTML = '<tr class="empty-row"><td colspan="7">No users registered</td></tr>';
                 return;
             }
 
-            data.users.forEach(function(user) {
+            var lastGroup = '';
+            usersData.forEach(function(user) {
+                // Determine group
+                var group = user.is_admin ? 'admin' : (user.source === 'admin' ? 'custom' : 'user');
+                if (group !== lastGroup) {
+                    lastGroup = group;
+                    var headerRow = document.createElement('tr');
+                    var headerLabel = group === 'admin' ? 'Administrators' : (group === 'custom' ? 'Custom Logins (Admin-Created)' : 'Users');
+                    headerRow.innerHTML = '<td colspan="7" style="padding:14px 10px 6px;font-size:0.8rem;letter-spacing:2px;opacity:0.5;border-bottom:1px solid var(--border-color);">' + headerLabel + '</td>';
+                    usersBody.appendChild(headerRow);
+                }
+
                 var row = document.createElement('tr');
                 row.innerHTML =
                     '<td>' + escapeHtml(user.id) + '</td>' +
@@ -290,15 +304,287 @@
                     '<td></td>' +
                     '<td>' + (user.has_password ? 'Yes' : 'No') + '</td>' +
                     '<td>' + formatDate(user.created_at) + '</td>' +
-                    '<td>' + formatDate(user.last_seen) + '</td>';
+                    '<td>' + formatDate(user.last_seen) + '</td>' +
+                    '<td class="user-actions-cell"></td>';
                 row.cells[2].appendChild(createRoleBadge(user.is_admin));
+
+                // Action buttons
+                var actionsCell = row.cells[6];
+
+                var toggleAdminBtn = document.createElement('button');
+                toggleAdminBtn.className = 'cms-btn cms-btn-sm';
+                toggleAdminBtn.textContent = user.is_admin ? 'Remove Admin' : 'Make Admin';
+                toggleAdminBtn.addEventListener('click', function() { toggleUserAdmin(user); });
+                actionsCell.appendChild(toggleAdminBtn);
+
+                var resetPwBtn = document.createElement('button');
+                resetPwBtn.className = 'cms-btn cms-btn-sm';
+                resetPwBtn.textContent = 'Reset Password';
+                resetPwBtn.style.marginLeft = '4px';
+                resetPwBtn.addEventListener('click', function() { resetUserPassword(user); });
+                actionsCell.appendChild(resetPwBtn);
+
+                var accessBtn = document.createElement('button');
+                accessBtn.className = 'cms-btn cms-btn-sm';
+                accessBtn.textContent = 'Access';
+                accessBtn.style.marginLeft = '4px';
+                accessBtn.addEventListener('click', function() { openUserAccessManager(user); });
+                actionsCell.appendChild(accessBtn);
+
+                if (!user.is_admin) {
+                    var deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'cms-btn cms-btn-sm cms-btn-danger';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.style.marginLeft = '4px';
+                    deleteBtn.addEventListener('click', function() { deleteUser(user); });
+                    actionsCell.appendChild(deleteBtn);
+                }
+
                 usersBody.appendChild(row);
             });
 
-            userCount.textContent = data.users.length + ' users';
+            userCount.textContent = usersData.length + ' users';
         } catch (e) {
-            usersBody.innerHTML = '<tr class="empty-row"><td colspan="6">Failed to load users</td></tr>';
+            usersBody.innerHTML = '<tr class="empty-row"><td colspan="7">Failed to load users</td></tr>';
         }
+    }
+
+    async function toggleUserAdmin(user) {
+        var newAdmin = !user.is_admin;
+        var action = newAdmin ? 'grant admin to' : 'remove admin from';
+        if (!confirm('Are you sure you want to ' + action + ' "' + user.name + '"?')) return;
+
+        try {
+            var res = await fetch('/api/admin/users/' + user.id, {
+                method: 'PUT',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({ isAdmin: newAdmin })
+            });
+            if (!res.ok) {
+                var err = await res.json();
+                throw new Error(err.error || 'Failed');
+            }
+            loadUsers();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    async function deleteUser(user) {
+        if (!confirm('Delete user "' + user.name + '"? This will also remove all their access grants.')) return;
+
+        try {
+            var res = await fetch('/api/admin/users/' + user.id, {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+            if (!res.ok) {
+                var err = await res.json();
+                throw new Error(err.error || 'Failed');
+            }
+            loadUsers();
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    async function resetUserPassword(user) {
+        var newPassword = prompt('Enter new password for "' + user.name + '" (min 4 characters):');
+        if (!newPassword) return;
+        if (newPassword.length < 4) {
+            alert('Password must be at least 4 characters.');
+            return;
+        }
+
+        try {
+            var res = await fetch('/api/admin/users/' + user.id, {
+                method: 'PUT',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({ password: newPassword })
+            });
+            if (!res.ok) {
+                var err = await res.json();
+                throw new Error(err.error || 'Failed');
+            }
+            alert('Password updated for "' + user.name + '".');
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    // --- Create User Form ---
+    var userFormContainer = document.getElementById('user-form-container');
+    var usersListView = document.getElementById('users-list-view');
+    var newUserBtn = document.getElementById('new-user-btn');
+
+    function openUserForm() {
+        document.getElementById('user-form').reset();
+        userFormContainer.style.display = 'block';
+        usersListView.style.display = 'none';
+        newUserBtn.style.display = 'none';
+    }
+
+    function closeUserForm() {
+        userFormContainer.style.display = 'none';
+        usersListView.style.display = '';
+        newUserBtn.style.display = '';
+    }
+
+    async function saveUser(e) {
+        e.preventDefault();
+        var btn = document.getElementById('user-save-btn');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+
+        try {
+            var res = await fetch('/api/admin/users/create', {
+                method: 'POST',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({
+                    name: document.getElementById('user-name').value.trim(),
+                    password: document.getElementById('user-password').value,
+                    isAdmin: document.getElementById('user-is-admin').checked
+                })
+            });
+
+            if (!res.ok) {
+                var err = await res.json();
+                throw new Error(err.error || 'Failed');
+            }
+
+            closeUserForm();
+            loadUsers();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Create User';
+    }
+
+    // --- User Access Manager ---
+    var userAccessContainer = document.getElementById('user-access-container');
+    var userAccessList = document.getElementById('user-access-list');
+    var userAccessTitle = document.getElementById('user-access-title');
+    var grantSheetSelect = document.getElementById('grant-sheet-select');
+    var grantAccessBtn = document.getElementById('grant-access-btn');
+    var userAccessDoneBtn = document.getElementById('user-access-done-btn');
+    var accessManagerUserId = null;
+
+    async function openUserAccessManager(user) {
+        accessManagerUserId = user.id;
+        userAccessTitle.textContent = 'Access for: ' + user.name;
+        usersListView.style.display = 'none';
+        newUserBtn.style.display = 'none';
+        userAccessContainer.style.display = 'block';
+
+        // Load sheets for dropdown
+        try {
+            var sheetsRes = await fetch('/api/admin/sheet-music', { headers: authHeaders() });
+            var sheetsData = await sheetsRes.json();
+            grantSheetSelect.innerHTML = '<option value="">Select a sheet...</option>';
+            (sheetsData.sheets || []).forEach(function(s) {
+                var opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.title + (s.price_cents > 0 ? ' ($' + (s.price_cents / 100).toFixed(2) + ')' : ' (Free)');
+                grantSheetSelect.appendChild(opt);
+            });
+        } catch (e) { /* ignore */ }
+
+        loadUserAccess(user.id);
+    }
+
+    async function loadUserAccess(userId) {
+        userAccessList.innerHTML = '<div class="cms-loading">Loading access...</div>';
+
+        try {
+            var res = await fetch('/api/admin/user-access?userId=' + userId, { headers: authHeaders() });
+            var data = await res.json();
+            var grants = data.grants || [];
+
+            if (grants.length === 0) {
+                userAccessList.innerHTML = '<div class="cms-empty" style="padding:15px;opacity:0.5;font-size:0.85rem;">No access grants for this user.</div>';
+                return;
+            }
+
+            userAccessList.innerHTML = '';
+            grants.forEach(function(g) {
+                var item = document.createElement('div');
+                item.className = 'cms-list-item';
+                item.style.padding = '10px 15px';
+                item.innerHTML =
+                    '<div class="cms-item-info">' +
+                        '<div class="cms-item-title" style="font-size:0.9rem;">' + escapeHtml(g.sheet_title) + '</div>' +
+                        '<div class="cms-item-meta">' +
+                            'Source: ' + escapeHtml(g.source) + ' // Granted: ' + formatDate(g.created_at) +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="cms-item-actions">' +
+                        '<button class="cms-btn cms-btn-sm cms-btn-danger revoke-btn">Revoke</button>' +
+                    '</div>';
+
+                item.querySelector('.revoke-btn').addEventListener('click', function() {
+                    revokeAccess(g.id, g.sheet_title, userId);
+                });
+
+                userAccessList.appendChild(item);
+            });
+        } catch (e) {
+            userAccessList.innerHTML = '<div class="cms-empty">Failed to load access grants</div>';
+        }
+    }
+
+    async function grantAccess() {
+        var sheetId = grantSheetSelect.value;
+        if (!sheetId || !accessManagerUserId) return;
+
+        try {
+            var res = await fetch('/api/admin/user-access', {
+                method: 'POST',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({
+                    userId: accessManagerUserId,
+                    sheetMusicId: parseInt(sheetId)
+                })
+            });
+
+            if (!res.ok) {
+                var err = await res.json();
+                throw new Error(err.error || 'Failed');
+            }
+
+            grantSheetSelect.value = '';
+            loadUserAccess(accessManagerUserId);
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    async function revokeAccess(grantId, sheetTitle, userId) {
+        if (!confirm('Revoke access to "' + sheetTitle + '"?')) return;
+
+        try {
+            var res = await fetch('/api/admin/user-access/' + grantId, {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+
+            if (!res.ok) {
+                var err = await res.json();
+                throw new Error(err.error || 'Failed');
+            }
+
+            loadUserAccess(userId);
+        } catch (e) {
+            alert('Error: ' + e.message);
+        }
+    }
+
+    function closeUserAccessManager() {
+        userAccessContainer.style.display = 'none';
+        usersListView.style.display = '';
+        newUserBtn.style.display = '';
+        accessManagerUserId = null;
     }
 
     // =========================================
@@ -475,6 +761,9 @@
             var priceTag = sheet.price_cents > 0
                 ? '<span class="cms-tag pdf">$' + (sheet.price_cents / 100).toFixed(2) + '</span>'
                 : '<span class="cms-tag no-pdf">FREE</span>';
+            var visTag = '';
+            if (sheet.visibility === 'purchasers') visTag = '<span class="cms-tag" style="background:rgba(250,204,21,0.15);color:#facc15;">PURCHASERS</span>';
+            else if (sheet.visibility === 'admin') visTag = '<span class="cms-tag" style="background:rgba(248,113,113,0.15);color:#f87171;">ADMIN ONLY</span>';
 
             item.innerHTML =
                 '<div class="cms-item-info">' +
@@ -482,7 +771,7 @@
                     '<div class="cms-item-meta">' +
                         escapeHtml(sheet.arrangement) + ' // ' + escapeHtml(sheet.year) + ' // ' + escapeHtml(sheet.pages) + ' pages' +
                         ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span> ' +
-                        pdfStatus + ' ' + priceTag +
+                        pdfStatus + ' ' + priceTag + ' ' + visTag +
                     '</div>' +
                 '</div>' +
                 '<div class="cms-item-actions">' +
@@ -514,6 +803,7 @@
             document.getElementById('sheet-description').value = sheet.description || '';
             document.getElementById('sheet-price').value = sheet.price_cents ? (sheet.price_cents / 100).toFixed(2) : '0';
             document.getElementById('sheet-published').checked = !!sheet.is_published;
+            document.getElementById('sheet-visibility').value = sheet.visibility || 'public';
             sheetR2Key.value = sheet.pdf_r2_key || '';
             sheetDropText.textContent = sheet.pdf_r2_key ? 'Current: ' + sheet.pdf_r2_key.split('/').pop() : 'Drag & drop PDF here or click to browse';
         } else {
@@ -525,6 +815,7 @@
             document.getElementById('sheet-year').value = new Date().getFullYear();
             document.getElementById('sheet-published').checked = true;
             document.getElementById('sheet-price').value = '0';
+            document.getElementById('sheet-visibility').value = 'public';
             sheetDropText.textContent = 'Drag & drop PDF here or click to browse';
         }
 
@@ -604,6 +895,7 @@
                 priceCents: Math.round((parseFloat(document.getElementById('sheet-price').value) || 0) * 100),
                 pdfR2Key: sheetR2Key.value || null,
                 isPublished: document.getElementById('sheet-published').checked,
+                visibility: document.getElementById('sheet-visibility').value,
             };
 
             var editId = sheetEditId.value;
@@ -2100,6 +2392,13 @@
         navBtns.forEach(function(btn) {
             btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
         });
+
+        // User form
+        newUserBtn.addEventListener('click', openUserForm);
+        document.getElementById('user-cancel-btn').addEventListener('click', closeUserForm);
+        document.getElementById('user-form').addEventListener('submit', saveUser);
+        grantAccessBtn.addEventListener('click', grantAccess);
+        userAccessDoneBtn.addEventListener('click', closeUserAccessManager);
 
         // Sheet music form
         document.getElementById('new-sheet-btn').addEventListener('click', function() { openSheetForm(null); });

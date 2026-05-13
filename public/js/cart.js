@@ -272,7 +272,161 @@
         openModal: openCartModal
     };
 
-    // Init: inject nav link, floating button, and set initial state
+    // ============================
+    // GLOBAL ACCOUNT LINK (injected into site-nav, to the left of cart)
+    // ============================
+    var accountLink = null;
+
+    function getStoredUser() {
+        try {
+            var token = localStorage.getItem('userAuthToken');
+            var data = localStorage.getItem('userData');
+            if (token && data) return { token: token, user: JSON.parse(data) };
+        } catch (e) {}
+        return null;
+    }
+
+    function ensureAccountLink() {
+        if (accountLink) return;
+        var nav = document.querySelector('.site-nav');
+        if (!nav) return;
+
+        var auth = getStoredUser();
+        if (!auth) return;
+
+        accountLink = document.createElement('a');
+        accountLink.href = '#';
+        accountLink.className = 'nav-link account-nav-link';
+        accountLink.textContent = auth.user.name.toUpperCase();
+        accountLink.style.opacity = '0.7';
+        accountLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            openAccountModal();
+        });
+
+        // Insert before cart link
+        if (navLink) {
+            nav.insertBefore(accountLink, navLink);
+        } else {
+            nav.appendChild(accountLink);
+        }
+    }
+
+    function openAccountModal() {
+        var existing = document.getElementById('account-modal');
+        if (existing) existing.remove();
+
+        var auth = getStoredUser();
+        if (!auth) return;
+
+        var modal = document.createElement('div');
+        modal.id = 'account-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;';
+
+        modal.innerHTML =
+            '<div style="background:var(--bg-primary);border:1px solid var(--border-color);padding:35px;max-width:400px;width:90%;position:relative;">' +
+                '<button id="acct-modal-close" style="position:absolute;top:10px;right:15px;background:none;border:none;color:var(--text-primary);font-size:1.5rem;cursor:pointer;font-family:inherit;">&times;</button>' +
+                '<h2 style="text-align:center;letter-spacing:2px;margin-bottom:6px;font-size:1.1rem;">Account</h2>' +
+                '<p style="text-align:center;opacity:0.6;font-size:0.85rem;margin-bottom:25px;">Logged in as <strong>' + escapeHtml(auth.user.name) + '</strong></p>' +
+                '<form id="acct-pw-form" style="display:flex;flex-direction:column;gap:12px;">' +
+                    '<label style="font-size:0.8rem;letter-spacing:1px;opacity:0.6;">Change Password</label>' +
+                    '<input type="password" name="current" placeholder="Current password" required autocomplete="current-password" style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
+                    '<input type="password" name="newpw" placeholder="New password (min 4 chars)" required minlength="4" autocomplete="new-password" style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
+                    '<button type="submit" id="acct-pw-btn" style="padding:14px;border:2px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:2px;cursor:pointer;transition:all 0.2s;">[UPDATE PASSWORD]</button>' +
+                '</form>' +
+                '<div id="acct-message" style="text-align:center;font-size:0.8rem;padding:8px 0;letter-spacing:1px;min-height:20px;"></div>' +
+                '<hr style="border:none;border-top:1px solid var(--border-color);margin:15px 0;">' +
+                '<button id="acct-logout-btn" style="width:100%;padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.85rem;letter-spacing:2px;cursor:pointer;opacity:0.6;transition:all 0.2s;">[LOG OUT]</button>' +
+            '</div>';
+
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+        document.getElementById('acct-modal-close').addEventListener('click', function() { modal.remove(); });
+
+        // Change password
+        document.getElementById('acct-pw-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var currentPw = this.current.value;
+            var newPw = this.newpw.value;
+            var btn = document.getElementById('acct-pw-btn');
+            var msg = document.getElementById('acct-message');
+            btn.disabled = true;
+            btn.textContent = 'Updating...';
+            msg.textContent = '';
+
+            // Verify current password by logging in
+            fetch('/api/user/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: auth.user.name, password: currentPw })
+            })
+            .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, data: d }; }); })
+            .then(function(result) {
+                if (!result.ok) throw new Error('Current password is incorrect');
+                // Now register with new password by using the check flow
+                // Actually we need a password change endpoint. Let's use login + re-register approach.
+                // We'll call the user register endpoint — but user already exists.
+                // Best approach: log in (verified above), then we need a change-password endpoint.
+                // For now, the simplest safe approach: just tell them to contact admin if no endpoint exists.
+                // Actually, let me just add an API call for self-password-change.
+                return fetch('/api/user/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + result.data.token
+                    },
+                    body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw })
+                });
+            })
+            .then(function(res) { return res.json().then(function(d) { return { ok: res.ok, data: d }; }); })
+            .then(function(result) {
+                if (!result.ok) throw new Error(result.data.error || 'Failed to update password');
+                msg.textContent = 'Password updated!';
+                msg.style.color = '#4ade80';
+                btn.textContent = '[UPDATE PASSWORD]';
+                btn.disabled = false;
+                e.target.reset();
+            })
+            .catch(function(err) {
+                msg.textContent = err.message;
+                msg.style.color = '#f87171';
+                btn.textContent = '[UPDATE PASSWORD]';
+                btn.disabled = false;
+            });
+        });
+
+        // Logout
+        document.getElementById('acct-logout-btn').addEventListener('click', function() {
+            var token = localStorage.getItem('userAuthToken');
+            if (token) {
+                fetch('/api/user/logout', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                }).catch(function() {});
+            }
+            localStorage.removeItem('userAuthToken');
+            localStorage.removeItem('userData');
+            sessionStorage.removeItem('authToken');
+            sessionStorage.removeItem('user');
+            modal.remove();
+            if (accountLink) { accountLink.remove(); accountLink = null; }
+            // Dispatch event so sheet-music.js can re-fetch
+            document.dispatchEvent(new CustomEvent('userAuthChanged'));
+            window.location.reload();
+        });
+
+        document.addEventListener('keydown', function handler(e) {
+            if (e.key === 'Escape') { modal.remove(); document.removeEventListener('keydown', handler); }
+        });
+    }
+
+    // Expose for other scripts
+    window.openAccountModal = openAccountModal;
+
+    // Init: inject nav link, floating button, account link
     updateNavLink();
+    ensureAccountLink();
     updateFloatingBtn();
 })();
+

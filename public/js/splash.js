@@ -471,6 +471,9 @@
                 // Store token in session
                 sessionStorage.setItem('authToken', result.token);
                 sessionStorage.setItem('user', JSON.stringify(result.user));
+                // Sync to localStorage so auth persists across the site
+                localStorage.setItem('userAuthToken', result.token);
+                localStorage.setItem('userData', JSON.stringify(result.user));
                 return { success: true, user: result.user };
             }
             return { success: false, error: result.error };

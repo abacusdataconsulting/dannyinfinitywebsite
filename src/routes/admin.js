@@ -1,8 +1,9 @@
 /**
- * Admin routes — visits, users, stats (all protected by adminAuth)
+ * Admin routes — visits, users, stats, user access management (all protected by adminAuth)
  */
 import { Hono } from 'hono';
 import { adminAuth } from '../middleware/auth.js';
+import { hashPasswordPBKDF2 } from '../lib/crypto.js';
 
 const admin = new Hono();
 
@@ -52,9 +53,13 @@ admin.get('/users', async (c) => {
     const users = await c.env.DB.prepare(`
         SELECT
             id, name, is_admin, created_at, last_seen,
-            password_hash IS NOT NULL as has_password
+            password_hash IS NOT NULL as has_password,
+            source
         FROM users
-        ORDER BY last_seen DESC
+        ORDER BY
+            is_admin DESC,
+            CASE WHEN source = 'admin' THEN 0 ELSE 1 END,
+            last_seen DESC
     `).all();
 
     return c.json({ users: users.results });
@@ -391,6 +396,177 @@ admin.get('/purchases/stats', async (c) => {
         uniqueBuyers: uniqueBuyers.count,
         bySheet: bySheet.results,
     });
+});
+
+// =========================================
+// USER MANAGEMENT
+// =========================================
+
+/**
+ * POST /api/admin/users/create — Create a new user account
+ * Body: { name, password, isAdmin? }
+ */
+admin.post('/users/create', async (c) => {
+    const body = await c.req.json();
+
+    if (!body.name || body.name.trim().length < 2) {
+        return c.json({ error: 'Name must be at least 2 characters' }, 400);
+    }
+    if (!body.password || body.password.length < 4) {
+        return c.json({ error: 'Password must be at least 4 characters' }, 400);
+    }
+
+    const existing = await c.env.DB.prepare(
+        'SELECT id FROM users WHERE name = ? COLLATE NOCASE'
+    ).bind(body.name.trim()).first();
+
+    if (existing) {
+        return c.json({ error: 'User already exists' }, 409);
+    }
+
+    const { hash, salt } = await hashPasswordPBKDF2(body.password);
+
+    const result = await c.env.DB.prepare(
+        "INSERT INTO users (name, password_hash, password_salt, password_version, is_admin, source) VALUES (?, ?, ?, 2, ?, 'admin')"
+    ).bind(body.name.trim(), hash, salt, body.isAdmin ? 1 : 0).run();
+
+    return c.json({ success: true, userId: result.meta.last_row_id });
+});
+
+/**
+ * PUT /api/admin/users/:id — Update a user (toggle admin, reset password)
+ * Body: { isAdmin?, password? }
+ */
+admin.put('/users/:id', async (c) => {
+    const id = parseInt(c.req.param('id'));
+    const body = await c.req.json();
+
+    const user = await c.env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
+    if (!user) return c.json({ error: 'User not found' }, 404);
+
+    if (body.isAdmin !== undefined) {
+        await c.env.DB.prepare(
+            'UPDATE users SET is_admin = ? WHERE id = ?'
+        ).bind(body.isAdmin ? 1 : 0, id).run();
+    }
+
+    if (body.password && body.password.length >= 4) {
+        const { hash, salt } = await hashPasswordPBKDF2(body.password);
+        await c.env.DB.prepare(
+            'UPDATE users SET password_hash = ?, password_salt = ?, password_version = 2 WHERE id = ?'
+        ).bind(hash, salt, id).run();
+    }
+
+    return c.json({ success: true });
+});
+
+/**
+ * DELETE /api/admin/users/:id — Delete a user account
+ */
+admin.delete('/users/:id', async (c) => {
+    const id = parseInt(c.req.param('id'));
+    const adminSession = c.get('adminSession');
+
+    // Prevent self-deletion
+    if (adminSession.user_id === id) {
+        return c.json({ error: 'Cannot delete your own account' }, 400);
+    }
+
+    const user = await c.env.DB.prepare('SELECT id, name FROM users WHERE id = ?').bind(id).first();
+    if (!user) return c.json({ error: 'User not found' }, 404);
+
+    // Delete/nullify related data
+    await c.env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+    await c.env.DB.prepare('DELETE FROM user_sheet_access WHERE user_id = ?').bind(id).run();
+    await c.env.DB.prepare('UPDATE visits SET user_id = NULL WHERE user_id = ?').bind(id).run();
+    await c.env.DB.prepare('UPDATE purchases SET user_id = NULL WHERE user_id = ?').bind(id).run();
+    await c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
+
+    return c.json({ success: true });
+});
+
+// =========================================
+// USER CONTENT ACCESS MANAGEMENT
+// =========================================
+
+/**
+ * GET /api/admin/user-access — List all access grants, optionally filtered
+ * Query: userId?, sheetMusicId?
+ */
+admin.get('/user-access', async (c) => {
+    const userId = c.req.query('userId');
+    const sheetId = c.req.query('sheetMusicId');
+
+    let where = [];
+    let binds = [];
+
+    if (userId) {
+        where.push('usa.user_id = ?');
+        binds.push(parseInt(userId));
+    }
+    if (sheetId) {
+        where.push('usa.sheet_music_id = ?');
+        binds.push(parseInt(sheetId));
+    }
+
+    const whereClause = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+    const result = await c.env.DB.prepare(`
+        SELECT usa.id, usa.user_id, usa.sheet_music_id, usa.source, usa.created_at,
+               u.name as user_name, sm.title as sheet_title
+        FROM user_sheet_access usa
+        JOIN users u ON usa.user_id = u.id
+        JOIN sheet_music sm ON usa.sheet_music_id = sm.id
+        ${whereClause}
+        ORDER BY usa.created_at DESC
+    `).bind(...binds).all();
+
+    return c.json({ grants: result.results });
+});
+
+/**
+ * POST /api/admin/user-access — Grant a user access to a sheet
+ * Body: { userId, sheetMusicId }
+ */
+admin.post('/user-access', async (c) => {
+    const body = await c.req.json();
+    const adminSession = c.get('adminSession');
+
+    if (!body.userId || !body.sheetMusicId) {
+        return c.json({ error: 'userId and sheetMusicId are required' }, 400);
+    }
+
+    const user = await c.env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(body.userId).first();
+    if (!user) return c.json({ error: 'User not found' }, 404);
+
+    const sheet = await c.env.DB.prepare('SELECT id FROM sheet_music WHERE id = ?').bind(body.sheetMusicId).first();
+    if (!sheet) return c.json({ error: 'Sheet not found' }, 404);
+
+    try {
+        await c.env.DB.prepare(
+            "INSERT INTO user_sheet_access (user_id, sheet_music_id, source, granted_by) VALUES (?, ?, 'admin_grant', ?)"
+        ).bind(body.userId, body.sheetMusicId, adminSession.user_id).run();
+    } catch (e) {
+        if (e.message && e.message.includes('UNIQUE')) {
+            return c.json({ error: 'User already has access to this sheet' }, 409);
+        }
+        throw e;
+    }
+
+    return c.json({ success: true });
+});
+
+/**
+ * DELETE /api/admin/user-access/:id — Revoke an access grant
+ */
+admin.delete('/user-access/:id', async (c) => {
+    const id = parseInt(c.req.param('id'));
+
+    const grant = await c.env.DB.prepare('SELECT id FROM user_sheet_access WHERE id = ?').bind(id).first();
+    if (!grant) return c.json({ error: 'Grant not found' }, 404);
+
+    await c.env.DB.prepare('DELETE FROM user_sheet_access WHERE id = ?').bind(id).run();
+    return c.json({ success: true });
 });
 
 export default admin;

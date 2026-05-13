@@ -106,25 +106,79 @@
             <section class="tab-content" id="users-tab">
                 <div class="section-header">
                     <h2>Registered Users</h2>
-                    <span class="user-count" id="user-count"></span>
+                    <div>
+                        <span class="user-count" id="user-count"></span>
+                        <button class="cms-btn cms-btn-primary" id="new-user-btn" style="margin-left:12px;">+ New User</button>
+                    </div>
                 </div>
 
-                <div class="table-container">
-                    <table class="users-table" id="users-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Name</th>
-                                <th>Role</th>
-                                <th>Has Password</th>
-                                <th>Created</th>
-                                <th>Last Seen</th>
-                            </tr>
-                        </thead>
-                        <tbody id="users-body">
-                            <!-- Users loaded dynamically -->
-                        </tbody>
-                    </table>
+                <!-- User list view -->
+                <div id="users-list-view">
+                    <div class="table-container">
+                        <table class="users-table" id="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Has Password</th>
+                                    <th>Created</th>
+                                    <th>Last Seen</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-body">
+                                <!-- Users loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Create User Form (hidden by default) -->
+                <div id="user-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="user-form-title">New User</h3>
+                    <form id="user-form" class="cms-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="user-name">Username *</label>
+                                <input type="text" id="user-name" required minlength="2">
+                            </div>
+                            <div class="form-group">
+                                <label for="user-password">Password *</label>
+                                <input type="password" id="user-password" required minlength="4">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="user-is-admin">
+                                <span>Admin</span>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="user-save-btn">Create User</button>
+                            <button type="button" class="cms-btn" id="user-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- User Access Manager (hidden by default) -->
+                <div id="user-access-container" class="cms-form-container" style="display:none;">
+                    <h3 id="user-access-title">Manage Access</h3>
+                    <div id="user-access-list" style="margin-bottom:20px;"></div>
+                    <div class="form-row" style="align-items:flex-end;">
+                        <div class="form-group">
+                            <label for="grant-sheet-select">Grant Access to Sheet</label>
+                            <select id="grant-sheet-select" style="padding:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;font-size:0.9rem;width:100%;">
+                                <option value="">Select a sheet...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button type="button" class="cms-btn cms-btn-primary" id="grant-access-btn">Grant Access</button>
+                        </div>
+                    </div>
+                    <div class="form-actions" style="margin-top:15px;">
+                        <button type="button" class="cms-btn" id="user-access-done-btn">Done</button>
+                    </div>
                 </div>
             </section>
 
@@ -191,7 +245,14 @@
                                 <label for="sheet-sort-order">Sort Order</label>
                                 <input type="number" id="sheet-sort-order" value="0" min="0">
                             </div>
-                            <div class="form-group"></div>
+                            <div class="form-group">
+                                <label for="sheet-visibility">Visibility</label>
+                                <select id="sheet-visibility" style="padding:8px;border:1px solid var(--border-color);background:var(--bg-primary);color:var(--text-primary);font-family:inherit;font-size:0.9rem;width:100%;">
+                                    <option value="public">Public (everyone)</option>
+                                    <option value="purchasers">Purchasers Only</option>
+                                    <option value="admin">Admin Only</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="sheet-description">Description</label>

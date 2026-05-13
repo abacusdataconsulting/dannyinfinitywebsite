@@ -11,6 +11,41 @@
     }
 
     // ============================
+    // AUTH STATE
+    // ============================
+    var currentUser = null;
+    var authToken = null;
+
+    function loadAuthState() {
+        authToken = localStorage.getItem('userAuthToken');
+        var userData = localStorage.getItem('userData');
+        if (authToken && userData) {
+            try { currentUser = JSON.parse(userData); } catch (e) { currentUser = null; }
+        }
+    }
+
+    function saveAuthState(token, user) {
+        authToken = token;
+        currentUser = user;
+        localStorage.setItem('userAuthToken', token);
+        localStorage.setItem('userData', JSON.stringify(user));
+    }
+
+    function clearAuthState() {
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem('userAuthToken');
+        localStorage.removeItem('userData');
+    }
+
+    function getAuthHeaders() {
+        if (!authToken) return {};
+        return { 'Authorization': 'Bearer ' + authToken };
+    }
+
+    loadAuthState();
+
+    // ============================
     // TIP SUCCESS: noindex to prevent duplicate content
     // ============================
     if (window.location.search.indexOf('tip=success') !== -1) {
@@ -57,12 +92,145 @@
     document.getElementById('current-year').textContent = new Date().getFullYear();
 
     // ============================
+    // USER ACCOUNT BAR (handled globally by cart.js, listen for auth changes)
+    // ============================
+    function renderAccountBar() {
+        // Auth state is now rendered in the site-nav by cart.js
+        // Just reload auth state from localStorage
+        loadAuthState();
+    }
+
+    // ============================
+    // AUTH MODAL
+    // ============================
+    function openAuthModal(mode) {
+        var existing = document.getElementById('auth-modal');
+        if (existing) existing.remove();
+
+        var modal = document.createElement('div');
+        modal.id = 'auth-modal';
+        modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;';
+
+        var title = mode === 'register' ? 'Create Account' : 'Log In';
+        var submitText = mode === 'register' ? '[CREATE ACCOUNT]' : '[LOG IN]';
+        var switchText = mode === 'register'
+            ? 'Already have an account? <a href="#" id="auth-switch" style="text-decoration:underline;">Log in</a>'
+            : 'Need an account? <a href="#" id="auth-switch" style="text-decoration:underline;">Create one</a>';
+
+        modal.innerHTML =
+            '<div style="background:var(--bg-primary);border:1px solid var(--border-color);padding:35px;max-width:400px;width:90%;position:relative;">' +
+                '<button id="auth-modal-close" style="position:absolute;top:10px;right:15px;background:none;border:none;color:var(--text-primary);font-size:1.5rem;cursor:pointer;font-family:inherit;">&times;</button>' +
+                '<h2 style="text-align:center;letter-spacing:2px;margin-bottom:20px;font-size:1.1rem;">' + title + '</h2>' +
+                '<form id="auth-modal-form" style="display:flex;flex-direction:column;gap:12px;">' +
+                    '<input type="text" name="username" placeholder="Username" required minlength="2" autocomplete="username" style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
+                    '<input type="password" name="password" placeholder="Password" required ' + (mode === 'register' ? 'minlength="4" autocomplete="new-password"' : 'autocomplete="current-password"') + ' style="padding:12px;border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:1px;">' +
+                    '<button type="submit" id="auth-submit-btn" style="padding:14px;border:2px solid var(--border-color);background:transparent;color:var(--text-primary);font-family:inherit;font-size:0.9rem;letter-spacing:2px;cursor:pointer;transition:all 0.2s;">' + submitText + '</button>' +
+                '</form>' +
+                '<div id="auth-message" style="text-align:center;font-size:0.8rem;padding:8px 0;letter-spacing:1px;min-height:20px;"></div>' +
+                '<p style="text-align:center;font-size:0.8rem;opacity:0.5;margin-top:5px;">' + switchText + '</p>' +
+            '</div>';
+
+        document.body.appendChild(modal);
+
+        // Close
+        modal.addEventListener('click', function(e) { if (e.target === modal) closeAuthModal(); });
+        document.getElementById('auth-modal-close').addEventListener('click', closeAuthModal);
+
+        // Switch mode
+        setTimeout(function() {
+            var switchLink = document.getElementById('auth-switch');
+            if (switchLink) {
+                switchLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    closeAuthModal();
+                    openAuthModal(mode === 'register' ? 'login' : 'register');
+                });
+            }
+        }, 0);
+
+        // Form submit
+        document.getElementById('auth-modal-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var username = this.username.value.trim();
+            var password = this.password.value;
+            var btn = document.getElementById('auth-submit-btn');
+            var msgEl = document.getElementById('auth-message');
+
+            btn.disabled = true;
+            btn.textContent = mode === 'register' ? 'Creating...' : 'Logging in...';
+            msgEl.textContent = '';
+
+            var doAuth;
+            if (mode === 'register') {
+                doAuth = fetch('/api/user/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: username, password: password })
+                }).then(function(res) {
+                    return res.json().then(function(data) {
+                        if (!res.ok) throw new Error(data.error || 'Registration failed');
+                        return data;
+                    });
+                }).then(function() {
+                    return fetch('/api/user/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: username, password: password })
+                    }).then(function(res) {
+                        return res.json().then(function(d) {
+                            if (!res.ok) throw new Error(d.error || 'Login failed');
+                            return d;
+                        });
+                    });
+                });
+            } else {
+                doAuth = fetch('/api/user/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: username, password: password })
+                }).then(function(res) {
+                    return res.json().then(function(data) {
+                        if (!res.ok) throw new Error(data.error || 'Login failed');
+                        return data;
+                    });
+                });
+            }
+
+            doAuth.then(function(loginData) {
+                saveAuthState(loginData.token, loginData.user);
+                closeAuthModal();
+                renderAccountBar();
+                fetchAndRenderSheets();
+            }).catch(function(err) {
+                msgEl.textContent = err.message;
+                msgEl.style.color = '#f87171';
+                btn.disabled = false;
+                btn.textContent = mode === 'register' ? '[CREATE ACCOUNT]' : '[LOG IN]';
+            });
+        });
+
+        // Focus first input
+        modal.querySelector('input[name="username"]').focus();
+    }
+
+    function closeAuthModal() {
+        var modal = document.getElementById('auth-modal');
+        if (modal) modal.remove();
+    }
+
+    // Close auth modal on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAuthModal();
+        }
+    });
+
+    // ============================
     // RENDER GRID
     // ============================
     function renderGrid() {
         sheetsGrid.innerHTML = '';
 
-        // Build JSON-LD ItemList for SEO
         var itemListElements = [];
 
         SHEETS.forEach(function(sheet, index) {
@@ -74,9 +242,14 @@
                 ? '<p class="sheet-description" style="opacity:0.6;font-size:0.8rem;margin-top:4px;">' + escapeHtml(sheet.description.slice(0, 120)) + '</p>'
                 : '';
 
-            var priceBadge = sheet.price > 0
-                ? '<span class="sheet-price-badge paid">' + formatPrice(sheet.price) + '</span>'
-                : '<span class="sheet-price-badge free">FREE</span>';
+            var priceBadge = '';
+            if (sheet.owned) {
+                priceBadge = '<span class="sheet-price-badge" style="background:rgba(74,222,128,0.15);color:#4ade80;">PURCHASED</span>';
+            } else if (sheet.price > 0) {
+                priceBadge = '<span class="sheet-price-badge paid">' + formatPrice(sheet.price) + '</span>';
+            } else {
+                priceBadge = '<span class="sheet-price-badge free">FREE</span>';
+            }
 
             card.innerHTML =
                 '<div class="sheet-info">' +
@@ -95,7 +268,6 @@
                     '<a href="#" class="see-more-link">See More</a>' +
                 '</div>';
 
-            // Click anywhere on card opens modal
             card.addEventListener('click', function(e) {
                 e.preventDefault();
                 openPreview(sheet);
@@ -103,12 +275,10 @@
 
             sheetsGrid.appendChild(card);
 
-            // Render first page thumbnail (free or paid preview)
             if (sheet.pdfUrl || sheet.previewUrl) {
                 renderThumbnail(sheet);
             }
 
-            // Add to JSON-LD ItemList
             var itemData = {
                 '@type': 'MusicComposition',
                 name: sheet.title,
@@ -129,7 +299,6 @@
             });
         });
 
-        // Inject JSON-LD for sheet music
         if (itemListElements.length > 0) {
             var script = document.createElement('script');
             script.type = 'application/ld+json';
@@ -156,7 +325,6 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
-        // Rotate and tile the watermark
         ctx.translate(width / 2, height / 2);
         ctx.rotate(-Math.PI / 6);
 
@@ -171,7 +339,6 @@
 
         ctx.restore();
 
-        // Draw a more visible centered watermark
         ctx.save();
         ctx.globalAlpha = 0.25;
         ctx.fillStyle = '#000';
@@ -193,7 +360,7 @@
         var url = sheet.pdfUrl || sheet.previewUrl;
         if (!url) return;
 
-        var isPaid = sheet.price > 0;
+        var isPaid = sheet.price > 0 && !sheet.owned;
 
         getPdfjs().then(function(lib) {
             if (!lib) return;
@@ -232,7 +399,7 @@
             return;
         }
 
-        var isPaid = sheet.price > 0;
+        var isPaid = sheet.price > 0 && !sheet.owned;
 
         getPdfjs().then(function(lib) {
             if (!lib) {
@@ -263,9 +430,8 @@
         });
     }
 
-    // Prevent right-click save on preview canvas
     previewCanvas.addEventListener('contextmenu', function(e) {
-        if (currentPreviewSheet && currentPreviewSheet.price > 0) {
+        if (currentPreviewSheet && currentPreviewSheet.price > 0 && !currentPreviewSheet.owned) {
             e.preventDefault();
         }
     });
@@ -277,15 +443,15 @@
         currentPreviewSheet = sheet;
         previewTitle.textContent = sheet.title;
 
-        // Build detail fields conditionally
         var fields = '';
         if (sheet.composer) fields += '<p class="preview-field"><span class="field-label">Composer:</span> ' + escapeHtml(sheet.composer) + '</p>';
         if (sheet.arrangement) fields += '<p class="preview-field"><span class="field-label">Arrangement:</span> ' + escapeHtml(sheet.arrangement) + '</p>';
         if (sheet.year) fields += '<p class="preview-field"><span class="field-label">Date:</span> ' + escapeHtml(sheet.year) + '</p>';
         if (sheet.pages) fields += '<p class="preview-field"><span class="field-label">Pages:</span> ' + escapeHtml(sheet.pages) + '</p>';
 
-        // Show price and preview notice for paid sheets
-        if (sheet.price > 0) {
+        if (sheet.owned) {
+            fields += '<p class="preview-field" style="color:#4ade80;font-size:0.85rem;letter-spacing:1px;">PURCHASED — Full PDF access</p>';
+        } else if (sheet.price > 0) {
             fields += '<p class="preview-price">' + formatPrice(sheet.price) + '</p>';
             fields += '<p class="preview-field" style="opacity:0.5;font-size:0.8rem;font-style:italic;">Page 1 preview only — purchase for full PDF</p>';
         }
@@ -295,13 +461,45 @@
         previewDescription.textContent = sheet.description;
         previewDescription.style.display = sheet.description ? '' : 'none';
 
-        // Configure action buttons based on free vs paid
-        if (sheet.price > 0) {
+        if (sheet.owned) {
+            // OWNED: show download button (user library download)
+            downloadBtn.href = '/api/user/library/download/' + sheet.numericId;
+            downloadBtn.setAttribute('download', '');
+            downloadBtn.setAttribute('aria-label', 'Download ' + sheet.title + ' sheet music PDF');
+            downloadBtn.style.opacity = '1';
+            downloadBtn.textContent = '[DOWNLOAD PDF]';
+            downloadBtn.className = 'action-btn download-btn';
+            downloadBtn.onclick = function(e) {
+                // Let the default link behavior handle the download
+                // Need to add auth header via fetch for authenticated download
+                e.preventDefault();
+                var a = document.createElement('a');
+                fetch('/api/user/library/download/' + sheet.numericId, {
+                    headers: getAuthHeaders()
+                }).then(function(res) {
+                    if (!res.ok) throw new Error('Download failed');
+                    return res.blob();
+                }).then(function(blob) {
+                    var url = URL.createObjectURL(blob);
+                    a.href = url;
+                    a.download = sheet.title.replace(/[^a-zA-Z0-9 _-]/g, '') + '.pdf';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }).catch(function(err) {
+                    alert('Download failed: ' + err.message);
+                });
+            };
+            tipActionBtn.style.display = 'none';
+        } else if (sheet.price > 0) {
             // PAID: show add to cart / in cart button
+            downloadBtn.onclick = null;
             updatePurchaseButton(sheet);
             tipActionBtn.style.display = 'none';
         } else {
             // FREE: show download + tip
+            downloadBtn.onclick = null;
             if (sheet.pdfUrl) {
                 downloadBtn.href = sheet.pdfUrl;
                 downloadBtn.setAttribute('download', '');
@@ -325,10 +523,8 @@
             };
         }
 
-        // Render PDF preview
         renderFullPreview(sheet);
 
-        // Show modal
         previewModal.classList.add('active');
         document.body.style.overflow = 'hidden';
     }
@@ -377,12 +573,13 @@
         }
     });
 
-    // Download / purchase button click
     downloadBtn.addEventListener('click', function(e) {
         if (!currentPreviewSheet) return;
 
+        // Skip if owned (handled by onclick above)
+        if (currentPreviewSheet.owned) return;
+
         if (currentPreviewSheet.price > 0) {
-            // Paid sheet: toggle cart
             e.preventDefault();
             if (window.sheetCart) {
                 window.sheetCart.toggle({
@@ -393,14 +590,12 @@
                 updatePurchaseButton(currentPreviewSheet);
             }
         } else {
-            // Free sheet: allow default download behavior, block if no PDF
             if (!downloadBtn.hasAttribute('download')) {
                 e.preventDefault();
             }
         }
     });
 
-    // Per-sheet tip button in preview modal
     tipActionBtn.addEventListener('click', function(e) {
         e.preventDefault();
         if (window.openTipModal && tipActionBtn._tipSheet) {
@@ -410,7 +605,6 @@
         }
     });
 
-    // Global tip button
     var globalTipBtn = document.getElementById('global-tip-btn');
     if (globalTipBtn) {
         globalTipBtn.addEventListener('click', function(e) {
@@ -421,38 +615,63 @@
         });
     }
 
-    // Listen for cart changes to update modal button if open
     document.addEventListener('cartchange', function() {
-        if (currentPreviewSheet && currentPreviewSheet.price > 0) {
+        if (currentPreviewSheet && currentPreviewSheet.price > 0 && !currentPreviewSheet.owned) {
             updatePurchaseButton(currentPreviewSheet);
         }
     });
 
     // ============================
-    // INIT — Fetch sheets from API then render
+    // FETCH & RENDER
     // ============================
-    fetch('/api/sheet-music')
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            SHEETS = (data.sheets || []).map(function(s) {
-                return {
-                    id: s.slug || s.id,
-                    numericId: s.id,
-                    title: s.title,
-                    composer: s.composer,
-                    arrangement: s.arrangement,
-                    year: String(s.year),
-                    pages: s.pages,
-                    description: s.description || '',
-                    price: s.price || 0,
-                    pdfUrl: s.pdfUrl || '',
-                    previewUrl: s.previewUrl || ''
-                };
+    function fetchAndRenderSheets() {
+        var headers = getAuthHeaders();
+
+        fetch('/api/sheet-music', { headers: headers })
+            .then(function(res) {
+                // If auth token was rejected, clear it and retry without auth
+                if (res.status === 401 && authToken) {
+                    clearAuthState();
+                    renderAccountBar();
+                    return fetch('/api/sheet-music').then(function(r) { return r.json(); });
+                }
+                return res.json();
+            })
+            .then(function(data) {
+                SHEETS = (data.sheets || []).map(function(s) {
+                    return {
+                        id: s.slug || s.id,
+                        numericId: s.id,
+                        title: s.title,
+                        composer: s.composer,
+                        arrangement: s.arrangement,
+                        year: String(s.year),
+                        pages: s.pages,
+                        description: s.description || '',
+                        price: s.price || 0,
+                        pdfUrl: s.pdfUrl || '',
+                        previewUrl: s.previewUrl || '',
+                        owned: s.owned || false,
+                        visibility: s.visibility || 'public'
+                    };
+                });
+                renderGrid();
+            })
+            .catch(function() {
+                sheetsGrid.innerHTML = '<div style="text-align:center;padding:40px;opacity:0.5;">Failed to load sheet music</div>';
             });
-            renderGrid();
-        })
-        .catch(function() {
-            sheetsGrid.innerHTML = '<div style="text-align:center;padding:40px;opacity:0.5;">Failed to load sheet music</div>';
-        });
+    }
+
+    // Listen for auth changes from the global account widget (cart.js logout)
+    document.addEventListener('userAuthChanged', function() {
+        loadAuthState();
+        fetchAndRenderSheets();
+    });
+
+    // ============================
+    // INIT
+    // ============================
+    renderAccountBar();
+    fetchAndRenderSheets();
 
 })();

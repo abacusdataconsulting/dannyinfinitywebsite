@@ -48,7 +48,7 @@
             <a href="videos.html" class="link-btn">Videos</a>
             <a href="photos.html" class="link-btn">Photos</a>
             <a href="blog.html" class="link-btn">Writings</a>
-            <a href="#" class="link-btn" id="account-link" style="display: none;">Account</a>
+            <a href="#" class="link-btn" id="account-link" style="display: none;" onclick="event.preventDefault();if(window.openAccountModal)window.openAccountModal();">Account</a>
             <a href="admin.html" class="link-btn" id="admin-link" style="display: none;">Admin</a>
         </nav>
 
@@ -78,11 +78,12 @@
         (function() {
             const userName = sessionStorage.getItem('userName');
             const accessLevel = sessionStorage.getItem('accessLevel') || 'guest';
-            const authToken = sessionStorage.getItem('authToken');
-            const userRaw = sessionStorage.getItem('user');
+            const authToken = sessionStorage.getItem('authToken') || localStorage.getItem('userAuthToken');
+            const userRaw = sessionStorage.getItem('user') || localStorage.getItem('userData');
 
-            // Show auth-gated links based on access level
-            if (accessLevel === 'member' && authToken) {
+            // Show auth-gated links based on access level or localStorage auth
+            var hasAuth = (accessLevel === 'member' && authToken) || localStorage.getItem('userAuthToken');
+            if (hasAuth) {
                 document.getElementById('account-link').style.display = '';
 
                 // Check admin status

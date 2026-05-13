@@ -522,6 +522,7 @@
 .form-group input[type="text"],
 .form-group input[type="number"],
 .form-group input[type="url"],
+.form-group input[type="password"],
 .form-group textarea,
 .form-group select {
     background: rgba(255, 255, 255, 0.05);

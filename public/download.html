@@ -156,6 +156,121 @@
             opacity: 0.6;
             margin-bottom: 25px;
         }
+
+        /* Account linking section */
+        .account-section {
+            margin-top: 40px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .account-section h2 {
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .account-section .account-desc {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            text-align: center;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .account-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+        }
+
+        .account-tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .account-tab-btn.active {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+        }
+
+        .account-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .account-form input {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .account-form input::placeholder {
+            opacity: 0.4;
+        }
+
+        .account-submit-btn {
+            padding: 14px;
+            border: 2px solid var(--border-color);
+            background: transparent;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .account-submit-btn:hover {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+        }
+
+        .account-submit-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .account-message {
+            text-align: center;
+            font-size: 0.85rem;
+            padding: 10px;
+            letter-spacing: 1px;
+        }
+
+        .account-message.success {
+            color: #4ade80;
+        }
+
+        .account-message.error {
+            color: #f87171;
+        }
+
+        .account-linked {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        .account-linked strong {
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -170,6 +285,8 @@
             <div class="download-status" id="download-status">Looking up your purchase...</div>
         </div>
 
+        <div id="account-section-container"></div>
+
         <a href="sheet-music.html" class="download-back">[BACK TO SHEET MUSIC]</a>
     </div>
 
@@ -179,9 +296,11 @@
 
         var contentEl = document.getElementById('download-content');
         var statusEl = document.getElementById('download-status');
+        var accountContainer = document.getElementById('account-section-container');
         var params = new URLSearchParams(window.location.search);
         var sessionId = params.get('session_id');
         var token = params.get('token');
+        var currentDownloadToken = null;
 
         if (!sessionId && !token) {
             showError('Invalid Link', 'No purchase information found in the URL.');
@@ -189,6 +308,7 @@
         }
 
         if (token) {
+            currentDownloadToken = token;
             loadDownloads(token);
         } else {
             lookupToken(sessionId, 0);
@@ -209,7 +329,7 @@
                 })
                 .then(function(data) {
                     if (!data) return;
-                    // Replace URL so refresh works with token
+                    currentDownloadToken = data.token;
                     history.replaceState(null, '', '/download.html?token=' + data.token);
                     loadDownloads(data.token);
                 })
@@ -230,6 +350,7 @@
                 })
                 .then(function(data) {
                     renderDownloads(data);
+                    showAccountSection();
                 })
                 .catch(function(err) {
                     showError('Download Unavailable', err.message);
@@ -263,7 +384,6 @@
 
             contentEl.innerHTML = html;
 
-            // Download All handler
             var downloadAllBtn = document.getElementById('download-all-btn');
             if (downloadAllBtn) {
                 downloadAllBtn.addEventListener('click', function() {
@@ -279,6 +399,171 @@
                     });
                 });
             }
+        }
+
+        // ============================
+        // ACCOUNT LINKING SECTION
+        // ============================
+        function showAccountSection() {
+            // Check if already logged in
+            var existingToken = localStorage.getItem('userAuthToken');
+            var existingUser = localStorage.getItem('userData');
+
+            if (existingToken && existingUser) {
+                // Auto-link the purchase
+                linkPurchaseToAccount(existingToken, JSON.parse(existingUser));
+                return;
+            }
+
+            accountContainer.innerHTML =
+                '<div class="account-section">' +
+                    '<h2>Save to Your Account</h2>' +
+                    '<p class="account-desc">Create an account or log in to access your purchased sheets anytime — no expiring download links needed.</p>' +
+                    '<div class="account-tabs">' +
+                        '<button class="account-tab-btn active" id="tab-register">CREATE ACCOUNT</button>' +
+                        '<button class="account-tab-btn" id="tab-login">LOG IN</button>' +
+                    '</div>' +
+                    '<div id="account-form-area">' +
+                        renderRegisterForm() +
+                    '</div>' +
+                    '<div id="account-message"></div>' +
+                '</div>';
+
+            // Tab switching
+            document.getElementById('tab-register').addEventListener('click', function() {
+                this.classList.add('active');
+                document.getElementById('tab-login').classList.remove('active');
+                document.getElementById('account-form-area').innerHTML = renderRegisterForm();
+                document.getElementById('account-message').innerHTML = '';
+                bindFormSubmit();
+            });
+
+            document.getElementById('tab-login').addEventListener('click', function() {
+                this.classList.add('active');
+                document.getElementById('tab-register').classList.remove('active');
+                document.getElementById('account-form-area').innerHTML = renderLoginForm();
+                document.getElementById('account-message').innerHTML = '';
+                bindFormSubmit();
+            });
+
+            bindFormSubmit();
+        }
+
+        function renderRegisterForm() {
+            return '<form class="account-form" id="account-form" data-mode="register">' +
+                '<input type="text" name="username" placeholder="Choose a username" required minlength="2" autocomplete="username">' +
+                '<input type="password" name="password" placeholder="Choose a password" required minlength="4" autocomplete="new-password">' +
+                '<button type="submit" class="account-submit-btn">[CREATE ACCOUNT & SAVE PURCHASE]</button>' +
+            '</form>';
+        }
+
+        function renderLoginForm() {
+            return '<form class="account-form" id="account-form" data-mode="login">' +
+                '<input type="text" name="username" placeholder="Username" required autocomplete="username">' +
+                '<input type="password" name="password" placeholder="Password" required autocomplete="current-password">' +
+                '<button type="submit" class="account-submit-btn">[LOG IN & SAVE PURCHASE]</button>' +
+            '</form>';
+        }
+
+        function bindFormSubmit() {
+            var form = document.getElementById('account-form');
+            if (!form) return;
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var mode = form.dataset.mode;
+                var username = form.username.value.trim();
+                var password = form.password.value;
+                var btn = form.querySelector('.account-submit-btn');
+                var msgEl = document.getElementById('account-message');
+
+                btn.disabled = true;
+                btn.textContent = mode === 'register' ? 'Creating account...' : 'Logging in...';
+                msgEl.innerHTML = '';
+
+                var url = mode === 'register' ? '/api/user/register' : '/api/user/login';
+                var body = mode === 'register'
+                    ? { name: username, password: password }
+                    : { name: username, password: password };
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                })
+                .then(function(res) {
+                    return res.json().then(function(data) {
+                        if (!res.ok) throw new Error(data.error || 'Failed');
+                        return data;
+                    });
+                })
+                .then(function(data) {
+                    if (mode === 'register') {
+                        // After registration, log in to get token
+                        return fetch('/api/user/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: username, password: password })
+                        }).then(function(res) {
+                            return res.json().then(function(d) {
+                                if (!res.ok) throw new Error(d.error || 'Login failed after registration');
+                                return d;
+                            });
+                        });
+                    }
+                    return data;
+                })
+                .then(function(loginData) {
+                    // Store auth
+                    localStorage.setItem('userAuthToken', loginData.token);
+                    localStorage.setItem('userData', JSON.stringify(loginData.user));
+
+                    // Link purchase
+                    linkPurchaseToAccount(loginData.token, loginData.user);
+                })
+                .catch(function(err) {
+                    msgEl.innerHTML = '<div class="account-message error">' + esc(err.message) + '</div>';
+                    btn.disabled = false;
+                    btn.textContent = mode === 'register' ? '[CREATE ACCOUNT & SAVE PURCHASE]' : '[LOG IN & SAVE PURCHASE]';
+                });
+            });
+        }
+
+        function linkPurchaseToAccount(authToken, user) {
+            if (!currentDownloadToken) return;
+
+            fetch('/api/user/library/link-purchase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
+                },
+                body: JSON.stringify({ downloadToken: currentDownloadToken })
+            })
+            .then(function(res) {
+                return res.json().then(function(data) {
+                    if (!res.ok) throw new Error(data.error || 'Link failed');
+                    return data;
+                });
+            })
+            .then(function(data) {
+                accountContainer.innerHTML =
+                    '<div class="account-section">' +
+                        '<div class="account-linked">' +
+                            'Logged in as <strong>' + esc(user.name) + '</strong><br>' +
+                            'Purchase saved to your account. You can access your sheets anytime from the <a href="sheet-music.html" style="text-decoration:underline;">Sheet Music</a> page.' +
+                        '</div>' +
+                    '</div>';
+            })
+            .catch(function(err) {
+                accountContainer.innerHTML =
+                    '<div class="account-section">' +
+                        '<div class="account-linked">' +
+                            'Logged in as <strong>' + esc(user.name) + '</strong><br>' +
+                            '<span style="color:#f87171;">' + esc(err.message) + '</span>' +
+                        '</div>' +
+                    '</div>';
+            });
         }
 
         function showError(title, message) {
