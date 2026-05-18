@@ -2630,6 +2630,29 @@
         });
     }
 
+    // Bulk show/hide buttons
+    var cvShowAllBtn = document.getElementById('cv-show-all-btn');
+    var cvHideAllBtn = document.getElementById('cv-hide-all-btn');
+
+    async function bulkToggleViews(show) {
+        var typeParam = cvTypeFilter ? cvTypeFilter.value : '';
+        try {
+            await fetch('/api/admin/content-views/bulk-toggle', {
+                method: 'PUT',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({ contentType: typeParam || null, showViews: show })
+            });
+            loadContentViews();
+        } catch (e) { /* ignore */ }
+    }
+
+    if (cvShowAllBtn) {
+        cvShowAllBtn.addEventListener('click', function() { bulkToggleViews(true); });
+    }
+    if (cvHideAllBtn) {
+        cvHideAllBtn.addEventListener('click', function() { bulkToggleViews(false); });
+    }
+
     // =========================================
     // TAB SWITCHING
     // =========================================

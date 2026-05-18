@@ -590,101 +590,143 @@ const CONTENT_TABLES = {
  * GET /api/admin/content-views — Overview of all content with view counts
  */
 admin.get('/content-views', async (c) => {
-    const typeFilter = c.req.query('type') || '';
+    try {
+        const typeFilter = c.req.query('type') || '';
 
-    const queries = [];
+        const queries = [];
 
-    if (!typeFilter || typeFilter === 'album') {
-        queries.push(`SELECT 'album' as type, a.id, a.title, a.show_views, a.is_published,
-            (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'album' AND cv.content_id = a.id) as view_count
-            FROM albums a`);
-    }
-    if (!typeFilter || typeFilter === 'blog') {
-        queries.push(`SELECT 'blog' as type, b.id, b.title, b.show_views, b.is_published,
-            (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'blog' AND cv.content_id = b.id) as view_count
-            FROM blog_posts b`);
-    }
-    if (!typeFilter || typeFilter === 'sheet') {
-        queries.push(`SELECT 'sheet' as type, s.id, s.title, s.show_views, s.is_published,
-            (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'sheet' AND cv.content_id = s.id) as view_count
-            FROM sheet_music s`);
-    }
-    if (!typeFilter || typeFilter === 'video') {
-        queries.push(`SELECT 'video' as type, v.id, v.title, v.show_views, v.is_published,
-            (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'video' AND cv.content_id = v.id) as view_count
-            FROM videos v`);
-    }
-    if (!typeFilter || typeFilter === 'photo') {
-        queries.push(`SELECT 'photo' as type, p.id, p.title, p.show_views, p.is_published,
-            (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'photo' AND cv.content_id = p.id) as view_count
-            FROM photos p`);
-    }
-
-    const sql = queries.join(' UNION ALL ') + ' ORDER BY view_count DESC';
-    const result = await c.env.DB.prepare(sql).all();
-
-    // Summary stats
-    const totalViews = await c.env.DB.prepare('SELECT COUNT(*) as total FROM content_views').first();
-    const todayViews = await c.env.DB.prepare(
-        "SELECT COUNT(*) as total FROM content_views WHERE created_at >= date('now')"
-    ).first();
-    const weekViews = await c.env.DB.prepare(
-        "SELECT COUNT(*) as total FROM content_views WHERE created_at >= date('now', '-7 days')"
-    ).first();
-
-    return c.json({
-        items: result.results,
-        stats: {
-            total: totalViews.total,
-            today: todayViews.total,
-            week: weekViews.total,
+        if (!typeFilter || typeFilter === 'album') {
+            queries.push(`SELECT 'album' as type, a.id, a.title, a.show_views, a.is_published,
+                (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'album' AND cv.content_id = a.id) as view_count
+                FROM albums a`);
         }
-    });
+        if (!typeFilter || typeFilter === 'blog') {
+            queries.push(`SELECT 'blog' as type, b.id, b.title, b.show_views, b.is_published,
+                (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'blog' AND cv.content_id = b.id) as view_count
+                FROM blog_posts b`);
+        }
+        if (!typeFilter || typeFilter === 'sheet') {
+            queries.push(`SELECT 'sheet' as type, s.id, s.title, s.show_views, s.is_published,
+                (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'sheet' AND cv.content_id = s.id) as view_count
+                FROM sheet_music s`);
+        }
+        if (!typeFilter || typeFilter === 'video') {
+            queries.push(`SELECT 'video' as type, v.id, v.title, v.show_views, v.is_published,
+                (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'video' AND cv.content_id = v.id) as view_count
+                FROM videos v`);
+        }
+        if (!typeFilter || typeFilter === 'photo') {
+            queries.push(`SELECT 'photo' as type, p.id, p.title, p.show_views, p.is_published,
+                (SELECT COUNT(*) FROM content_views cv WHERE cv.content_type = 'photo' AND cv.content_id = p.id) as view_count
+                FROM photos p`);
+        }
+
+        const sql = queries.join(' UNION ALL ') + ' ORDER BY view_count DESC';
+        const result = await c.env.DB.prepare(sql).all();
+
+        // Summary stats
+        const totalViews = await c.env.DB.prepare('SELECT COUNT(*) as total FROM content_views').first();
+        const todayViews = await c.env.DB.prepare(
+            "SELECT COUNT(*) as total FROM content_views WHERE created_at >= date('now')"
+        ).first();
+        const weekViews = await c.env.DB.prepare(
+            "SELECT COUNT(*) as total FROM content_views WHERE created_at >= date('now', '-7 days')"
+        ).first();
+
+        return c.json({
+            items: result.results,
+            stats: {
+                total: totalViews.total,
+                today: todayViews.total,
+                week: weekViews.total,
+            }
+        });
+    } catch (e) {
+        return c.json({ items: [], stats: { total: 0, today: 0, week: 0 }, error: 'Migration not yet applied. Run migration 013-content-views.sql first.' });
+    }
 });
 
 /**
  * GET /api/admin/content-views/:type/:id/timeline — Daily view counts (last 90 days)
  */
 admin.get('/content-views/:type/:id/timeline', async (c) => {
-    const type = c.req.param('type');
-    const id = parseInt(c.req.param('id'));
+    try {
+        const type = c.req.param('type');
+        const id = parseInt(c.req.param('id'));
 
-    if (!CONTENT_TABLES[type]) return c.json({ error: 'Invalid type' }, 400);
+        if (!CONTENT_TABLES[type]) return c.json({ error: 'Invalid type' }, 400);
 
-    const result = await c.env.DB.prepare(`
-        SELECT date(created_at) as day, COUNT(*) as count
-        FROM content_views
-        WHERE content_type = ? AND content_id = ?
-        AND created_at >= date('now', '-90 days')
-        GROUP BY date(created_at)
-        ORDER BY day ASC
-    `).bind(type, id).all();
+        const result = await c.env.DB.prepare(`
+            SELECT date(created_at) as day, COUNT(*) as count
+            FROM content_views
+            WHERE content_type = ? AND content_id = ?
+            AND created_at >= date('now', '-90 days')
+            GROUP BY date(created_at)
+            ORDER BY day ASC
+        `).bind(type, id).all();
 
-    const total = await c.env.DB.prepare(
-        'SELECT COUNT(*) as total FROM content_views WHERE content_type = ? AND content_id = ?'
-    ).bind(type, id).first();
+        const total = await c.env.DB.prepare(
+            'SELECT COUNT(*) as total FROM content_views WHERE content_type = ? AND content_id = ?'
+        ).bind(type, id).first();
 
-    return c.json({
-        timeline: result.results,
-        total: total.total,
-    });
+        return c.json({
+            timeline: result.results,
+            total: total.total,
+        });
+    } catch (e) {
+        return c.json({ timeline: [], total: 0 });
+    }
+});
+
+/**
+ * PUT /api/admin/content-views/bulk-toggle — Toggle show_views for all items of a type (or all types)
+ */
+admin.put('/content-views/bulk-toggle', async (c) => {
+    try {
+        const body = await c.req.json();
+        const { contentType, showViews } = body;
+        const val = showViews ? 1 : 0;
+
+        if (contentType && CONTENT_TABLES[contentType]) {
+            await c.env.DB.prepare(
+                `UPDATE ${CONTENT_TABLES[contentType]} SET show_views = ?`
+            ).bind(val).run();
+        } else {
+            // All types
+            await c.env.DB.batch([
+                c.env.DB.prepare('UPDATE albums SET show_views = ?').bind(val),
+                c.env.DB.prepare('UPDATE blog_posts SET show_views = ?').bind(val),
+                c.env.DB.prepare('UPDATE sheet_music SET show_views = ?').bind(val),
+                c.env.DB.prepare('UPDATE videos SET show_views = ?').bind(val),
+                c.env.DB.prepare('UPDATE photos SET show_views = ?').bind(val),
+            ]);
+        }
+
+        return c.json({ success: true });
+    } catch (e) {
+        return c.json({ error: 'Migration not yet applied' }, 500);
+    }
 });
 
 /**
  * PUT /api/admin/content-views/toggle — Toggle show_views for a content item
  */
 admin.put('/content-views/toggle', async (c) => {
-    const body = await c.req.json();
-    const { contentType, contentId, showViews } = body;
+    try {
+        const body = await c.req.json();
+        const { contentType, contentId, showViews } = body;
 
-    const table = CONTENT_TABLES[contentType];
-    if (!table || !contentId) return c.json({ error: 'Invalid request' }, 400);
+        const table = CONTENT_TABLES[contentType];
+        if (!table || !contentId) return c.json({ error: 'Invalid request' }, 400);
 
-    await c.env.DB.prepare(
-        `UPDATE ${table} SET show_views = ? WHERE id = ?`
-    ).bind(showViews ? 1 : 0, parseInt(contentId)).run();
+        await c.env.DB.prepare(
+            `UPDATE ${table} SET show_views = ? WHERE id = ?`
+        ).bind(showViews ? 1 : 0, parseInt(contentId)).run();
 
-    return c.json({ success: true });
+        return c.json({ success: true });
+    } catch (e) {
+        return c.json({ error: 'Migration not yet applied' }, 500);
+    }
 });
 
 export default admin;
