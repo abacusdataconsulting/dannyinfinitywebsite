@@ -10,6 +10,12 @@
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function recordView(contentType, contentId) {
+        try {
+            navigator.sendBeacon('/api/content-view', JSON.stringify({ contentType: contentType, contentId: contentId }));
+        } catch (e) { /* ignore */ }
+    }
+
     // DOM Elements
     var galleryGrid = document.getElementById('gallery-grid');
     var filterBtns = document.querySelectorAll('.filter-btn');
@@ -45,11 +51,14 @@
                 ? '<img src="' + escapeHtml(photo.imageUrl) + '" alt="' + escapeHtml(photo.title) + '">'
                 : '<div class="gallery-placeholder' + orientClass + '"><span class="placeholder-text">[' + escapeHtml(photo.category.toUpperCase()) + '_' + String(photo.id).padStart(3, '0') + ']</span></div>';
 
+            var viewBadge = photo.showViews && photo.viewCount > 0
+                ? ' <span class="view-count-badge">' + photo.viewCount + ' views</span>'
+                : '';
             item.innerHTML =
                 content +
                 '<div class="gallery-overlay">' +
                     '<span class="photo-title">' + escapeHtml(photo.title) + '</span>' +
-                    '<span class="photo-date">' + escapeHtml(photo.date ? photo.date.split('-')[0] : '') + '</span>' +
+                    '<span class="photo-date">' + escapeHtml(photo.date ? photo.date.split('-')[0] : '') + viewBadge + '</span>' +
                 '</div>';
 
             item.addEventListener('click', function() {
@@ -97,6 +106,14 @@
         var placeholder = item.querySelector('.placeholder-text');
 
         currentIndex = visibleItems.findIndex(function(v) { return v.element === item; });
+        // Record view — find the photo data by matching the DOM index
+        var domItems = galleryGrid.querySelectorAll('.gallery-item');
+        for (var vi = 0; vi < domItems.length; vi++) {
+            if (domItems[vi] === item && photosData[vi]) {
+                recordView('photo', photosData[vi].id);
+                break;
+            }
+        }
 
         if (img) {
             lightboxImage.innerHTML = '<img src="' + img.src + '" alt="' + (title ? title.textContent : '') + '">';

@@ -64,6 +64,9 @@
             var card = document.createElement('div');
             card.className = 'album-card';
             card.dataset.albumId = album.id;
+            var viewBadge = album.showViews && album.viewCount > 0
+                ? '<span class="view-count-badge">' + album.viewCount + ' views</span>'
+                : '';
             card.innerHTML =
                 '<div class="album-art">' +
                     '<div class="album-art-gradient ' + escapeHtml(album.gradient) + '">' +
@@ -72,7 +75,7 @@
                 '</div>' +
                 '<div class="album-card-info">' +
                     '<div class="album-card-title">' + escapeHtml(album.title) + '</div>' +
-                    '<div class="album-card-meta">' + escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + ' // ' + album.tracks.length + ' tracks</div>' +
+                    '<div class="album-card-meta">' + escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + ' // ' + album.tracks.length + ' tracks ' + viewBadge + '</div>' +
                 '</div>';
             card.addEventListener('click', function() {
                 openAlbum(album);
@@ -84,7 +87,14 @@
     // ============================
     // PLAYER VIEW
     // ============================
+    function recordView(contentType, contentId) {
+        try {
+            navigator.sendBeacon('/api/content-view', JSON.stringify({ contentType: contentType, contentId: contentId }));
+        } catch (e) { /* ignore */ }
+    }
+
     function openAlbum(album) {
+        recordView('album', album.numericId);
         currentAlbum = album;
         currentTrackIndex = 0;
 

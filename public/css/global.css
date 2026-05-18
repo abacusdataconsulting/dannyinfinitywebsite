@@ -351,6 +351,21 @@ button:hover {
     }
 }
 
+/* View Count Badge */
+.view-count-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    opacity: 0.5;
+    letter-spacing: 1px;
+}
+
+.view-count-badge::before {
+    content: '\25C9';
+    font-size: 0.65rem;
+}
+
 /* Utility Classes */
 .container {
     width: 100%;

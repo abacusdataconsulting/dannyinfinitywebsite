@@ -2420,6 +2420,217 @@
     if (salesLoadMoreBtn) salesLoadMoreBtn.addEventListener('click', loadMoreSales);
 
     // =========================================
+    // CONTENT VIEWS
+    // =========================================
+    var cvBody = document.getElementById('cv-body');
+    var cvTotalCount = document.getElementById('cv-total-count');
+    var cvStatsGrid = document.getElementById('cv-stats-grid');
+    var cvTypeFilter = document.getElementById('cv-type-filter');
+    var cvGraphModal = document.getElementById('cv-graph-modal');
+    var cvGraphClose = document.getElementById('cv-graph-close');
+    var cvGraphTitle = document.getElementById('cv-graph-title');
+    var cvGraphStats = document.getElementById('cv-graph-stats');
+    var cvGraphCanvas = document.getElementById('cv-graph-canvas');
+
+    var cvTypeLabels = { album: 'Music', blog: 'Writing', sheet: 'Sheet', video: 'Video', photo: 'Photo' };
+
+    async function loadContentViews() {
+        if (!cvBody) return;
+        cvBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;opacity:0.5;">Loading...</td></tr>';
+
+        try {
+            var typeParam = cvTypeFilter ? cvTypeFilter.value : '';
+            var url = '/api/admin/content-views' + (typeParam ? '?type=' + typeParam : '');
+            var res = await fetch(url, { headers: authHeaders() });
+            if (res.status === 401) { handleSessionExpired(); return; }
+            var data = await res.json();
+
+            // Stats
+            if (cvStatsGrid) {
+                cvStatsGrid.innerHTML =
+                    '<div class="stat-card"><div class="stat-value">' + (data.stats.total || 0) + '</div><div class="stat-label">Total Views</div></div>' +
+                    '<div class="stat-card"><div class="stat-value">' + (data.stats.week || 0) + '</div><div class="stat-label">This Week</div></div>' +
+                    '<div class="stat-card"><div class="stat-value">' + (data.stats.today || 0) + '</div><div class="stat-label">Today</div></div>';
+            }
+            if (cvTotalCount) cvTotalCount.textContent = data.items.length + ' items';
+
+            renderContentViews(data.items);
+        } catch (e) {
+            cvBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;opacity:0.5;">Failed to load</td></tr>';
+        }
+    }
+
+    function renderContentViews(items) {
+        cvBody.innerHTML = '';
+
+        if (items.length === 0) {
+            cvBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;opacity:0.5;">No content found</td></tr>';
+            return;
+        }
+
+        items.forEach(function(item) {
+            var tr = document.createElement('tr');
+            var typeLabel = cvTypeLabels[item.type] || item.type;
+            var checked = item.show_views ? ' checked' : '';
+
+            tr.innerHTML =
+                '<td><span class="cv-type-badge ' + escapeHtml(item.type) + '">' + escapeHtml(typeLabel) + '</span></td>' +
+                '<td>' + escapeHtml(item.title) + '</td>' +
+                '<td style="font-weight:600;">' + (item.view_count || 0) + '</td>' +
+                '<td><label class="cv-toggle"><input type="checkbox"' + checked + '><span class="cv-toggle-slider"></span></label></td>' +
+                '<td><button class="cms-btn cms-btn-sm" data-action="graph">Graph</button></td>';
+
+            // Toggle handler
+            var toggle = tr.querySelector('input[type="checkbox"]');
+            toggle.addEventListener('change', function() {
+                toggleShowViews(item.type, item.id, toggle.checked);
+            });
+
+            // Graph handler
+            tr.querySelector('[data-action="graph"]').addEventListener('click', function() {
+                openViewsGraph(item.type, item.id, item.title);
+            });
+
+            cvBody.appendChild(tr);
+        });
+    }
+
+    async function toggleShowViews(type, id, show) {
+        try {
+            await fetch('/api/admin/content-views/toggle', {
+                method: 'PUT',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({ contentType: type, contentId: id, showViews: show })
+            });
+        } catch (e) {
+            // Silently fail — toggle state is already visual
+        }
+    }
+
+    async function openViewsGraph(type, id, title) {
+        if (!cvGraphModal) return;
+        cvGraphTitle.textContent = 'Views: ' + title;
+        cvGraphStats.innerHTML = '<span style="opacity:0.5;">Loading...</span>';
+        cvGraphModal.classList.add('active');
+
+        // Clear canvas
+        var ctx = cvGraphCanvas.getContext('2d');
+        ctx.clearRect(0, 0, cvGraphCanvas.width, cvGraphCanvas.height);
+
+        try {
+            var res = await fetch('/api/admin/content-views/' + type + '/' + id + '/timeline', { headers: authHeaders() });
+            var data = await res.json();
+
+            // Stats summary
+            var weekCount = 0;
+            var todayStr = new Date().toISOString().split('T')[0];
+            var weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+            var todayCount = 0;
+            (data.timeline || []).forEach(function(d) {
+                if (d.day >= weekAgo) weekCount += d.count;
+                if (d.day === todayStr) todayCount = d.count;
+            });
+
+            cvGraphStats.innerHTML =
+                '<div class="cv-stat"><span class="cv-stat-value">' + (data.total || 0) + '</span><span class="cv-stat-label">All Time</span></div>' +
+                '<div class="cv-stat"><span class="cv-stat-value">' + weekCount + '</span><span class="cv-stat-label">This Week</span></div>' +
+                '<div class="cv-stat"><span class="cv-stat-value">' + todayCount + '</span><span class="cv-stat-label">Today</span></div>';
+
+            drawViewsChart(data.timeline || []);
+        } catch (e) {
+            cvGraphStats.innerHTML = '<span style="opacity:0.5;">Failed to load data</span>';
+        }
+    }
+
+    function drawViewsChart(timeline) {
+        var canvas = cvGraphCanvas;
+        var ctx = canvas.getContext('2d');
+        var dpr = window.devicePixelRatio || 1;
+
+        // Scale for retina
+        canvas.width = 700 * dpr;
+        canvas.height = 280 * dpr;
+        canvas.style.width = '700px';
+        canvas.style.height = '280px';
+        ctx.scale(dpr, dpr);
+
+        var W = 700, H = 280;
+        var pad = { top: 20, right: 20, bottom: 50, left: 45 };
+        var chartW = W - pad.left - pad.right;
+        var chartH = H - pad.top - pad.bottom;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Build 90-day range
+        var days = [];
+        var countMap = {};
+        timeline.forEach(function(d) { countMap[d.day] = d.count; });
+        for (var i = 89; i >= 0; i--) {
+            var d = new Date(Date.now() - i * 86400000);
+            var key = d.toISOString().split('T')[0];
+            days.push({ day: key, count: countMap[key] || 0 });
+        }
+
+        var maxCount = Math.max.apply(null, days.map(function(d) { return d.count; }));
+        if (maxCount === 0) maxCount = 1;
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        for (var g = 0; g <= 4; g++) {
+            var gy = pad.top + chartH - (g / 4) * chartH;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, gy);
+            ctx.lineTo(pad.left + chartW, gy);
+            ctx.stroke();
+
+            // Y labels
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(Math.round((g / 4) * maxCount), pad.left - 8, gy + 3);
+        }
+
+        // Bars
+        var barW = Math.max(1, (chartW / days.length) - 1);
+        ctx.fillStyle = '#c084fc';
+        days.forEach(function(d, idx) {
+            var x = pad.left + (idx / days.length) * chartW;
+            var barH = (d.count / maxCount) * chartH;
+            ctx.fillRect(x, pad.top + chartH - barH, barW, barH);
+        });
+
+        // X labels (every ~15 days)
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        for (var xi = 0; xi < days.length; xi += 15) {
+            var lx = pad.left + (xi / days.length) * chartW + barW / 2;
+            var parts = days[xi].day.split('-');
+            ctx.fillText(parts[1] + '/' + parts[2], lx, H - pad.bottom + 18);
+        }
+        // Always label the last day
+        var lastParts = days[days.length - 1].day.split('-');
+        ctx.fillText(lastParts[1] + '/' + lastParts[2], pad.left + chartW, H - pad.bottom + 18);
+    }
+
+    if (cvGraphClose) {
+        cvGraphClose.addEventListener('click', function() {
+            cvGraphModal.classList.remove('active');
+        });
+    }
+    if (cvGraphModal) {
+        cvGraphModal.addEventListener('click', function(e) {
+            if (e.target === cvGraphModal) cvGraphModal.classList.remove('active');
+        });
+    }
+    if (cvTypeFilter) {
+        cvTypeFilter.addEventListener('change', function() {
+            loadContentViews();
+        });
+    }
+
+    // =========================================
     // TAB SWITCHING
     // =========================================
     var tabLoaded = {};
@@ -2444,6 +2655,7 @@
             else if (tabName === 'blog') loadPosts();
             else if (tabName === 'videos') loadVideos();
             else if (tabName === 'photos') loadPhotos();
+            else if (tabName === 'content-views') loadContentViews();
             else if (tabName === 'donations') loadDonations();
             else if (tabName === 'sales') loadSales();
         }

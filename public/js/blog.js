@@ -20,6 +20,12 @@
         return text.slice(0, maxLen).replace(/\s+\S*$/, '') + '…';
     }
 
+    function recordView(contentType, contentId) {
+        try {
+            navigator.sendBeacon('/api/content-view', JSON.stringify({ contentType: contentType, contentId: contentId }));
+        } catch (e) { /* ignore */ }
+    }
+
     // Update year
     document.getElementById('current-year').textContent = new Date().getFullYear();
 
@@ -43,14 +49,25 @@
             var slug = post.slug || '';
             var excerpt = makeExcerpt(post.body);
             var href = slug ? '/blog/' + encodeURIComponent(slug) : '#';
+            var viewBadge = post.show_views && post.view_count > 0
+                ? '<span class="view-count-badge">' + post.view_count + ' views</span>'
+                : '';
 
             article.innerHTML =
                 '<div class="post-header">' +
                     '<span class="post-date">' + escapeHtml(dateStr) + '</span>' +
+                    viewBadge +
                 '</div>' +
                 '<h2 class="post-title"><a href="' + escapeHtml(href) + '">' + escapeHtml(post.title) + '</a></h2>' +
                 '<p class="post-excerpt">' + escapeHtml(excerpt) + '</p>' +
                 '<a href="' + escapeHtml(href) + '" class="post-read-more">READ MORE &rarr;</a>';
+
+            // Record view on click
+            article.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    recordView('blog', post.id);
+                });
+            });
 
             postsContainer.appendChild(article);
         });

@@ -10,6 +10,12 @@
         return '$' + (cents / 100).toFixed(2);
     }
 
+    function recordView(contentType, contentId) {
+        try {
+            navigator.sendBeacon('/api/content-view', JSON.stringify({ contentType: contentType, contentId: contentId }));
+        } catch (e) { /* ignore */ }
+    }
+
     // ============================
     // AUTH STATE (user info only — session token is in httpOnly cookie)
     // ============================
@@ -241,12 +247,16 @@
                 priceBadge = '<span class="sheet-price-badge free">FREE</span>';
             }
 
+            var viewBadge = sheet.showViews && sheet.viewCount > 0
+                ? '<span class="view-count-badge" style="margin-top:4px;">' + sheet.viewCount + ' views</span>'
+                : '';
             card.innerHTML =
                 '<div class="sheet-info">' +
                     '<h2 class="sheet-title" style="font-size:1rem;margin:0;">' + escapeHtml(sheet.title) + '</h2>' +
                     '<div class="sheet-meta">' + escapeHtml(sheet.arrangement) + ' // ' + escapeHtml(sheet.year) + '</div>' +
                     descSnippet +
                     priceBadge +
+                    viewBadge +
                 '</div>' +
                 '<div class="sheet-preview" id="preview-' + escapeHtml(sheet.id) + '">' +
                     '<div class="sheet-placeholder">' +
@@ -430,6 +440,7 @@
     // MODAL
     // ============================
     function openPreview(sheet) {
+        recordView('sheet', sheet.numericId);
         currentPreviewSheet = sheet;
         previewTitle.textContent = sheet.title;
 
@@ -699,7 +710,9 @@
                         pdfUrl: s.pdfUrl || '',
                         previewUrl: s.previewUrl || '',
                         owned: s.owned || false,
-                        visibility: s.visibility || 'public'
+                        visibility: s.visibility || 'public',
+                        viewCount: s.viewCount || 0,
+                        showViews: s.showViews || false
                     };
                 });
                 renderGrid();

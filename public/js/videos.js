@@ -10,6 +10,12 @@
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function recordView(contentType, contentId) {
+        try {
+            navigator.sendBeacon('/api/content-view', JSON.stringify({ contentType: contentType, contentId: contentId }));
+        } catch (e) { /* ignore */ }
+    }
+
     // DOM Elements
     var videoGrid = document.getElementById('video-grid');
     var filterBtns = document.querySelectorAll('.filter-btn');
@@ -173,13 +179,16 @@
                 ? '<span class="video-duration">' + video.duration + '</span>'
                 : '<span class="video-duration" id="dur-' + idx + '"></span>';
 
+            var viewBadge = video.showViews && video.viewCount > 0
+                ? ' <span class="view-count-badge">' + video.viewCount + ' views</span>'
+                : '';
             item.innerHTML =
                 content +
                 '<div class="play-button"><span class="play-icon">&#9654;</span></div>' +
                 durationBadge +
                 '<div class="video-overlay">' +
                     '<span class="video-overlay-title">' + escapeHtml(video.title) + '</span>' +
-                    '<span class="video-overlay-meta">' + escapeHtml(categoryLabels[video.category] || video.category) + ' // ' + escapeHtml(video.year) + '</span>' +
+                    '<span class="video-overlay-meta">' + escapeHtml(categoryLabels[video.category] || video.category) + ' // ' + escapeHtml(video.year) + viewBadge + '</span>' +
                 '</div>';
 
             item.addEventListener('click', function() {
@@ -260,6 +269,8 @@
     function openLightbox(dataIndex) {
         var video = videosData[dataIndex];
         if (!video) return;
+
+        recordView('video', video.id);
 
         // Set current index in visibleItems
         currentIndex = visibleItems.indexOf(dataIndex);

@@ -8,6 +8,7 @@ import { csrf } from 'hono/csrf';
 import authRoutes from './routes/auth.js';
 import visitRoutes from './routes/visits.js';
 import pageviewRoutes from './routes/pageviews.js';
+import contentViewRoutes from './routes/content-views.js';
 import adminRoutes from './routes/admin.js';
 import uploadRoutes from './routes/upload.js';
 import fileRoutes from './routes/files.js';
@@ -151,6 +152,16 @@ api.use('/api/pageview', async (c, next) => {
     await next();
 });
 
+api.use('/api/content-view', async (c, next) => {
+    if (c.req.method !== 'POST') return next();
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`contentview:${ip}`, 60, 60_000)) {
+        return c.json({ error: 'Too many requests' }, 429);
+    }
+    await next();
+});
+
 // ------------------------------------
 // Mount routes
 // ------------------------------------
@@ -159,6 +170,7 @@ api.route('/api/user/library', libraryRoutes);
 api.route('/api/user', authRoutes);
 api.route('/api/visit', visitRoutes);
 api.route('/api/pageview', pageviewRoutes);
+api.route('/api/content-view', contentViewRoutes);
 api.route('/api/admin', adminRoutes);
 
 // CMS admin routes

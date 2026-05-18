@@ -30,6 +30,7 @@
             <button class="nav-btn" data-tab="blog">Writings</button>
             <button class="nav-btn" data-tab="videos">Videos</button>
             <button class="nav-btn" data-tab="photos">Photos</button>
+            <button class="nav-btn" data-tab="content-views">Content Views</button>
             <button class="nav-btn" data-tab="donations">Donations</button>
             <button class="nav-btn" data-tab="sales">Sales</button>
         </nav>
@@ -610,6 +611,59 @@
                     </form>
                 </div>
             </section>
+
+            <!-- Content Views Tab -->
+            <section class="tab-content" id="content-views-tab">
+                <div class="section-header">
+                    <h2>Content Views</h2>
+                    <span class="visit-count" id="cv-total-count"></span>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="cv-stats-grid"></div>
+
+                <!-- Type Filter -->
+                <div class="donations-filters">
+                    <div class="filter-row">
+                        <select id="cv-type-filter" class="filter-select">
+                            <option value="">All Types</option>
+                            <option value="album">Music</option>
+                            <option value="blog">Writings</option>
+                            <option value="sheet">Sheet Music</option>
+                            <option value="video">Videos</option>
+                            <option value="photo">Photos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Content Views Table -->
+                <div class="table-container" style="margin-top:0;">
+                    <table class="visits-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Title</th>
+                                <th>Views</th>
+                                <th>Show on Site</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cv-body">
+                            <!-- Loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Views Graph Modal -->
+            <div class="cv-graph-modal" id="cv-graph-modal">
+                <div class="cv-graph-content">
+                    <button class="cv-graph-close" id="cv-graph-close">&times;</button>
+                    <h3 class="cv-graph-title" id="cv-graph-title">Views Over Time</h3>
+                    <div class="cv-graph-stats" id="cv-graph-stats"></div>
+                    <canvas id="cv-graph-canvas" width="700" height="280"></canvas>
+                </div>
+            </div>
 
             <!-- Donations Tab -->
             <section class="tab-content" id="donations-tab">

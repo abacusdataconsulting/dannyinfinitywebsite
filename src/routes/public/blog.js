@@ -7,7 +7,9 @@ const publicBlog = new Hono();
 
 publicBlog.get('/', async (c) => {
     const result = await c.env.DB.prepare(
-        'SELECT id, slug, title, body, tag, published_at FROM blog_posts WHERE is_published = 1 ORDER BY published_at ASC, created_at ASC'
+        `SELECT id, slug, title, body, tag, published_at, show_views,
+            (SELECT COUNT(*) FROM content_views WHERE content_type = 'blog' AND content_id = blog_posts.id) as view_count
+        FROM blog_posts WHERE is_published = 1 ORDER BY published_at ASC, created_at ASC`
     ).all();
 
     return c.json({ posts: result.results });
