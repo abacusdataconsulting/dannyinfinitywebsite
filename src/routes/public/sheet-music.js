@@ -18,7 +18,7 @@ publicSheetMusic.get('/', optionalUserAuth, async (c) => {
     if (isAdmin) {
         // Admin sees everything (published)
         const result = await c.env.DB.prepare(
-            'SELECT id, slug, title, composer, arrangement, year, pages, description, pdf_r2_key, tip_link, price_cents, visibility FROM sheet_music WHERE is_published = 1 ORDER BY sort_order ASC, created_at DESC'
+            'SELECT id, slug, title, composer, arrangement, year, pages, description, pdf_r2_key, tip_link, price_cents, visibility FROM sheet_music WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC'
         ).all();
         sheets = result.results;
     } else if (user) {
@@ -31,13 +31,13 @@ publicSheetMusic.get('/', optionalUserAuth, async (c) => {
             LEFT JOIN user_sheet_access usa ON usa.sheet_music_id = sm.id AND usa.user_id = ?
             WHERE sm.is_published = 1
               AND (sm.visibility = 'public' OR (sm.visibility = 'purchasers' AND usa.id IS NOT NULL))
-            ORDER BY sm.sort_order ASC, sm.created_at DESC
+            ORDER BY sm.sort_order ASC, sm.created_at ASC
         `).bind(user.id).all();
         sheets = result.results;
     } else {
         // Anonymous: only public sheets
         const result = await c.env.DB.prepare(
-            "SELECT id, slug, title, composer, arrangement, year, pages, description, pdf_r2_key, tip_link, price_cents, visibility FROM sheet_music WHERE is_published = 1 AND visibility = 'public' ORDER BY sort_order ASC, created_at DESC"
+            "SELECT id, slug, title, composer, arrangement, year, pages, description, pdf_r2_key, tip_link, price_cents, visibility FROM sheet_music WHERE is_published = 1 AND visibility = 'public' ORDER BY sort_order ASC, created_at ASC"
         ).all();
         sheets = result.results;
     }

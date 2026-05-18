@@ -351,6 +351,9 @@
         else if (e.key === 'ArrowRight') nextVideo();
     }
 
+    // Sort toggle state
+    var sortOrder = 'asc'; // default: oldest first
+
     /**
      * Initialize
      */
@@ -360,6 +363,19 @@
                 filterVideos(btn.dataset.filter);
             });
         });
+
+        // Sort toggle
+        var sortToggleBtn = document.getElementById('sort-toggle-btn');
+        if (sortToggleBtn) {
+            sortToggleBtn.addEventListener('click', function() {
+                sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+                videosData.reverse();
+                renderVideos();
+                sortToggleBtn.innerHTML = (sortOrder === 'asc' ? 'OLDEST FIRST' : 'NEWEST FIRST') +
+                    ' <span class="sort-arrow">&#9650;</span>';
+                sortToggleBtn.classList.toggle('desc', sortOrder === 'desc');
+            });
+        }
 
         lightboxClose.addEventListener('click', closeLightbox);
         lightboxPrev.addEventListener('click', prevVideo);

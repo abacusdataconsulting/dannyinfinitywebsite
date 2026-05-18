@@ -307,6 +307,50 @@ button:hover {
     min-height: 1.2em;
 }
 
+/* Sort Toggle */
+.sort-toggle {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+    padding: 0 5px;
+}
+
+.sort-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 8px 18px;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.sort-toggle-btn:hover {
+    border-color: var(--text-primary);
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+.sort-toggle-btn .sort-arrow {
+    display: inline-block;
+    margin-left: 6px;
+    transition: transform 0.2s ease;
+}
+
+.sort-toggle-btn.desc .sort-arrow {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 768px) {
+    .sort-toggle-btn {
+        padding: 6px 14px;
+        font-size: 0.75rem;
+    }
+}
+
 /* Utility Classes */
 .container {
     width: 100%;

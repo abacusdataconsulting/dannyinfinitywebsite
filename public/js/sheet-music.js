@@ -733,6 +733,23 @@
     });
 
     // ============================
+    // SORT TOGGLE
+    // ============================
+    var sortOrder = 'asc'; // default: oldest first
+    var sortToggleBtn = document.getElementById('sort-toggle-btn');
+
+    if (sortToggleBtn) {
+        sortToggleBtn.addEventListener('click', function() {
+            sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+            SHEETS.reverse();
+            renderGrid();
+            sortToggleBtn.innerHTML = (sortOrder === 'asc' ? 'OLDEST FIRST' : 'NEWEST FIRST') +
+                ' <span class="sort-arrow">&#9650;</span>';
+            sortToggleBtn.classList.toggle('desc', sortOrder === 'desc');
+        });
+    }
+
+    // ============================
     // INIT
     // ============================
     renderAccountBar();

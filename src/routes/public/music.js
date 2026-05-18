@@ -8,7 +8,7 @@ const publicMusic = new Hono();
 
 publicMusic.get('/', async (c) => {
     const albums = await c.env.DB.prepare(
-        'SELECT id, slug, title, artist, type, year, gradient FROM albums WHERE is_published = 1 ORDER BY sort_order ASC, created_at DESC'
+        'SELECT id, slug, title, artist, type, year, gradient FROM albums WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC'
     ).all();
 
     const tracks = await c.env.DB.prepare(

@@ -8,7 +8,7 @@ const publicVideos = new Hono();
 
 publicVideos.get('/', async (c) => {
     const result = await c.env.DB.prepare(
-        'SELECT id, slug, title, category, orientation, duration, video_type, video_src, thumbnail_r2_key, year FROM videos WHERE is_published = 1 ORDER BY sort_order ASC, created_at DESC'
+        'SELECT id, slug, title, category, orientation, duration, video_type, video_src, thumbnail_r2_key, year FROM videos WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC'
     ).all();
 
     const videos = result.results.map(v => ({
