@@ -6,6 +6,11 @@ import { fileUrl } from '../../utils/fileUrl.js';
 
 const publicPhotos = new Hono();
 
+// Photos have no slug column — derive a stable, unique one from title + id
+function slugify(text) {
+    return String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+}
+
 publicPhotos.get('/', async (c) => {
     const result = await c.env.DB.prepare(
         'SELECT id, title, category, orientation, image_r2_key, date FROM photos WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC'
@@ -26,6 +31,7 @@ publicPhotos.get('/', async (c) => {
         const vd = viewData[p.id] || { viewCount: 0, showViews: false };
         return {
             id: p.id,
+            slug: (slugify(p.title) || 'photo') + '-' + p.id,
             title: p.title,
             category: p.category,
             orientation: p.orientation || 'landscape',

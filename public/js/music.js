@@ -78,6 +78,7 @@
                     '<div class="album-card-meta">' + escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + ' // ' + album.tracks.length + ' tracks ' + viewBadge + '</div>' +
                 '</div>';
             card.addEventListener('click', function() {
+                pushAlbumUrl(album);
                 openAlbum(album);
             });
             albumGrid.appendChild(card);
@@ -166,6 +167,7 @@
                 '</div>';
             card.addEventListener('click', function() {
                 stopPlayback();
+                pushAlbumUrl(album);
                 openAlbum(album);
             });
             recommendationsGrid.appendChild(card);
@@ -374,10 +376,8 @@
     prevBtn.addEventListener('click', playPrev);
 
     backBtn.addEventListener('click', function() {
-        stopPlayback();
-        playerView.classList.add('hidden');
-        browseView.classList.remove('hidden');
-        window.scrollTo(0, 0);
+        pushBrowseUrl();
+        showBrowse();
     });
 
     // Keyboard shortcuts
@@ -393,9 +393,8 @@
         } else if (e.code === 'ArrowLeft') {
             playPrev();
         } else if (e.code === 'Escape') {
-            stopPlayback();
-            playerView.classList.add('hidden');
-            browseView.classList.remove('hidden');
+            pushBrowseUrl();
+            showBrowse();
         }
     });
 
@@ -417,6 +416,40 @@
     }
 
     // ============================
+    // DEEP LINKING — ?album=<slug>
+    // ============================
+    function findAlbumBySlug(slug) {
+        for (var i = 0; i < ALBUMS.length; i++) {
+            if (String(ALBUMS[i].id) === slug) return ALBUMS[i];
+        }
+        return null;
+    }
+
+    function pushAlbumUrl(album) {
+        try { history.pushState({ album: String(album.id) }, '', '?album=' + encodeURIComponent(album.id)); } catch (e) {}
+    }
+
+    function pushBrowseUrl() {
+        try { history.pushState({}, '', window.location.pathname); } catch (e) {}
+    }
+
+    function showBrowse() {
+        stopPlayback();
+        playerView.classList.add('hidden');
+        browseView.classList.remove('hidden');
+        window.scrollTo(0, 0);
+    }
+
+    function syncFromUrl() {
+        var slug = new URLSearchParams(window.location.search).get('album');
+        var album = slug ? findAlbumBySlug(slug) : null;
+        if (album) openAlbum(album);
+        else if (!playerView.classList.contains('hidden')) showBrowse();
+    }
+
+    window.addEventListener('popstate', syncFromUrl);
+
+    // ============================
     // INIT — Fetch albums from API then render
     // ============================
     fetch('/api/music')
@@ -424,6 +457,7 @@
         .then(function(data) {
             ALBUMS = data.albums || [];
             renderBrowseView();
+            syncFromUrl();
         })
         .catch(function() {
             albumGrid.innerHTML = '<div style="text-align:center;padding:40px;opacity:0.5;">Failed to load music</div>';

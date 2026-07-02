@@ -101,7 +101,7 @@
     /**
      * Open lightbox with specific item
      */
-    function openLightbox(item) {
+    function openLightbox(item, urlMode) {
         var title = item.querySelector('.photo-title');
         var date = item.querySelector('.photo-date');
         var img = item.querySelector('img');
@@ -111,14 +111,17 @@
         // Record view — find the photo data by matching the DOM index
         var domItems = galleryGrid.querySelectorAll('.gallery-item');
         currentPhotoId = null;
+        var currentPhoto = null;
         for (var vi = 0; vi < domItems.length; vi++) {
             if (domItems[vi] === item && photosData[vi]) {
                 currentPhotoId = photosData[vi].id;
+                currentPhoto = photosData[vi];
                 recordView('photo', photosData[vi].id);
                 break;
             }
         }
         mountComments();
+        pushPhotoUrl(currentPhoto, urlMode);
 
         if (img) {
             lightboxImage.innerHTML = '<img src="' + img.src + '" alt="' + (title ? title.textContent : '') + '">';
@@ -133,10 +136,11 @@
         document.body.style.overflow = 'hidden';
     }
 
-    function closeLightbox() {
+    function closeLightbox(skipUrl) {
         lightbox.classList.remove('active');
         document.body.style.overflow = '';
         if (commentsBox) commentsBox.innerHTML = '';
+        if (skipUrl !== true) pushGalleryUrl();
     }
 
     // Comments auto-display below the expanded photo
@@ -148,14 +152,47 @@
     function prevImage() {
         if (visibleItems.length === 0) return;
         currentIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
-        openLightbox(visibleItems[currentIndex].element);
+        openLightbox(visibleItems[currentIndex].element, 'replace');
     }
 
     function nextImage() {
         if (visibleItems.length === 0) return;
         currentIndex = (currentIndex + 1) % visibleItems.length;
-        openLightbox(visibleItems[currentIndex].element);
+        openLightbox(visibleItems[currentIndex].element, 'replace');
     }
+
+    // ---- Deep linking: ?photo=<slug> ----
+    function findPhotoElBySlug(slug) {
+        var domItems = galleryGrid.querySelectorAll('.gallery-item');
+        for (var i = 0; i < domItems.length; i++) {
+            if (photosData[i] && photosData[i].slug === slug) return domItems[i];
+        }
+        return null;
+    }
+
+    function pushPhotoUrl(photo, urlMode) {
+        if (!photo || !photo.slug || urlMode === 'none') return;
+        try {
+            var url = '?photo=' + encodeURIComponent(photo.slug);
+            if (urlMode === 'replace') history.replaceState({ photo: photo.slug }, '', url);
+            else history.pushState({ photo: photo.slug }, '', url);
+        } catch (e) {}
+    }
+
+    function pushGalleryUrl() {
+        try { history.pushState({}, '', window.location.pathname); } catch (e) {}
+    }
+
+    function syncFromUrl() {
+        var slug = new URLSearchParams(window.location.search).get('photo');
+        if (slug) {
+            var el = findPhotoElBySlug(slug);
+            if (el) { openLightbox(el, 'none'); return; }
+        }
+        if (lightbox.classList.contains('active')) closeLightbox(true);
+    }
+
+    window.addEventListener('popstate', syncFromUrl);
 
     function handleKeyboard(e) {
         if (!lightbox.classList.contains('active')) return;
@@ -207,6 +244,7 @@
             .then(function(data) {
                 photosData = data.photos || [];
                 renderGallery();
+                syncFromUrl();
             })
             .catch(function() {
                 galleryGrid.innerHTML = '<div style="text-align:center;padding:40px;opacity:0.5;">Failed to load photos</div>';

@@ -194,6 +194,7 @@
                 '</div>';
 
             item.addEventListener('click', function() {
+                pushVideoUrl(videosData[idx]);
                 openLightbox(idx);
             });
 
@@ -339,11 +340,12 @@
         document.body.style.overflow = 'hidden';
     }
 
-    function closeLightbox() {
+    function closeLightbox(skipUrl) {
         lightbox.classList.remove('active');
         document.body.style.overflow = '';
         videoPlayer.innerHTML = '';
         if (commentsBox) commentsBox.innerHTML = '';
+        if (skipUrl !== true) pushGalleryUrl();
     }
 
     // Comments auto-display below the player for the current video
@@ -352,12 +354,44 @@
         window.Comments.mount(commentsBox, { type: 'video', id: currentVideoId, pageSize: 10 });
     }
 
+    // ---- Deep linking: ?video=<slug> ----
+    function findVideoIndexBySlug(slug) {
+        for (var i = 0; i < videosData.length; i++) { if (videosData[i].slug === slug) return i; }
+        return -1;
+    }
+
+    function pushVideoUrl(video, replace) {
+        if (!video || !video.slug) return;
+        try {
+            var url = '?video=' + encodeURIComponent(video.slug);
+            if (replace) history.replaceState({ video: video.slug }, '', url);
+            else history.pushState({ video: video.slug }, '', url);
+        } catch (e) {}
+    }
+
+    function pushGalleryUrl() {
+        try { history.pushState({}, '', window.location.pathname); } catch (e) {}
+    }
+
+    function syncFromUrl() {
+        var slug = new URLSearchParams(window.location.search).get('video');
+        if (slug) {
+            var idx = findVideoIndexBySlug(slug);
+            if (idx !== -1) { openLightbox(idx); return; }
+        }
+        if (lightbox.classList.contains('active')) closeLightbox(true);
+    }
+
+    window.addEventListener('popstate', syncFromUrl);
+
     function prevVideo() {
         if (visibleItems.length === 0) return;
         // Stop current video
         videoPlayer.innerHTML = '';
         currentIndex = (currentIndex - 1 + visibleItems.length) % visibleItems.length;
-        openLightbox(visibleItems[currentIndex]);
+        var di = visibleItems[currentIndex];
+        pushVideoUrl(videosData[di], true);
+        openLightbox(di);
     }
 
     function nextVideo() {
@@ -365,7 +399,9 @@
         // Stop current video
         videoPlayer.innerHTML = '';
         currentIndex = (currentIndex + 1) % visibleItems.length;
-        openLightbox(visibleItems[currentIndex]);
+        var di = visibleItems[currentIndex];
+        pushVideoUrl(videosData[di], true);
+        openLightbox(di);
     }
 
     function handleKeyboard(e) {
@@ -418,6 +454,7 @@
             .then(function(data) {
                 videosData = data.videos || [];
                 renderVideos();
+                syncFromUrl();
             })
             .catch(function() {
                 videoGrid.innerHTML = '<div style="text-align:center;padding:40px;opacity:0.5;">Failed to load videos</div>';
