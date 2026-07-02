@@ -1,0 +1,203 @@
+/* Shared comments widget — terminal / monospace aesthetic */
+
+.comments-section {
+    margin: 40px 0;
+}
+
+.comments-widget {
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    background-color: var(--bg-secondary);
+}
+
+.comments-loading,
+.comments-empty,
+.comments-note {
+    opacity: 0.6;
+    font-size: 0.9rem;
+    padding: 8px 0;
+}
+
+.comments-note a {
+    color: var(--text-secondary);
+}
+
+.comments-header {
+    font-size: 1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.comments-count {
+    opacity: 0.6;
+}
+
+/* Compose — collapsed one-line trigger that expands into the form */
+.comment-compose {
+    margin-bottom: 24px;
+}
+
+.comment-add-trigger {
+    width: 100%;
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-color);
+    background-color: var(--bg-primary);
+}
+
+.comment-add-trigger:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+    border-style: solid;
+}
+
+/* Form */
+.comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 0;
+}
+
+/* The [hidden] attribute must win over the flex display above */
+.comment-form[hidden] {
+    display: none;
+}
+
+.comment-name,
+.comment-text {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+}
+
+.comment-name::placeholder,
+.comment-text::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    letter-spacing: 1px;
+}
+
+.comment-text {
+    resize: vertical;
+    min-height: 70px;
+}
+
+.comment-form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.comment-form-msg {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.comment-form-msg.error {
+    color: #ff6b6b;
+    opacity: 1;
+}
+
+.comment-form-msg.success {
+    color: #7CFC98;
+    opacity: 1;
+}
+
+.comment-submit {
+    padding: 8px 22px;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    background-color: transparent;
+}
+
+.comment-submit:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+}
+
+.comment-submit:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* List */
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.comment-item {
+    border-left: 2px solid var(--border-color);
+    padding: 4px 0 4px 14px;
+}
+
+.comment-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.comment-author {
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+}
+
+.comment-date {
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+.comment-body {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* View more */
+.comments-more {
+    margin-top: 20px;
+    width: 100%;
+    padding: 10px;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    border: 1px dashed var(--border-color);
+    color: var(--text-secondary);
+    background-color: transparent;
+}
+
+.comments-more:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-primary);
+    border-style: solid;
+}
+
+/* Lightbox context (videos / photos) — comments auto-display below the media.
+   align-self:stretch fills the lightbox column width (which is set by the
+   media player) instead of shrinking to content width. */
+.lightbox-comments {
+    align-self: stretch;
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 16px;
+    text-align: left;
+}

@@ -74,6 +74,7 @@ export async function renderWritingPage(slug, env, request) {
     <meta name="twitter:image" content="https://dannyinfinity.com/assets/og-image.svg">
     <link rel="stylesheet" href="/css/global.css">
     <link rel="stylesheet" href="/css/blog.css">
+    <link rel="stylesheet" href="/css/comments.css">
 </head>
 <body>
     <a href="#main-content" class="sr-only sr-only-focusable">Skip to main content</a>
@@ -91,20 +92,24 @@ export async function renderWritingPage(slug, env, request) {
             </nav>
         </header>
 
+        <nav class="post-nav-top" style="padding:0 0 20px;">
+            <a href="/blog.html" class="blog-back-link" style="color:var(--text-secondary);">&larr; [ALL WRITINGS]</a>
+        </nav>
+
         <article class="blog-post" id="main-content">
             <div class="post-header">
                 <span class="post-date">${escapeHtml(dateStr)}</span>
             </div>
             <h1 class="post-title">${safeTitle}</h1>
             <div class="post-body">${sanitizeHtml(post.body || '')}</div>
-            <div class="post-footer">
+            <div class="post-footer" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
                 <span class="post-terminal">&gt; END_OF_POST</span>
+                <a href="/blog.html" class="blog-back-link" style="color:var(--text-secondary);">&larr; [ALL WRITINGS]</a>
             </div>
         </article>
 
-        <nav class="post-nav" style="padding:20px 0;text-align:center;">
-            <a href="/blog.html" style="color:var(--text-secondary);">&larr; All Writings</a>
-        </nav>
+        <!-- Comments -->
+        <section class="comments-section" id="post-comments" data-post-id="${post.id}"></section>
 
         <!-- Footer -->
         <footer class="site-footer">
@@ -127,6 +132,15 @@ export async function renderWritingPage(slug, env, request) {
     })}
     </script>
 
+    <script src="/js/comments.js"></script>
+    <script>
+        (function () {
+            var el = document.getElementById('post-comments');
+            if (el && window.Comments) {
+                window.Comments.mount(el, { type: 'blog', id: parseInt(el.dataset.postId, 10), pageSize: 10 });
+            }
+        })();
+    </script>
     <script src="/js/cart.js"></script>
     <script src="/js/tracker.js"></script>
 </body>

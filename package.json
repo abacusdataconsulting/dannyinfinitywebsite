@@ -17,6 +17,8 @@
     "db:migrate:description:remote": "wrangler d1 execute abacus-db --file=migrations/007-sheet-music-description.sql",
     "db:migrate:user-access": "wrangler d1 execute abacus-db --local --file=migrations/011-user-content-access.sql",
     "db:migrate:user-access:remote": "wrangler d1 execute abacus-db --remote --file=migrations/011-user-content-access.sql",
+    "db:migrate:comments": "wrangler d1 execute abacus-db --local --file=migrations/014-comments.sql",
+    "db:migrate:comments:remote": "wrangler d1 execute abacus-db --remote --file=migrations/014-comments.sql",
     "create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {

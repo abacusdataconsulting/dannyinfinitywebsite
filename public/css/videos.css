@@ -269,10 +269,14 @@
 
 .lightbox-content {
     max-width: 90vw;
+    min-width: min(90vw, 600px);
     max-height: 85vh;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding-bottom: 10px;
 }
 
 /* Video Player in Lightbox */
@@ -400,7 +404,10 @@
     .lightbox-content {
         order: 1;
         width: 100%;
-        max-height: none;
+        min-width: 0;
+        max-height: 78vh;
+        max-height: 78dvh;
+        overflow-y: auto;
     }
 
     .video-player {

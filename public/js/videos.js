@@ -26,6 +26,8 @@
     var lightboxClose = document.getElementById('lightbox-close');
     var lightboxPrev = document.getElementById('lightbox-prev');
     var lightboxNext = document.getElementById('lightbox-next');
+    var commentsBox = document.getElementById('video-comments');
+    var currentVideoId = null;
 
     // State
     var currentFilter = 'all';
@@ -272,6 +274,10 @@
 
         recordView('video', video.id);
 
+        // Auto-load comments for the newly opened video
+        currentVideoId = video.id;
+        mountComments();
+
         // Set current index in visibleItems
         currentIndex = visibleItems.indexOf(dataIndex);
         if (currentIndex === -1) currentIndex = 0;
@@ -337,6 +343,13 @@
         lightbox.classList.remove('active');
         document.body.style.overflow = '';
         videoPlayer.innerHTML = '';
+        if (commentsBox) commentsBox.innerHTML = '';
+    }
+
+    // Comments auto-display below the player for the current video
+    function mountComments() {
+        if (!commentsBox || !window.Comments || currentVideoId == null) return;
+        window.Comments.mount(commentsBox, { type: 'video', id: currentVideoId, pageSize: 10 });
     }
 
     function prevVideo() {

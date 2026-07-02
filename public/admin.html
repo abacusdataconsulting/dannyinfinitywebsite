@@ -30,6 +30,7 @@
             <button class="nav-btn" data-tab="blog">Writings</button>
             <button class="nav-btn" data-tab="videos">Videos</button>
             <button class="nav-btn" data-tab="photos">Photos</button>
+            <button class="nav-btn" data-tab="comments">Comments</button>
             <button class="nav-btn" data-tab="content-views">Content Views</button>
             <button class="nav-btn" data-tab="donations">Donations</button>
             <button class="nav-btn" data-tab="sales">Sales</button>
@@ -786,6 +787,48 @@
                 <!-- Load More -->
                 <div class="load-more-container" id="sales-load-more" style="display:none;">
                     <button class="load-more-btn" id="sales-load-more-btn">Load More</button>
+                </div>
+            </section>
+
+            <!-- Comments Tab -->
+            <section class="tab-content" id="comments-tab">
+                <div class="section-header">
+                    <h2>Comments</h2>
+                </div>
+
+                <!-- Settings panel -->
+                <div class="cms-form-container" style="display:block;margin-bottom:24px;">
+                    <h3>Settings — who can comment &amp; visibility</h3>
+                    <div id="comment-settings-list" class="cms-list"></div>
+                    <div style="margin-top:8px;"><span id="comment-settings-msg" style="opacity:.7;font-size:.85rem;"></span></div>
+                </div>
+
+                <!-- Banned Words panel -->
+                <div class="cms-form-container" style="display:block;margin-bottom:24px;">
+                    <h3>Banned Words &amp; Phrases</h3>
+                    <form id="banned-form" class="cms-form" style="flex-direction:row;gap:8px;align-items:center;">
+                        <input type="text" id="banned-input" placeholder="word or phrase to block" maxlength="100" style="flex:1;">
+                        <button type="submit" class="cms-btn cms-btn-primary">Add</button>
+                    </form>
+                    <div id="banned-list" class="cms-list" style="margin-top:12px;"></div>
+                </div>
+
+                <!-- Moderation panel -->
+                <div class="cms-form-container" style="display:block;">
+                    <h3>Moderation</h3>
+                    <div class="donations-filters">
+                        <div class="filter-row">
+                            <select id="filter-comment-type" class="filter-select">
+                                <option value="">All Sections</option>
+                                <option value="album">Music</option>
+                                <option value="video">Videos</option>
+                                <option value="photo">Photos</option>
+                                <option value="blog">Writings</option>
+                            </select>
+                            <button class="cms-btn cms-btn-sm" id="refresh-comments">Refresh</button>
+                        </div>
+                    </div>
+                    <div id="comments-list" class="cms-list" style="margin-top:12px;"></div>
                 </div>
             </section>
         </main>

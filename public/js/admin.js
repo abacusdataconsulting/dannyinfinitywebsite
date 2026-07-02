@@ -2654,6 +2654,161 @@
     }
 
     // =========================================
+    // COMMENTS MODERATION
+    // =========================================
+    var SECTION_LABELS = { album: 'Music', video: 'Videos', photo: 'Photos', blog: 'Writings' };
+    var POST_MODE_OPTIONS = [
+        { value: 'open', label: 'Anyone' },
+        { value: 'logged_in', label: 'Logged-in only' },
+        { value: 'closed', label: 'Closed' }
+    ];
+
+    function loadCommentsTab() {
+        loadCommentSettings();
+        loadBannedPhrases();
+        loadComments();
+    }
+
+    // ---- Settings ----
+    function loadCommentSettings() {
+        fetch('/api/admin/comments/settings', { headers: authHeaders() })
+            .then(function(res) { return res.json(); })
+            .then(function(data) { renderCommentSettings(data.settings || []); })
+            .catch(function() {});
+    }
+
+    function settingRowHtml(section, label, postMode, isVisible) {
+        var opts = POST_MODE_OPTIONS.map(function(o) {
+            return '<option value="' + o.value + '"' + (o.value === postMode ? ' selected' : '') + '>' + o.label + '</option>';
+        }).join('');
+        return '<div class="cms-list-item" data-section="' + section + '">' +
+            '<div class="cms-item-info"><div class="cms-item-title">' + escapeHtml(label) + '</div></div>' +
+            '<div class="cms-item-actions">' +
+                '<select class="filter-select cs-mode">' + opts + '</select>' +
+                '<label class="toggle-label" style="margin:0 8px;"><input type="checkbox" class="cs-visible"' + (isVisible ? ' checked' : '') + '><span>Show</span></label>' +
+                '<button class="cms-btn cms-btn-sm cms-btn-primary cs-save">Save</button>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function renderCommentSettings(settings) {
+        var map = {};
+        settings.forEach(function(s) { map[s.section] = s; });
+        var list = document.getElementById('comment-settings-list');
+        var order = ['album', 'video', 'photo', 'blog'];
+        var html = order.map(function(sec) {
+            var s = map[sec] || { post_mode: 'open', is_visible: 1 };
+            return settingRowHtml(sec, SECTION_LABELS[sec], s.post_mode, s.is_visible);
+        }).join('');
+        // "All sections" convenience row — applies its values to every section
+        html += settingRowHtml('all', 'All sections (apply to all)', 'open', 1);
+        list.innerHTML = html;
+        list.querySelectorAll('.cs-save').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var row = btn.closest('.cms-list-item');
+                saveCommentSetting(row.dataset.section, row.querySelector('.cs-mode').value, row.querySelector('.cs-visible').checked);
+            });
+        });
+    }
+
+    function saveCommentSetting(section, postMode, isVisible) {
+        var msg = document.getElementById('comment-settings-msg');
+        fetch('/api/admin/comments/settings', {
+            method: 'PUT',
+            headers: jsonAuthHeaders(),
+            body: JSON.stringify({ section: section, post_mode: postMode, is_visible: isVisible })
+        })
+            .then(function(res) { if (!res.ok) throw new Error(); return res.json(); })
+            .then(function() {
+                msg.textContent = 'Saved ' + (section === 'all' ? 'all sections' : (SECTION_LABELS[section] || section)) + '.';
+                if (section === 'all') loadCommentSettings();
+            })
+            .catch(function() { msg.textContent = 'Error saving settings.'; });
+    }
+
+    // ---- Banned phrases ----
+    function loadBannedPhrases() {
+        fetch('/api/admin/comments/banned', { headers: authHeaders() })
+            .then(function(res) { return res.json(); })
+            .then(function(data) { renderBannedList(data.phrases || []); })
+            .catch(function() {});
+    }
+
+    function renderBannedList(phrases) {
+        var list = document.getElementById('banned-list');
+        if (phrases.length === 0) { list.innerHTML = '<div class="cms-empty">No banned words yet.</div>'; return; }
+        list.innerHTML = '';
+        phrases.forEach(function(p) {
+            var item = document.createElement('div');
+            item.className = 'cms-list-item';
+            item.innerHTML =
+                '<div class="cms-item-info"><div class="cms-item-title">' + escapeHtml(p.phrase) + '</div></div>' +
+                '<div class="cms-item-actions"><button class="cms-btn cms-btn-sm cms-btn-danger" data-action="delete">Delete</button></div>';
+            item.querySelector('[data-action="delete"]').addEventListener('click', function() { deleteBannedPhrase(p.id); });
+            list.appendChild(item);
+        });
+    }
+
+    function addBannedPhrase(e) {
+        e.preventDefault();
+        var input = document.getElementById('banned-input');
+        var phrase = input.value.trim();
+        if (!phrase) return;
+        fetch('/api/admin/comments/banned', {
+            method: 'POST',
+            headers: jsonAuthHeaders(),
+            body: JSON.stringify({ phrase: phrase })
+        })
+            .then(function(res) { if (!res.ok) throw new Error(); return res.json(); })
+            .then(function() { input.value = ''; loadBannedPhrases(); })
+            .catch(function() { alert('Error adding phrase'); });
+    }
+
+    function deleteBannedPhrase(id) {
+        fetch('/api/admin/comments/banned/' + id, { method: 'DELETE', headers: authHeaders() })
+            .then(function(res) { if (!res.ok) throw new Error(); loadBannedPhrases(); })
+            .catch(function() { alert('Error deleting phrase'); });
+    }
+
+    // ---- Moderation list ----
+    function loadComments() {
+        var type = document.getElementById('filter-comment-type').value;
+        var url = '/api/admin/comments' + (type ? '?type=' + encodeURIComponent(type) : '');
+        fetch(url, { headers: authHeaders() })
+            .then(function(res) { return res.json(); })
+            .then(function(data) { renderCommentsList(data.comments || []); })
+            .catch(function() {});
+    }
+
+    function renderCommentsList(comments) {
+        var list = document.getElementById('comments-list');
+        if (comments.length === 0) { list.innerHTML = '<div class="cms-empty">No comments.</div>'; return; }
+        list.innerHTML = '';
+        comments.forEach(function(cm) {
+            var item = document.createElement('div');
+            item.className = 'cms-list-item';
+            var section = SECTION_LABELS[cm.content_type] || cm.content_type;
+            item.innerHTML =
+                '<div class="cms-item-info">' +
+                    '<div class="cms-item-title">' + escapeHtml(cm.author_name) +
+                        ' <span class="cms-item-meta">// ' + escapeHtml(section) + ' #' + cm.content_id + '</span></div>' +
+                    '<div class="cms-item-meta">' + escapeHtml(cm.body) + '</div>' +
+                    '<div class="cms-item-meta" style="opacity:.5;">' + escapeHtml(cm.created_at) + '</div>' +
+                '</div>' +
+                '<div class="cms-item-actions"><button class="cms-btn cms-btn-sm cms-btn-danger" data-action="delete">Delete</button></div>';
+            item.querySelector('[data-action="delete"]').addEventListener('click', function() { deleteComment(cm.id); });
+            list.appendChild(item);
+        });
+    }
+
+    function deleteComment(id) {
+        if (!confirm('Delete this comment?')) return;
+        fetch('/api/admin/comments/' + id, { method: 'DELETE', headers: authHeaders() })
+            .then(function(res) { if (!res.ok) throw new Error(); loadComments(); })
+            .catch(function() { alert('Error deleting comment'); });
+    }
+
+    // =========================================
     // TAB SWITCHING
     // =========================================
     var tabLoaded = {};
@@ -2678,6 +2833,7 @@
             else if (tabName === 'blog') loadPosts();
             else if (tabName === 'videos') loadVideos();
             else if (tabName === 'photos') loadPhotos();
+            else if (tabName === 'comments') loadCommentsTab();
             else if (tabName === 'content-views') loadContentViews();
             else if (tabName === 'donations') loadDonations();
             else if (tabName === 'sales') loadSales();
@@ -2757,6 +2913,11 @@
         document.getElementById('photo-cancel-btn').addEventListener('click', closePhotoForm);
         document.getElementById('photo-form').addEventListener('submit', savePhoto);
         initPhotoDropZone();
+
+        // Comments moderation
+        document.getElementById('banned-form').addEventListener('submit', addBannedPhrase);
+        document.getElementById('refresh-comments').addEventListener('click', loadComments);
+        document.getElementById('filter-comment-type').addEventListener('change', loadComments);
     }
 
     if (document.readyState === 'loading') {

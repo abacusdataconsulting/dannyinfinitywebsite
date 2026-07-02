@@ -23,6 +23,8 @@ import publicMusic from './routes/public/music.js';
 import publicBlog from './routes/public/blog.js';
 import publicVideos from './routes/public/videos.js';
 import publicPhotos from './routes/public/photos.js';
+import publicComments from './routes/public/comments.js';
+import commentsCms from './routes/cms/comments.js';
 import tipRoutes from './routes/tip.js';
 import purchaseRoutes from './routes/purchase.js';
 import downloadRoutes from './routes/download.js';
@@ -180,6 +182,7 @@ api.route('/api/admin/music', musicCms);
 api.route('/api/admin/blog', blogCms);
 api.route('/api/admin/videos', videosCms);
 api.route('/api/admin/photos', photosCms);
+api.route('/api/admin/comments', commentsCms);
 
 // Public content APIs
 api.route('/api/sheet-music', publicSheetMusic);
@@ -187,6 +190,18 @@ api.route('/api/music', publicMusic);
 api.route('/api/blog', publicBlog);
 api.route('/api/videos', publicVideos);
 api.route('/api/photos', publicPhotos);
+
+// Comments — public read + rate-limited posting
+api.use('/api/comments', async (c, next) => {
+    if (c.req.method !== 'POST') return next();
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`comment:${ip}`, 5, 60_000)) {
+        return c.json({ error: 'Too many comments. Try again in a minute.' }, 429);
+    }
+    await next();
+});
+api.route('/api/comments', publicComments);
 
 // Tip (Stripe Checkout) — public, rate-limited
 api.use('/api/tip/*', async (c, next) => {

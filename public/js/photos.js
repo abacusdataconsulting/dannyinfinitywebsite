@@ -26,6 +26,8 @@
     var lightboxClose = document.getElementById('lightbox-close');
     var lightboxPrev = document.getElementById('lightbox-prev');
     var lightboxNext = document.getElementById('lightbox-next');
+    var commentsBox = document.getElementById('photo-comments');
+    var currentPhotoId = null;
 
     // State
     var currentFilter = 'all';
@@ -108,12 +110,15 @@
         currentIndex = visibleItems.findIndex(function(v) { return v.element === item; });
         // Record view — find the photo data by matching the DOM index
         var domItems = galleryGrid.querySelectorAll('.gallery-item');
+        currentPhotoId = null;
         for (var vi = 0; vi < domItems.length; vi++) {
             if (domItems[vi] === item && photosData[vi]) {
+                currentPhotoId = photosData[vi].id;
                 recordView('photo', photosData[vi].id);
                 break;
             }
         }
+        mountComments();
 
         if (img) {
             lightboxImage.innerHTML = '<img src="' + img.src + '" alt="' + (title ? title.textContent : '') + '">';
@@ -131,6 +136,13 @@
     function closeLightbox() {
         lightbox.classList.remove('active');
         document.body.style.overflow = '';
+        if (commentsBox) commentsBox.innerHTML = '';
+    }
+
+    // Comments auto-display below the expanded photo
+    function mountComments() {
+        if (!commentsBox || !window.Comments || currentPhotoId == null) return;
+        window.Comments.mount(commentsBox, { type: 'photo', id: currentPhotoId, pageSize: 10 });
     }
 
     function prevImage() {

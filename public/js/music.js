@@ -115,6 +115,12 @@
         // Render recommendations
         renderRecommendations(album.id);
 
+        // Mount comments for this album
+        if (window.Comments) {
+            var commentsEl = document.getElementById('album-comments');
+            if (commentsEl) window.Comments.mount(commentsEl, { type: 'album', id: album.numericId, pageSize: 10 });
+        }
+
         // Load first track
         loadTrack(0);
 
