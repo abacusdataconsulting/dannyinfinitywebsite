@@ -3302,6 +3302,7 @@
             document.getElementById('stream-offline-message').value = s.offline_message || '';
             document.getElementById('stream-is-live').checked = !!s.is_live;
             document.getElementById('stream-chat-enabled').checked = !!s.chat_enabled;
+            document.getElementById('stream-hide-chat-offline').checked = !!s.hide_chat_when_offline;
             document.getElementById('stream-mute-notice').checked = !!s.mute_notice_enabled;
         } catch (e) {
             document.getElementById('stream-settings-msg').textContent = 'Failed to load settings';
@@ -3328,6 +3329,7 @@
                     offlineMessage: document.getElementById('stream-offline-message').value,
                     isLive: document.getElementById('stream-is-live').checked,
                     chatEnabled: document.getElementById('stream-chat-enabled').checked,
+                    hideChatWhenOffline: document.getElementById('stream-hide-chat-offline').checked,
                     muteNoticeEnabled: document.getElementById('stream-mute-notice').checked,
                 })
             });

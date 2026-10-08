@@ -27,6 +27,8 @@
     "db:migrate:page-access:remote": "wrangler d1 execute abacus-db --remote --file=migrations/017-page-access.sql",
     "db:migrate:tiers-streaming": "wrangler d1 execute abacus-db --local --file=migrations/018-tiers-streaming.sql",
     "db:migrate:tiers-streaming:remote": "wrangler d1 execute abacus-db --remote --file=migrations/018-tiers-streaming.sql",
+    "db:migrate:chat-offline": "wrangler d1 execute abacus-db --local --file=migrations/019-chat-offline-toggle.sql",
+    "db:migrate:chat-offline:remote": "wrangler d1 execute abacus-db --remote --file=migrations/019-chat-offline-toggle.sql",
     "create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {

@@ -23,8 +23,15 @@ async function getSettings(db) {
     return row || {
         mode: 'offline', video_id: null, channel_id: null, title: 'Live Stream',
         is_live: 0, offline_message: 'Stream is offline. Check back soon!',
-        chat_enabled: 1, mute_notice_enabled: 0,
+        chat_enabled: 1, mute_notice_enabled: 0, hide_chat_when_offline: 0,
     };
+}
+
+/** Whether the chat panel should exist for viewers right now. */
+function chatVisible(s) {
+    if (!s.chat_enabled) return false;
+    if (s.hide_chat_when_offline && s.mode === 'offline') return false;
+    return true;
 }
 
 function clientIp(c) {
@@ -59,6 +66,7 @@ streaming.get('/info', async (c) => {
         isLive: Boolean(s.is_live),
         offlineMessage: s.offline_message,
         chatEnabled: Boolean(s.chat_enabled),
+        chatVisible: chatVisible(s),
         loggedIn: Boolean(user),
         user: user ? { name: user.name, tier: user.tier } : null,
         isAdmin: Boolean(user && user.isAdmin),
@@ -113,7 +121,7 @@ streaming.post('/chat', async (c) => {
     }
 
     const s = await getSettings(c.env.DB);
-    if (!s.chat_enabled) {
+    if (!chatVisible(s)) {
         return c.json({ error: 'Chat is currently disabled' }, 403);
     }
 

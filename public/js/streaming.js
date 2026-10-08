@@ -62,16 +62,34 @@
             iframe.title = info.title || 'Live stream';
             streamPlayer.appendChild(iframe);
         } else {
+            // Branded offline screen
             var offline = document.createElement('div');
             offline.className = 'stream-offline';
-            var icon = document.createElement('div');
-            icon.className = 'stream-offline-icon';
-            icon.innerHTML = '&#9634;';
+
+            var mark = document.createElement('div');
+            mark.className = 'stream-offline-mark';
+            mark.innerHTML = '&#8734;';
+            offline.appendChild(mark);
+
+            var brand = document.createElement('div');
+            brand.className = 'stream-offline-brand';
+            brand.textContent = 'DANNY';
+            var accent = document.createElement('span');
+            accent.className = 'logo-accent';
+            accent.textContent = 'INFINITY';
+            brand.appendChild(accent);
+            offline.appendChild(brand);
+
+            var label = document.createElement('div');
+            label.className = 'stream-offline-label';
+            label.textContent = 'STREAM OFFLINE';
+            offline.appendChild(label);
+
             var text = document.createElement('p');
             text.className = 'stream-offline-text';
-            text.textContent = info.offlineMessage || 'Stream is offline.';
-            offline.appendChild(icon);
+            text.textContent = info.offlineMessage || 'Check back soon!';
             offline.appendChild(text);
+
             streamPlayer.appendChild(offline);
         }
 
@@ -353,7 +371,7 @@
     // ============================
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') {
-            if (!polling) pollChat(); // immediate catch-up, then reschedules
+            if (!polling && (!info || info.chatVisible !== false)) pollChat(); // immediate catch-up, then reschedules
             presenceTick();
         } else {
             clearTimeout(chatTimer);
@@ -370,14 +388,18 @@
             info = data;
             renderPlayer();
 
-            if (!info.chatEnabled) {
-                chatForm.classList.add('hidden');
-                setNote('Chat is currently disabled');
-            } else if (!info.loggedIn) {
-                chatInput.placeholder = 'Sign in to chat...';
+            if (info.chatVisible === false) {
+                // Chat hidden entirely (disabled, or stream offline with
+                // "hide chat when offline" on) — player takes full width.
+                document.getElementById('stream-chat').classList.add('hidden');
+                document.querySelector('.stream-layout').classList.add('no-chat');
+            } else {
+                if (!info.loggedIn) {
+                    chatInput.placeholder = 'Sign in to chat...';
+                }
+                pollChat();
             }
 
-            pollChat();
             presenceTick();
             presenceTimer = setInterval(presenceTick, PRESENCE_MS);
         })

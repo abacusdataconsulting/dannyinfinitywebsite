@@ -2,6 +2,12 @@
    STREAMING PAGE
    ============================ */
 
+/* The .hidden utility lives in music.css, which this page doesn't load —
+   define it here (important beats the display rules on .live-badge etc.) */
+.hidden {
+    display: none !important;
+}
+
 .live-badge {
     display: inline-block;
     font-size: 0.8rem;
@@ -25,6 +31,11 @@
     gap: 20px;
     align-items: start;
     margin-bottom: 40px;
+}
+
+/* Chat hidden (offline + "hide chat when offline" setting) — player goes full width */
+.stream-layout.no-chat {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .stream-title {
@@ -52,6 +63,7 @@
     border: 0;
 }
 
+/* Branded offline screen */
 .stream-offline {
     position: absolute;
     inset: 0;
@@ -59,22 +71,51 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 14px;
-    background: linear-gradient(135deg, rgba(15, 12, 41, 0.9), rgba(48, 43, 99, 0.6));
+    gap: 10px;
+    background:
+        radial-gradient(ellipse at center, rgba(192, 132, 252, 0.12), transparent 65%),
+        linear-gradient(135deg, #0a0a0a 0%, #1a1030 55%, #0a0a0a 100%);
 }
 
-.stream-offline-icon {
-    font-size: 2.5rem;
-    opacity: 0.3;
+.stream-offline-mark {
+    font-size: 3.2rem;
+    line-height: 1;
+    color: var(--border-color);
+    text-shadow: 0 0 25px rgba(192, 132, 252, 0.6), 0 0 60px rgba(192, 132, 252, 0.25);
+    animation: offline-glow 4s ease-in-out infinite;
+}
+
+@keyframes offline-glow {
+    0%, 100% { opacity: 0.85; text-shadow: 0 0 25px rgba(192, 132, 252, 0.6), 0 0 60px rgba(192, 132, 252, 0.25); }
+    50% { opacity: 0.45; text-shadow: 0 0 10px rgba(192, 132, 252, 0.3); }
+}
+
+.stream-offline-brand {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--text-primary);
+}
+
+.stream-offline-brand .logo-accent {
+    opacity: 0.7;
+}
+
+.stream-offline-label {
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    opacity: 0.45;
+    margin-top: 4px;
 }
 
 .stream-offline-text {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     letter-spacing: 1px;
     opacity: 0.7;
     max-width: 80%;
     text-align: center;
     white-space: pre-wrap;
+    margin-top: 8px;
 }
 
 /* Viewers strip */

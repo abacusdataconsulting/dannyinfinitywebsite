@@ -49,6 +49,7 @@ streaming.put('/settings', async (c) => {
         UPDATE stream_settings SET
             mode = ?, video_id = ?, channel_id = ?, title = ?, is_live = ?,
             offline_message = ?, chat_enabled = ?, mute_notice_enabled = ?,
+            hide_chat_when_offline = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = 1
     `).bind(
@@ -56,7 +57,8 @@ streaming.put('/settings', async (c) => {
         body.isLive !== undefined ? (body.isLive ? 1 : 0) : existing.is_live,
         offlineMessage,
         body.chatEnabled !== undefined ? (body.chatEnabled ? 1 : 0) : existing.chat_enabled,
-        body.muteNoticeEnabled !== undefined ? (body.muteNoticeEnabled ? 1 : 0) : existing.mute_notice_enabled
+        body.muteNoticeEnabled !== undefined ? (body.muteNoticeEnabled ? 1 : 0) : existing.mute_notice_enabled,
+        body.hideChatWhenOffline !== undefined ? (body.hideChatWhenOffline ? 1 : 0) : existing.hide_chat_when_offline
     ).run();
 
     const settings = await c.env.DB.prepare('SELECT * FROM stream_settings WHERE id = 1').first();
