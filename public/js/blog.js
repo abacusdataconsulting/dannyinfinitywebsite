@@ -94,7 +94,7 @@
             posts = data.posts || [];
             renderPosts();
             if (data.locked && window.ContentGate) {
-                window.ContentGate.render(postsContainer.parentNode, { total: data.total, label: 'posts', requiredLevel: data.requiredLevel });
+                window.ContentGate.render(postsContainer, { total: data.total, label: 'posts', requiredLevel: data.requiredLevel });
             }
         })
         .catch(function() {

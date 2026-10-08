@@ -7,12 +7,17 @@
 (function() {
     'use strict';
 
-    function render(container, opts) {
-        if (!container) return null;
+    /**
+     * Insert the gate directly after `anchor` (the content grid/list element),
+     * NOT at the end of its parent — the parent often also holds the footer,
+     * which would push the gate below it.
+     */
+    function render(anchor, opts) {
+        if (!anchor || !anchor.parentNode) return null;
         opts = opts || {};
 
-        // Only one gate per container
-        var existing = container.querySelector(':scope > .content-gate');
+        // Only one gate per parent
+        var existing = anchor.parentNode.querySelector('.content-gate');
         if (existing) existing.remove();
 
         var returnTo = window.location.pathname + window.location.search;
@@ -49,7 +54,7 @@
         inner.appendChild(btn);
 
         gate.appendChild(inner);
-        container.appendChild(gate);
+        anchor.parentNode.insertBefore(gate, anchor.nextSibling);
         return gate;
     }
 

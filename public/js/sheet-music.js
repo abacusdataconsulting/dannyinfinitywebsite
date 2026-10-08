@@ -717,7 +717,7 @@
                 });
                 renderGrid();
                 if (data.locked && window.ContentGate) {
-                    window.ContentGate.render(sheetsGrid.parentNode, { total: data.total, label: 'sheets', requiredLevel: data.requiredLevel });
+                    window.ContentGate.render(sheetsGrid, { total: data.total, label: 'sheets', requiredLevel: data.requiredLevel });
                 }
                 // Auto-open sheet if hash is present (e.g. /sheet-music.html#slug)
                 openSheetFromHash();

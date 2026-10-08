@@ -245,7 +245,7 @@
                 photosData = data.photos || [];
                 renderGallery();
                 if (data.locked && window.ContentGate) {
-                    window.ContentGate.render(galleryGrid.parentNode, { total: data.total, label: 'photos', requiredLevel: data.requiredLevel });
+                    window.ContentGate.render(galleryGrid, { total: data.total, label: 'photos', requiredLevel: data.requiredLevel });
                 }
                 syncFromUrl();
             })

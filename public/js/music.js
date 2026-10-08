@@ -517,7 +517,7 @@
             ALBUMS = data.albums || [];
             renderBrowseView();
             if (data.locked && window.ContentGate) {
-                window.ContentGate.render(albumGrid.parentNode, { total: data.total, label: 'releases', requiredLevel: data.requiredLevel });
+                window.ContentGate.render(albumGrid, { total: data.total, label: 'releases', requiredLevel: data.requiredLevel });
             }
             syncFromUrl();
         })
