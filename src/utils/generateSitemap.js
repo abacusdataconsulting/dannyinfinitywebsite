@@ -10,6 +10,7 @@ const STATIC_PAGES = [
     { loc: '/photos.html', priority: '0.8', changefreq: 'monthly' },
     { loc: '/blog.html', priority: '0.9', changefreq: 'weekly' },
     { loc: '/sheet-music.html', priority: '0.9', changefreq: 'monthly' },
+    { loc: '/streaming.html', priority: '0.8', changefreq: 'weekly' },
     { loc: '/weddings.html', priority: '0.7', changefreq: 'monthly' },
 ];
 

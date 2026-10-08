@@ -34,6 +34,9 @@
             <button class="nav-btn" data-tab="content-views">Content Views</button>
             <button class="nav-btn" data-tab="donations">Donations</button>
             <button class="nav-btn" data-tab="sales">Sales</button>
+            <button class="nav-btn" data-tab="coupons">Coupons</button>
+            <button class="nav-btn" data-tab="page-access">Page Access</button>
+            <button class="nav-btn" data-tab="streaming">Streaming</button>
         </nav>
 
         <main class="admin-content">
@@ -342,6 +345,22 @@
                             </div>
                         </div>
                         <div class="form-group">
+                            <label>Cover Art (JPEG, PNG, WebP, GIF — shown instead of gradient)</label>
+                            <div class="drop-zone" id="album-cover-drop-zone">
+                                <span class="drop-zone-text" id="album-cover-drop-text">Drag &amp; drop image here or click to browse</span>
+                                <input type="file" id="album-cover-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none;">
+                            </div>
+                            <input type="hidden" id="album-cover-r2-key">
+                            <div id="album-cover-preview-wrap" style="display:none; margin-top:10px;">
+                                <img id="album-cover-preview" alt="Cover preview" style="max-width:120px; max-height:120px; border:1px solid var(--border-color, #444); display:block;">
+                                <button type="button" class="cms-btn cms-btn-sm" id="album-cover-remove-btn" style="margin-top:6px;">Remove Cover</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="album-description">Description</label>
+                            <textarea id="album-description" rows="3" placeholder="Shown on the album page"></textarea>
+                        </div>
+                        <div class="form-group">
                             <label class="toggle-label">
                                 <input type="checkbox" id="album-published" checked>
                                 <span>Published</span>
@@ -386,6 +405,14 @@
                                 <span class="drop-zone-text" id="track-drop-text">Drag & drop audio file here or click to browse</span>
                                 <input type="file" id="track-audio-input" accept=".mp3,.wav,.flac,.m4a,audio/mpeg,audio/wav,audio/flac,audio/mp4" style="display:none;">
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="track-description">Description</label>
+                            <textarea id="track-description" rows="2" placeholder="Shown in the song's info panel"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="track-lyrics">Lyrics</label>
+                            <textarea id="track-lyrics" rows="8" placeholder="Line breaks are preserved"></textarea>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="cms-btn cms-btn-primary" id="track-save-btn">Save Track</button>
@@ -829,6 +856,190 @@
                         </div>
                     </div>
                     <div id="comments-list" class="cms-list" style="margin-top:12px;"></div>
+                </div>
+            </section>
+
+            <!-- Coupons Tab -->
+            <section class="tab-content" id="coupons-tab">
+                <div class="section-header">
+                    <h2>Coupons</h2>
+                    <button class="cms-btn cms-btn-primary" id="new-coupon-btn">+ New Coupon</button>
+                </div>
+
+                <div id="coupons-list" class="cms-list">
+                    <!-- Loaded dynamically -->
+                </div>
+
+                <div id="coupon-form-container" class="cms-form-container" style="display:none;">
+                    <h3 id="coupon-form-title">New Coupon</h3>
+                    <form id="coupon-form" class="cms-form">
+                        <input type="hidden" id="coupon-edit-id">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="coupon-code">Code *</label>
+                                <input type="text" id="coupon-code" required maxlength="64" placeholder="e.g. DANNY10" style="text-transform:uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label for="coupon-sheet">Applies To</label>
+                                <select id="coupon-sheet">
+                                    <option value="">All sheets</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="coupon-discount-type">Discount Type</label>
+                                <select id="coupon-discount-type">
+                                    <option value="percent">Percent off (%)</option>
+                                    <option value="amount">Fixed amount off ($)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="coupon-discount-value" id="coupon-discount-label">Percent Off (1&ndash;100)</label>
+                                <input type="number" id="coupon-discount-value" min="1" step="1" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="coupon-max-uses">Max Uses (blank = unlimited)</label>
+                                <input type="number" id="coupon-max-uses" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="coupon-expires">Expires (blank = never)</label>
+                                <input type="date" id="coupon-expires">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="coupon-active" checked>
+                                <span>Active</span>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="coupon-save-btn">Save</button>
+                            <button type="button" class="cms-btn" id="coupon-cancel-btn">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Page Access Tab -->
+            <section class="tab-content" id="page-access-tab">
+                <div class="section-header">
+                    <h2>Page Access</h2>
+                </div>
+                <div class="cms-form-container" style="display:block;">
+                    <p style="opacity:0.7;font-size:0.85rem;margin-bottom:16px;">
+                        <strong>Access</strong>: "Logged-in only" redirects anonymous visitors to the sign-in page.
+                        <strong>Preview gate</strong>: anonymous visitors see only the first N items, then a sign-in prompt.
+                    </p>
+                    <div id="page-access-list" class="cms-list"></div>
+                    <div style="margin-top:8px;"><span id="page-access-msg" style="opacity:.7;font-size:.85rem;"></span></div>
+                </div>
+            </section>
+
+            <!-- Streaming Tab -->
+            <section class="tab-content" id="streaming-tab">
+                <div class="section-header">
+                    <h2>Streaming</h2>
+                </div>
+
+                <!-- Stream settings -->
+                <div class="cms-form-container" style="display:block;margin-bottom:24px;">
+                    <h3>Stream Settings</h3>
+                    <p style="opacity:0.7;font-size:0.85rem;margin-bottom:16px;">
+                        Note: embedding must be enabled in your YouTube settings or the player will show
+                        "Video unavailable". In YouTube Studio open the video's details &rarr; show more &rarr;
+                        check <strong>Allow embedding</strong> (for live streams: Go Live &rarr; Stream settings &rarr; Allow embedding).
+                    </p>
+                    <form id="stream-settings-form" class="cms-form">
+                        <div class="form-group">
+                            <label>Source</label>
+                            <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:0.9rem;">
+                                <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="stream-mode" value="video"> Specific video</label>
+                                <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="stream-mode" value="channel_live"> Channel's current live stream</label>
+                                <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="stream-mode" value="offline" checked> Offline</label>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="stream-video-id">YouTube Video ID</label>
+                                <input type="text" id="stream-video-id" placeholder="e.g. dQw4w9WgXcQ">
+                            </div>
+                            <div class="form-group">
+                                <label for="stream-channel-id">YouTube Channel ID</label>
+                                <input type="text" id="stream-channel-id" placeholder="UC...">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="stream-title-input">Title</label>
+                                <input type="text" id="stream-title-input" maxlength="200">
+                            </div>
+                            <div class="form-group">
+                                <label for="stream-offline-message">Offline Message</label>
+                                <input type="text" id="stream-offline-message" maxlength="500">
+                            </div>
+                        </div>
+                        <div class="form-group" style="display:flex;gap:20px;flex-wrap:wrap;">
+                            <label class="toggle-label"><input type="checkbox" id="stream-is-live"> <span>Show LIVE badge</span></label>
+                            <label class="toggle-label"><input type="checkbox" id="stream-chat-enabled" checked> <span>Chat enabled</span></label>
+                            <label class="toggle-label"><input type="checkbox" id="stream-mute-notice"> <span>Show muted users an error (off = silent drop)</span></label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="cms-btn cms-btn-primary" id="stream-settings-save">Save Settings</button>
+                            <span id="stream-settings-msg" style="opacity:.7;font-size:.85rem;align-self:center;"></span>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Current viewers -->
+                <div class="cms-form-container" style="display:block;margin-bottom:24px;">
+                    <h3>Current Viewers <button class="cms-btn cms-btn-sm" id="stream-viewers-refresh" type="button" style="margin-left:10px;">Refresh</button></h3>
+                    <div id="stream-viewers-list" class="cms-list"></div>
+                </div>
+
+                <!-- Mutes & bans -->
+                <div class="cms-form-container" style="display:block;margin-bottom:24px;">
+                    <h3>Mutes &amp; Bans</h3>
+                    <form id="stream-ban-form" class="cms-form" style="flex-direction:row;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+                        <div class="form-group" style="margin:0;">
+                            <label>Target</label>
+                            <select id="ban-target-type"><option value="user">Username</option><option value="ip">IP address</option></select>
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:140px;">
+                            <label>Value</label>
+                            <input type="text" id="ban-value" placeholder="username or IP" maxlength="100">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Type</label>
+                            <select id="ban-type"><option value="mute">Mute</option><option value="ban">Ban</option></select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label>Duration</label>
+                            <select id="ban-duration">
+                                <option value="10">10 minutes</option>
+                                <option value="60">1 hour</option>
+                                <option value="1440">24 hours</option>
+                                <option value="" selected>Permanent</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;flex:1;min-width:120px;">
+                            <label>Reason (optional)</label>
+                            <input type="text" id="ban-reason" maxlength="300">
+                        </div>
+                        <button type="submit" class="cms-btn cms-btn-primary">Add</button>
+                    </form>
+                    <div id="stream-bans-list" class="cms-list" style="margin-top:12px;"></div>
+                </div>
+
+                <!-- Recent chat -->
+                <div class="cms-form-container" style="display:block;">
+                    <h3>Recent Chat
+                        <button class="cms-btn cms-btn-sm" id="stream-chat-refresh" type="button" style="margin-left:10px;">Refresh</button>
+                        <button class="cms-btn cms-btn-sm cms-btn-danger" id="stream-chat-clear" type="button" style="margin-left:4px;">Clear All Chat</button>
+                    </h3>
+                    <div id="stream-chat-list" class="cms-list" style="margin-top:12px;"></div>
                 </div>
             </section>
         </main>

@@ -447,3 +447,103 @@ button:focus-visible {
         scroll-behavior: auto !important;
     }
 }
+
+/* ============================
+   CART COUPON
+   ============================ */
+.cart-coupon-row {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0 4px;
+}
+
+.cart-coupon-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.cart-coupon-input:disabled {
+    opacity: 0.6;
+}
+
+.cart-coupon-apply {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cart-coupon-apply:hover {
+    border-color: var(--text-primary);
+}
+
+.cart-coupon-msg {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    min-height: 16px;
+    margin-bottom: 6px;
+    color: #4ade80;
+}
+
+.cart-coupon-msg.error {
+    color: #f87171;
+}
+
+.cart-item-price-original {
+    opacity: 0.5;
+}
+
+/* ============================
+   CONTENT GATE (sign-in prompt)
+   ============================ */
+.content-gate {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 10px;
+    padding: 50px 20px;
+    border: 1px dashed var(--border-color);
+    background: linear-gradient(to bottom, rgba(155, 89, 182, 0.06), transparent);
+    text-align: center;
+}
+
+.content-gate-title {
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    opacity: 0.5;
+    margin-bottom: 12px;
+}
+
+.content-gate-text {
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    opacity: 0.8;
+    margin-bottom: 20px;
+}
+
+.content-gate-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border: 2px solid var(--border-color);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    transition: all 0.2s ease;
+}
+
+.content-gate-btn:hover {
+    border-color: var(--text-primary);
+    box-shadow: 0 0 20px rgba(155, 89, 182, 0.3);
+}

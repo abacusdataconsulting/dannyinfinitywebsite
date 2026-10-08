@@ -114,7 +114,24 @@ webhook.post('/stripe', async (c) => {
 
         try {
             if (metadataType === 'purchase') {
+                // Replayed webhooks must not double-count coupon uses:
+                // only increment when this session hasn't been processed yet.
+                const alreadyProcessed = await c.env.DB.prepare(
+                    'SELECT id FROM purchases WHERE stripe_session_id = ?'
+                ).bind(session.id).first();
+
                 await createPurchaseFromSession(c.env.DB, session);
+
+                // Count coupon use on completed payment, not at session
+                // creation, so abandoned checkouts don't burn uses.
+                const couponCode = session.metadata?.coupon_code;
+                if (couponCode && !alreadyProcessed) {
+                    try {
+                        await c.env.DB.prepare(
+                            'UPDATE coupons SET times_used = times_used + 1 WHERE code = ? COLLATE NOCASE'
+                        ).bind(couponCode).run();
+                    } catch (e) { /* coupons table missing — ignore */ }
+                }
                 console.log('WEBHOOK: Purchase created for session', session.id);
             } else {
                 // --- Tip / donation ---

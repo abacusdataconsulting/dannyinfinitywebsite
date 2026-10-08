@@ -67,12 +67,13 @@
             var viewBadge = album.showViews && album.viewCount > 0
                 ? '<span class="view-count-badge">' + album.viewCount + ' views</span>'
                 : '';
+            var artHtml = album.coverUrl
+                ? '<img class="album-art-img" src="' + escapeHtml(album.coverUrl) + '" alt="' + escapeHtml(album.title) + ' cover art" loading="lazy">'
+                : '<div class="album-art-gradient ' + escapeHtml(album.gradient) + '">' +
+                      '<span class="album-art-label">' + escapeHtml(album.type.toUpperCase()) + '</span>' +
+                  '</div>';
             card.innerHTML =
-                '<div class="album-art">' +
-                    '<div class="album-art-gradient ' + escapeHtml(album.gradient) + '">' +
-                        '<span class="album-art-label">' + escapeHtml(album.type.toUpperCase()) + '</span>' +
-                    '</div>' +
-                '</div>' +
+                '<div class="album-art">' + artHtml + '</div>' +
                 '<div class="album-card-info">' +
                     '<div class="album-card-title">' + escapeHtml(album.title) + '</div>' +
                     '<div class="album-card-meta">' + escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + ' // ' + album.tracks.length + ' tracks ' + viewBadge + '</div>' +
@@ -103,9 +104,27 @@
         browseView.classList.add('hidden');
         playerView.classList.remove('hidden');
 
-        // Update album art
-        var artPlaceholder = nowPlayingArt.querySelector('.art-placeholder');
-        artPlaceholder.className = 'art-placeholder ' + album.gradient;
+        // Update album art — cover image when present, gradient fallback
+        nowPlayingArt.innerHTML = '';
+        if (album.coverUrl) {
+            var coverImg = document.createElement('img');
+            coverImg.className = 'album-art-img';
+            coverImg.src = album.coverUrl;
+            coverImg.alt = album.title + ' cover art';
+            nowPlayingArt.appendChild(coverImg);
+        } else {
+            var placeholder = document.createElement('div');
+            placeholder.className = 'art-placeholder ' + album.gradient;
+            nowPlayingArt.appendChild(placeholder);
+        }
+
+        // Album description
+        var albumDescription = document.getElementById('album-description');
+        if (albumDescription) {
+            var desc = (album.description || '').trim();
+            albumDescription.textContent = desc;
+            albumDescription.classList.toggle('hidden', !desc);
+        }
 
         // Update tracklist header
         tracklistAlbumTitle.textContent = album.title.toUpperCase();
@@ -148,6 +167,45 @@
                 playTrack(index);
             });
             tracklist.appendChild(row);
+
+            // Expandable description + lyrics panel
+            var description = (track.description || '').trim();
+            var lyrics = (track.lyrics || '').trim();
+            if (description || lyrics) {
+                var expandBtn = document.createElement('button');
+                expandBtn.className = 'track-row-expand';
+                expandBtn.type = 'button';
+                expandBtn.textContent = lyrics ? 'LYRICS' : 'INFO';
+                expandBtn.setAttribute('aria-expanded', 'false');
+                row.appendChild(expandBtn);
+
+                var details = document.createElement('div');
+                details.className = 'track-details hidden';
+                if (description) {
+                    var descEl = document.createElement('p');
+                    descEl.className = 'track-details-description';
+                    descEl.textContent = description;
+                    details.appendChild(descEl);
+                }
+                if (lyrics) {
+                    var lyricsLabel = document.createElement('div');
+                    lyricsLabel.className = 'track-details-label';
+                    lyricsLabel.textContent = 'LYRICS';
+                    details.appendChild(lyricsLabel);
+                    var lyricsEl = document.createElement('div');
+                    lyricsEl.className = 'track-details-lyrics';
+                    lyricsEl.textContent = lyrics;
+                    details.appendChild(lyricsEl);
+                }
+                tracklist.appendChild(details);
+
+                expandBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var open = details.classList.toggle('hidden');
+                    expandBtn.setAttribute('aria-expanded', String(!open));
+                    expandBtn.classList.toggle('open', !open);
+                });
+            }
         });
     }
 
@@ -157,10 +215,11 @@
         others.forEach(function(album) {
             var card = document.createElement('div');
             card.className = 'rec-card';
+            var recArtHtml = album.coverUrl
+                ? '<img class="album-art-img" src="' + escapeHtml(album.coverUrl) + '" alt="' + escapeHtml(album.title) + ' cover art" loading="lazy">'
+                : '<div class="rec-art-gradient ' + escapeHtml(album.gradient) + '"></div>';
             card.innerHTML =
-                '<div class="rec-art">' +
-                    '<div class="rec-art-gradient ' + escapeHtml(album.gradient) + '"></div>' +
-                '</div>' +
+                '<div class="rec-art">' + recArtHtml + '</div>' +
                 '<div class="rec-info">' +
                     '<div class="rec-title">' + escapeHtml(album.title) + '</div>' +
                     '<div class="rec-meta">' + escapeHtml(album.type) + ' // ' + escapeHtml(album.year) + '</div>' +
@@ -457,6 +516,9 @@
         .then(function(data) {
             ALBUMS = data.albums || [];
             renderBrowseView();
+            if (data.locked && window.ContentGate) {
+                window.ContentGate.render(albumGrid.parentNode, { total: data.total, label: 'releases', requiredLevel: data.requiredLevel });
+            }
             syncFromUrl();
         })
         .catch(function() {

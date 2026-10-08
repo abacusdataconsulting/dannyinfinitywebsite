@@ -3,10 +3,12 @@
  */
 import { Hono } from 'hono';
 import { fileUrl, rewriteFileUrl } from '../../utils/fileUrl.js';
+import { optionalUserAuth } from '../../middleware/userAuth.js';
+import { getPageGate, applyAnonGate } from '../../utils/pageAccess.js';
 
 const publicVideos = new Hono();
 
-publicVideos.get('/', async (c) => {
+publicVideos.get('/', optionalUserAuth, async (c) => {
     const result = await c.env.DB.prepare(
         'SELECT id, slug, title, category, orientation, duration, video_type, video_src, thumbnail_r2_key, year FROM videos WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC'
     ).all();
@@ -40,7 +42,9 @@ publicVideos.get('/', async (c) => {
         };
     });
 
-    return c.json({ videos });
+    const gate = await getPageGate(c.env.DB, 'videos');
+    const gated = applyAnonGate(videos, gate, c.get('user'));
+    return c.json({ videos: gated.items, locked: gated.locked, total: gated.total, previewCount: gated.previewCount, requiredLevel: gated.requiredLevel });
 });
 
 export default publicVideos;

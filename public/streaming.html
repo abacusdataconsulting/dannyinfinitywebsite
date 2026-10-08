@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danny Infinity | Stream</title>
+    <meta name="description" content="Watch Danny Infinity live and join the chat.">
+    <link rel="canonical" href="https://dannyinfinity.com/streaming.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Danny Infinity">
+    <meta property="og:title" content="Danny Infinity | Stream">
+    <meta property="og:description" content="Watch Danny Infinity live and join the chat.">
+    <meta property="og:url" content="https://dannyinfinity.com/streaming.html">
+    <meta property="og:image" content="https://dannyinfinity.com/assets/og-image.svg">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Danny Infinity | Stream">
+    <meta name="twitter:description" content="Watch Danny Infinity live and join the chat.">
+    <meta name="twitter:image" content="https://dannyinfinity.com/assets/og-image.svg">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/streaming.css">
+    <!-- Google Analytics 4 — replace G-MN1GHGMM5N with your real ID (G-XXXXXXXXXX) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MN1GHGMM5N"></script>
+    <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-MN1GHGMM5N');</script>
+</head>
+<body>
+    <a href="#main-content" class="sr-only sr-only-focusable">Skip to main content</a>
+    <div class="streaming-container container">
+        <!-- Header -->
+        <header class="site-header">
+            <a href="home.html" class="site-logo">DANNY<span class="logo-accent">INFINITY</span></a>
+            <nav class="site-nav" aria-label="Main navigation">
+                <a href="home.html" class="nav-link">HOME</a>
+                <a href="music.html" class="nav-link">MUSIC</a>
+                <a href="videos.html" class="nav-link">VIDEOS</a>
+                <a href="photos.html" class="nav-link">PHOTOS</a>
+                <a href="blog.html" class="nav-link">WRITINGS</a>
+                <a href="sheet-music.html" class="nav-link">SHEETS</a>
+                <a href="streaming.html" class="nav-link active">STREAM</a>
+            </nav>
+        </header>
+
+        <div id="main-content"></div>
+        <section class="page-title-section">
+            <h1 class="page-title">STREAM <span class="live-badge hidden" id="live-badge">&#9679; LIVE</span></h1>
+        </section>
+
+        <div class="stream-layout">
+            <!-- Player column -->
+            <div class="stream-main">
+                <h2 class="stream-title" id="stream-title"></h2>
+                <div class="stream-player" id="stream-player">
+                    <div class="stream-offline" id="stream-offline">
+                        <div class="stream-offline-icon">&#9634;</div>
+                        <p class="stream-offline-text" id="stream-offline-text">Loading...</p>
+                    </div>
+                </div>
+                <div class="stream-viewers">
+                    <div class="viewers-count" id="viewers-count"></div>
+                    <div class="viewers-list" id="viewers-list"></div>
+                </div>
+            </div>
+
+            <!-- Chat column -->
+            <aside class="stream-chat" id="stream-chat" aria-label="Live chat">
+                <div class="chat-header">LIVE_CHAT</div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <button class="chat-new-pill hidden" id="chat-new-pill" type="button">new messages &darr;</button>
+                <form class="chat-form" id="chat-form">
+                    <input type="text" class="chat-input" id="chat-input" maxlength="500" placeholder="Say something..." autocomplete="off">
+                    <button type="submit" class="chat-send" id="chat-send">[SEND]</button>
+                </form>
+                <div class="chat-note hidden" id="chat-note"></div>
+            </aside>
+        </div>
+
+        <!-- Login prompt dialog -->
+        <dialog class="login-dialog" id="login-dialog">
+            <div class="login-dialog-title">SIGN IN TO JOIN THE CHAT</div>
+            <p class="login-dialog-text">You need an account to send messages.</p>
+            <div class="login-dialog-actions">
+                <a class="login-dialog-btn" id="login-dialog-signin" href="index.html?return=/streaming.html">[SIGN IN]</a>
+                <button class="login-dialog-btn login-dialog-cancel" id="login-dialog-cancel" type="button">[CANCEL]</button>
+            </div>
+        </dialog>
+
+        <!-- Footer -->
+        <footer class="site-footer">
+            <div class="footer-content">
+                <p class="footer-text">&gt; DANNY INFINITY // <span id="current-year">2026</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/streaming.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/tracker.js"></script>
+</body>
+</html>

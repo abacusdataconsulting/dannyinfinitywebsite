@@ -827,9 +827,15 @@
         registerSection.classList.add('hidden');
         document.querySelector('.terminal-text').style.display = 'none';
 
-        // Play door animation then redirect
+        // Play door animation then redirect — honor ?return=/path (same-origin
+        // paths only) so gated pages can send visitors back after signing in
         playDoorAnimation(() => {
-            window.location.href = CONFIG.redirectUrl;
+            let target = CONFIG.redirectUrl;
+            const returnPath = new URLSearchParams(window.location.search).get('return');
+            if (returnPath && returnPath.startsWith('/') && !returnPath.startsWith('//')) {
+                target = returnPath;
+            }
+            window.location.href = target;
         });
     }
 

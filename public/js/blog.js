@@ -93,6 +93,9 @@
         .then(function(data) {
             posts = data.posts || [];
             renderPosts();
+            if (data.locked && window.ContentGate) {
+                window.ContentGate.render(postsContainer.parentNode, { total: data.total, label: 'posts', requiredLevel: data.requiredLevel });
+            }
         })
         .catch(function() {
             postsContainer.innerHTML = '<div style="text-align:center;padding:40px;opacity:0.5;">Failed to load posts</div>';

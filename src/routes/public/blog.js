@@ -2,10 +2,12 @@
  * Public blog API
  */
 import { Hono } from 'hono';
+import { optionalUserAuth } from '../../middleware/userAuth.js';
+import { getPageGate, applyAnonGate } from '../../utils/pageAccess.js';
 
 const publicBlog = new Hono();
 
-publicBlog.get('/', async (c) => {
+publicBlog.get('/', optionalUserAuth, async (c) => {
     const result = await c.env.DB.prepare(
         'SELECT id, slug, title, body, tag, published_at FROM blog_posts WHERE is_published = 1 ORDER BY published_at ASC, created_at ASC'
     ).all();
@@ -27,7 +29,9 @@ publicBlog.get('/', async (c) => {
         show_views: (viewData[p.id] || {}).show_views || 0,
     }));
 
-    return c.json({ posts });
+    const gate = await getPageGate(c.env.DB, 'blog');
+    const gated = applyAnonGate(posts, gate, c.get('user'));
+    return c.json({ posts: gated.items, locked: gated.locked, total: gated.total, previewCount: gated.previewCount, requiredLevel: gated.requiredLevel });
 });
 
 publicBlog.get('/:slug', async (c) => {

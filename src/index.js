@@ -25,14 +25,20 @@ import publicVideos from './routes/public/videos.js';
 import publicPhotos from './routes/public/photos.js';
 import publicComments from './routes/public/comments.js';
 import commentsCms from './routes/cms/comments.js';
+import couponsCms from './routes/cms/coupons.js';
 import tipRoutes from './routes/tip.js';
 import purchaseRoutes from './routes/purchase.js';
 import downloadRoutes from './routes/download.js';
 import libraryRoutes from './routes/user-library.js';
 import { adminAuth } from './middleware/auth.js';
+import pageAccessCms from './routes/cms/page-access.js';
+import publicStreaming from './routes/public/streaming.js';
+import streamingCms from './routes/cms/streaming.js';
 import { renderWritingPage } from './utils/renderWritingPage.js';
 import { renderSheetPage } from './utils/renderSheetPage.js';
 import { generateSitemap } from './utils/generateSitemap.js';
+import { getRequestViewerRank } from './utils/pageAccess.js';
+import { requiredRank } from './utils/tiers.js';
 
 const api = new Hono();
 
@@ -59,6 +65,7 @@ api.use('/api/*', cors({
 // CSRF protection on mutation routes (skip for API visit logging from frontend)
 api.use('/api/user/*', csrf());
 api.use('/api/admin/*', csrf());
+api.use('/api/streaming/*', csrf());
 
 // Body size limit (1MB, skip for file uploads)
 api.use('/api/*', async (c, next) => {
@@ -183,6 +190,9 @@ api.route('/api/admin/blog', blogCms);
 api.route('/api/admin/videos', videosCms);
 api.route('/api/admin/photos', photosCms);
 api.route('/api/admin/comments', commentsCms);
+api.route('/api/admin/coupons', couponsCms);
+api.route('/api/admin/page-access', pageAccessCms);
+api.route('/api/admin/streaming', streamingCms);
 
 // Public content APIs
 api.route('/api/sheet-music', publicSheetMusic);
@@ -190,6 +200,43 @@ api.route('/api/music', publicMusic);
 api.route('/api/blog', publicBlog);
 api.route('/api/videos', publicVideos);
 api.route('/api/photos', publicPhotos);
+
+// Streaming — chat posting, polling, and presence are all rate-limited.
+// Poll GETs get a limit too (unlike other GETs) because clients poll
+// continuously: 30/min allows the ~4s cadence with headroom.
+api.use('/api/streaming/chat', async (c, next) => {
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (c.req.method === 'POST') {
+        if (rateLimit(`chatpost:${ip}`, 8, 60_000)) {
+            return c.json({ error: 'Slow down — too many messages' }, 429);
+        }
+    } else if (rateLimit(`chatpoll:${ip}`, 30, 60_000)) {
+        return c.json({ error: 'Too many requests' }, 429);
+    }
+    await next();
+});
+
+api.use('/api/streaming/heartbeat', async (c, next) => {
+    if (c.req.method !== 'POST') return next();
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`heartbeat:${ip}`, 6, 60_000)) {
+        return c.json({ error: 'Too many requests' }, 429);
+    }
+    await next();
+});
+
+api.use('/api/streaming/viewers', async (c, next) => {
+    cleanupRateLimits();
+    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || 'unknown';
+    if (rateLimit(`viewers:${ip}`, 10, 60_000)) {
+        return c.json({ error: 'Too many requests' }, 429);
+    }
+    await next();
+});
+
+api.route('/api/streaming', publicStreaming);
 
 // Comments — public read + rate-limited posting
 api.use('/api/comments', async (c, next) => {
@@ -292,6 +339,40 @@ api.all('/api/*', (c) => {
 });
 
 // ------------------------------------
+// Page access: logged-in-only HTML pages
+// ------------------------------------
+// Maps gated page paths to page_access keys. The asset layer serves pages at
+// both /page.html and the clean /page URL, so both forms are listed.
+const PAGE_HTML_PATHS = {
+    '/photos.html': 'photos', '/photos': 'photos',
+    '/videos.html': 'videos', '/videos': 'videos',
+    '/music.html': 'music', '/music': 'music',
+    '/blog.html': 'blog', '/blog': 'blog',
+    '/sheet-music.html': 'sheet-music', '/sheet-music': 'sheet-music',
+    '/streaming.html': 'streaming', '/streaming': 'streaming',
+};
+
+// Per-isolate cache of required levels for non-public pages (60s TTL) so
+// ungated static requests don't pay a D1 read.
+let gatedPagesCache = { levels: null, fetchedAt: 0 };
+
+async function getGatedPageLevels(env) {
+    const now = Date.now();
+    if (gatedPagesCache.levels && now - gatedPagesCache.fetchedAt < 60_000) {
+        return gatedPagesCache.levels;
+    }
+    const levels = {};
+    try {
+        const result = await env.DB.prepare(
+            "SELECT page, required_level FROM page_access WHERE required_level != 'public'"
+        ).all();
+        result.results.forEach(r => { levels[r.page] = r.required_level; });
+    } catch (e) { /* migration not yet applied — nothing gated */ }
+    gatedPagesCache = { levels, fetchedAt: now };
+    return levels;
+}
+
+// ------------------------------------
 // Export: API routes + static asset fallthrough
 // ------------------------------------
 export default {
@@ -356,6 +437,18 @@ export default {
         // Route /api/* to the Hono app
         if (url.pathname.startsWith('/api')) {
             return api.fetch(request, env, ctx);
+        }
+
+        // --- Page access: redirect viewers below a page's required tier ---
+        const pageKey = PAGE_HTML_PATHS[url.pathname];
+        if (pageKey && request.method === 'GET') {
+            const gatedLevels = await getGatedPageLevels(env);
+            const level = gatedLevels[pageKey];
+            if (level && (await getRequestViewerRank(env, request)) < requiredRank(level)) {
+                const loginUrl = new URL('/index.html', url.origin);
+                loginUrl.searchParams.set('return', url.pathname);
+                return Response.redirect(loginUrl.toString(), 302);
+            }
         }
 
         // Everything else: serve static assets from public/

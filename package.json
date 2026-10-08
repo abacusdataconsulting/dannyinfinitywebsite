@@ -19,6 +19,14 @@
     "db:migrate:user-access:remote": "wrangler d1 execute abacus-db --remote --file=migrations/011-user-content-access.sql",
     "db:migrate:comments": "wrangler d1 execute abacus-db --local --file=migrations/014-comments.sql",
     "db:migrate:comments:remote": "wrangler d1 execute abacus-db --remote --file=migrations/014-comments.sql",
+    "db:migrate:music-content": "wrangler d1 execute abacus-db --local --file=migrations/015-music-content.sql",
+    "db:migrate:music-content:remote": "wrangler d1 execute abacus-db --remote --file=migrations/015-music-content.sql",
+    "db:migrate:coupons": "wrangler d1 execute abacus-db --local --file=migrations/016-coupons.sql",
+    "db:migrate:coupons:remote": "wrangler d1 execute abacus-db --remote --file=migrations/016-coupons.sql",
+    "db:migrate:page-access": "wrangler d1 execute abacus-db --local --file=migrations/017-page-access.sql",
+    "db:migrate:page-access:remote": "wrangler d1 execute abacus-db --remote --file=migrations/017-page-access.sql",
+    "db:migrate:tiers-streaming": "wrangler d1 execute abacus-db --local --file=migrations/018-tiers-streaming.sql",
+    "db:migrate:tiers-streaming:remote": "wrangler d1 execute abacus-db --remote --file=migrations/018-tiers-streaming.sql",
     "create-admin": "node scripts/create-admin.js"
   },
   "dependencies": {

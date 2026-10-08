@@ -52,8 +52,8 @@ music.post('/', async (c) => {
 
     const slug = slugify(body.title);
     const result = await c.env.DB.prepare(`
-        INSERT INTO albums (slug, title, artist, type, year, gradient, sort_order, is_published)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO albums (slug, title, artist, type, year, gradient, cover_r2_key, description, sort_order, is_published)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
         slug,
         body.title,
@@ -61,6 +61,8 @@ music.post('/', async (c) => {
         body.type || 'Album',
         body.year || new Date().getFullYear(),
         body.gradient || 'gradient-1',
+        body.coverR2Key || null,
+        body.description || null,
         body.sortOrder || 0,
         body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : 1
     ).run();
@@ -78,10 +80,16 @@ music.put('/:id', async (c) => {
 
     const slug = body.title ? slugify(body.title) : existing.slug;
 
+    // Clean up old cover from R2 if replacing or removing it
+    const newCoverKey = body.coverR2Key !== undefined ? (body.coverR2Key || null) : existing.cover_r2_key;
+    if (body.coverR2Key !== undefined && existing.cover_r2_key && newCoverKey !== existing.cover_r2_key) {
+        try { await c.env.R2.delete(existing.cover_r2_key); } catch (e) { /* ignore */ }
+    }
+
     await c.env.DB.prepare(`
         UPDATE albums SET
             slug = ?, title = ?, artist = ?, type = ?, year = ?,
-            gradient = ?, sort_order = ?, is_published = ?,
+            gradient = ?, cover_r2_key = ?, description = ?, sort_order = ?, is_published = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     `).bind(
@@ -91,6 +99,8 @@ music.put('/:id', async (c) => {
         body.type ?? existing.type,
         body.year ?? existing.year,
         body.gradient ?? existing.gradient,
+        newCoverKey,
+        body.description !== undefined ? (body.description || null) : existing.description,
         body.sortOrder ?? existing.sort_order,
         body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : existing.is_published,
         id
@@ -114,6 +124,12 @@ music.delete('/:id', async (c) => {
         try { await c.env.R2.delete(track.audio_r2_key); } catch (e) { /* ignore */ }
     }
 
+    // Clean up cover art from R2
+    const albumRow = await c.env.DB.prepare('SELECT cover_r2_key FROM albums WHERE id = ?').bind(id).first();
+    if (albumRow?.cover_r2_key) {
+        try { await c.env.R2.delete(albumRow.cover_r2_key); } catch (e) { /* ignore */ }
+    }
+
     await c.env.DB.prepare('DELETE FROM tracks WHERE album_id = ?').bind(id).run();
     await c.env.DB.prepare('DELETE FROM albums WHERE id = ?').bind(id).run();
     return c.json({ success: true });
@@ -134,15 +150,17 @@ music.post('/:albumId/tracks', async (c) => {
     const trackNumber = body.trackNumber || (maxTrack.max_num || 0) + 1;
 
     const result = await c.env.DB.prepare(`
-        INSERT INTO tracks (album_id, title, duration, audio_r2_key, track_number, is_published)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO tracks (album_id, title, duration, audio_r2_key, track_number, is_published, description, lyrics)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
         albumId,
         body.title,
         body.duration || '0:00',
         body.audioR2Key || null,
         trackNumber,
-        body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : 1
+        body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : 1,
+        body.description || null,
+        body.lyrics || null
     ).run();
 
     return c.json({ success: true, id: result.meta.last_row_id });
@@ -165,7 +183,7 @@ music.put('/tracks/:trackId', async (c) => {
     await c.env.DB.prepare(`
         UPDATE tracks SET
             title = ?, duration = ?, audio_r2_key = ?,
-            track_number = ?, is_published = ?
+            track_number = ?, is_published = ?, description = ?, lyrics = ?
         WHERE id = ?
     `).bind(
         body.title ?? existing.title,
@@ -173,6 +191,8 @@ music.put('/tracks/:trackId', async (c) => {
         newAudioKey,
         body.trackNumber ?? existing.track_number,
         body.isPublished !== undefined ? (body.isPublished ? 1 : 0) : existing.is_published,
+        body.description !== undefined ? (body.description || null) : existing.description,
+        body.lyrics !== undefined ? (body.lyrics || null) : existing.lyrics,
         trackId
     ).run();
 

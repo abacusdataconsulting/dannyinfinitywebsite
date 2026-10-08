@@ -3,6 +3,8 @@
  */
 import { Hono } from 'hono';
 import { fileUrl } from '../../utils/fileUrl.js';
+import { optionalUserAuth } from '../../middleware/userAuth.js';
+import { getPageGate, applyAnonGate } from '../../utils/pageAccess.js';
 
 const publicPhotos = new Hono();
 
@@ -11,7 +13,7 @@ function slugify(text) {
     return String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 }
 
-publicPhotos.get('/', async (c) => {
+publicPhotos.get('/', optionalUserAuth, async (c) => {
     const result = await c.env.DB.prepare(
         'SELECT id, title, category, orientation, image_r2_key, date FROM photos WHERE is_published = 1 ORDER BY sort_order ASC, created_at ASC'
     ).all();
@@ -42,7 +44,9 @@ publicPhotos.get('/', async (c) => {
         };
     });
 
-    return c.json({ photos });
+    const gate = await getPageGate(c.env.DB, 'photos');
+    const gated = applyAnonGate(photos, gate, c.get('user'));
+    return c.json({ photos: gated.items, locked: gated.locked, total: gated.total, previewCount: gated.previewCount, requiredLevel: gated.requiredLevel });
 });
 
 export default publicPhotos;

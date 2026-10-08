@@ -454,6 +454,9 @@
             .then(function(data) {
                 videosData = data.videos || [];
                 renderVideos();
+                if (data.locked && window.ContentGate) {
+                    window.ContentGate.render(videoGrid.parentNode, { total: data.total, label: 'videos', requiredLevel: data.requiredLevel });
+                }
                 syncFromUrl();
             })
             .catch(function() {

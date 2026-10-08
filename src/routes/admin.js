@@ -4,6 +4,7 @@
 import { Hono } from 'hono';
 import { adminAuth } from '../middleware/auth.js';
 import { hashPasswordPBKDF2 } from '../lib/crypto.js';
+import { ASSIGNABLE_TIERS, TIER_RANK } from '../utils/tiers.js';
 
 const admin = new Hono();
 
@@ -50,17 +51,33 @@ admin.get('/visits', async (c) => {
  * GET /api/admin/users — All users
  */
 admin.get('/users', async (c) => {
-    const users = await c.env.DB.prepare(`
-        SELECT
-            id, name, is_admin, created_at, last_seen,
-            password_hash IS NOT NULL as has_password,
-            source
-        FROM users
-        ORDER BY
-            is_admin DESC,
-            CASE WHEN source = 'admin' THEN 0 ELSE 1 END,
-            last_seen DESC
-    `).all();
+    let users;
+    try {
+        users = await c.env.DB.prepare(`
+            SELECT
+                id, name, is_admin, tier, created_at, last_seen,
+                password_hash IS NOT NULL as has_password,
+                source
+            FROM users
+            ORDER BY
+                is_admin DESC,
+                CASE WHEN source = 'admin' THEN 0 ELSE 1 END,
+                last_seen DESC
+        `).all();
+    } catch (e) {
+        // tier column may not exist until migration 018 runs
+        users = await c.env.DB.prepare(`
+            SELECT
+                id, name, is_admin, created_at, last_seen,
+                password_hash IS NOT NULL as has_password,
+                source
+            FROM users
+            ORDER BY
+                is_admin DESC,
+                CASE WHEN source = 'admin' THEN 0 ELSE 1 END,
+                last_seen DESC
+        `).all();
+    }
 
     return c.json({ users: users.results });
 });
@@ -448,6 +465,18 @@ admin.put('/users/:id', async (c) => {
         await c.env.DB.prepare(
             'UPDATE users SET is_admin = ? WHERE id = ?'
         ).bind(body.isAdmin ? 1 : 0, id).run();
+        // Keep tier in step with the admin flag (tier column exists post-018)
+        try {
+            if (body.isAdmin) {
+                await c.env.DB.prepare(
+                    "UPDATE users SET tier = 'admin' WHERE id = ? AND tier NOT IN ('admin', 'super_admin')"
+                ).bind(id).run();
+            } else {
+                await c.env.DB.prepare(
+                    "UPDATE users SET tier = 'member' WHERE id = ? AND tier IN ('admin', 'super_admin')"
+                ).bind(id).run();
+            }
+        } catch (e) { /* tier column missing pre-migration */ }
     }
 
     if (body.password && body.password.length >= 8) {
@@ -461,6 +490,45 @@ admin.put('/users/:id', async (c) => {
             'DELETE FROM sessions WHERE user_id = ?'
         ).bind(id).run();
     }
+
+    return c.json({ success: true });
+});
+
+/**
+ * PUT /api/admin/users/:id/tier — Assign a membership tier
+ * Body: { tier } — one of member/subscriber/vip/admin/super_admin.
+ * Rules: admins may assign member/subscriber/vip; only super admins may
+ * grant or revoke admin tiers or modify another admin's tier. Nobody can
+ * change their own tier. is_admin is kept in sync with admin tiers.
+ */
+admin.put('/users/:id/tier', async (c) => {
+    const id = parseInt(c.req.param('id'));
+    const body = await c.req.json();
+    const newTier = String(body.tier || '');
+    const adminSession = c.get('adminSession');
+
+    if (!ASSIGNABLE_TIERS.includes(newTier)) {
+        return c.json({ error: 'Invalid tier' }, 400);
+    }
+
+    if (adminSession.user_id === id) {
+        return c.json({ error: 'Cannot change your own tier' }, 400);
+    }
+
+    const target = await c.env.DB.prepare('SELECT id, name, is_admin, tier FROM users WHERE id = ?').bind(id).first();
+    if (!target) return c.json({ error: 'User not found' }, 404);
+
+    const actorIsSuper = (adminSession.tier || '') === 'super_admin';
+    const targetIsStaff = target.is_admin || TIER_RANK[target.tier] >= TIER_RANK.admin;
+    const grantingStaff = TIER_RANK[newTier] >= TIER_RANK.admin;
+
+    if ((targetIsStaff || grantingStaff) && !actorIsSuper) {
+        return c.json({ error: 'Only a super admin can manage admin tiers' }, 403);
+    }
+
+    await c.env.DB.prepare(
+        'UPDATE users SET tier = ?, is_admin = ? WHERE id = ?'
+    ).bind(newTier, grantingStaff ? 1 : 0, id).run();
 
     return c.json({ success: true });
 });

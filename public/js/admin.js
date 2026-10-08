@@ -284,6 +284,59 @@
     // =========================================
     let usersData = [];
 
+    var TIER_LABELS = {
+        guest: 'Guest',
+        member: 'Member',
+        subscriber: 'Subscriber',
+        vip: 'VIP',
+        admin: 'Admin',
+        super_admin: 'Super Admin',
+    };
+
+    function createTierSelect(user) {
+        var currentTier = user.tier || (user.is_admin ? 'admin' : 'member');
+
+        // The seeded passwordless guest account keeps its fixed tier
+        if (currentTier === 'guest') {
+            var span = document.createElement('span');
+            span.style.opacity = '0.5';
+            span.textContent = 'Guest';
+            return span;
+        }
+
+        var select = document.createElement('select');
+        select.className = 'filter-select';
+        select.style.cssText = 'padding:4px 6px;font-size:0.8rem;';
+        ['member', 'subscriber', 'vip', 'admin', 'super_admin'].forEach(function(tier) {
+            var opt = document.createElement('option');
+            opt.value = tier;
+            opt.textContent = TIER_LABELS[tier];
+            select.appendChild(opt);
+        });
+        select.value = currentTier;
+
+        select.addEventListener('change', async function() {
+            var newTier = select.value;
+            select.disabled = true;
+            try {
+                var res = await fetch('/api/admin/users/' + user.id + '/tier', {
+                    method: 'PUT',
+                    headers: jsonAuthHeaders(),
+                    body: JSON.stringify({ tier: newTier })
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Failed to update tier');
+                loadUsers();
+            } catch (e) {
+                alert('Error: ' + e.message);
+                select.value = currentTier;
+                select.disabled = false;
+            }
+        });
+
+        return select;
+    }
+
     async function loadUsers() {
         usersBody.innerHTML = '<tr class="loading-row"><td colspan="7">Loading...</td></tr>';
 
@@ -319,16 +372,10 @@
                     '<td>' + formatDate(user.created_at) + '</td>' +
                     '<td>' + formatDate(user.last_seen) + '</td>' +
                     '<td class="user-actions-cell"></td>';
-                row.cells[2].appendChild(createRoleBadge(user.is_admin));
+                row.cells[2].appendChild(createTierSelect(user));
 
                 // Action buttons
                 var actionsCell = row.cells[6];
-
-                var toggleAdminBtn = document.createElement('button');
-                toggleAdminBtn.className = 'cms-btn cms-btn-sm';
-                toggleAdminBtn.textContent = user.is_admin ? 'Remove Admin' : 'Make Admin';
-                toggleAdminBtn.addEventListener('click', function() { toggleUserAdmin(user); });
-                actionsCell.appendChild(toggleAdminBtn);
 
                 var resetPwBtn = document.createElement('button');
                 resetPwBtn.className = 'cms-btn cms-btn-sm';
@@ -1058,6 +1105,35 @@
         });
     }
 
+    function setAlbumCoverPreview(src) {
+        var wrap = document.getElementById('album-cover-preview-wrap');
+        var img = document.getElementById('album-cover-preview');
+        if (src) {
+            img.src = src;
+            wrap.style.display = 'block';
+        } else {
+            img.removeAttribute('src');
+            wrap.style.display = 'none';
+        }
+    }
+
+    function resetAlbumCoverUI(coverKey) {
+        var coverInput = document.getElementById('album-cover-input');
+        var coverDropZone = document.getElementById('album-cover-drop-zone');
+        var coverDropText = document.getElementById('album-cover-drop-text');
+        coverInput.value = '';
+        document.getElementById('album-cover-r2-key').value = coverKey || '';
+        if (coverKey) {
+            coverDropText.textContent = 'Current: ' + coverKey.split('/').pop() + ' (drop new image to replace)';
+            coverDropZone.classList.add('has-file');
+            setAlbumCoverPreview('/api/files/' + coverKey);
+        } else {
+            coverDropText.textContent = 'Drag & drop image here or click to browse';
+            coverDropZone.classList.remove('has-file');
+            setAlbumCoverPreview(null);
+        }
+    }
+
     function openAlbumForm(album) {
         if (album) {
             albumFormTitle.textContent = 'Edit: ' + album.title;
@@ -1069,6 +1145,8 @@
             document.getElementById('album-gradient').value = album.gradient || 'gradient-1';
             document.getElementById('album-sort-order').value = album.sort_order || 0;
             document.getElementById('album-published').checked = !!album.is_published;
+            document.getElementById('album-description').value = album.description || '';
+            resetAlbumCoverUI(album.cover_r2_key || '');
         } else {
             albumFormTitle.textContent = 'New Album';
             albumForm.reset();
@@ -1076,6 +1154,8 @@
             document.getElementById('album-artist').value = 'Danny Infinity';
             document.getElementById('album-year').value = new Date().getFullYear();
             document.getElementById('album-published').checked = true;
+            document.getElementById('album-description').value = '';
+            resetAlbumCoverUI('');
         }
 
         albumFormContainer.style.display = 'block';
@@ -1097,15 +1177,31 @@
         saveBtn.textContent = 'Saving...';
 
         try {
+            var coverR2Key = document.getElementById('album-cover-r2-key').value;
+
+            // Upload new cover image if one was selected
+            var coverFile = document.getElementById('album-cover-input').files[0];
+            if (coverFile) {
+                saveBtn.textContent = 'Uploading cover...';
+                var coverUpload = await uploadFile(coverFile, 'images', function(pct) {
+                    saveBtn.textContent = 'Uploading cover... ' + pct + '%';
+                });
+                coverR2Key = coverUpload.r2Key;
+            }
+
             var body = {
                 title: document.getElementById('album-title').value,
                 artist: document.getElementById('album-artist').value,
                 type: document.getElementById('album-type').value,
                 year: parseInt(document.getElementById('album-year').value),
                 gradient: document.getElementById('album-gradient').value,
+                coverR2Key: coverR2Key,
+                description: document.getElementById('album-description').value,
                 sortOrder: parseInt(document.getElementById('album-sort-order').value) || 0,
                 isPublished: document.getElementById('album-published').checked,
             };
+
+            saveBtn.textContent = 'Saving...';
 
             var editId = albumEditId.value;
             var url = editId ? '/api/admin/music/' + editId : '/api/admin/music';
@@ -1260,6 +1356,8 @@
             document.getElementById('track-title').value = track.title;
             document.getElementById('track-duration').value = track.duration || '';
             document.getElementById('track-audio-r2-key').value = track.audio_r2_key || '';
+            document.getElementById('track-description').value = track.description || '';
+            document.getElementById('track-lyrics').value = track.lyrics || '';
 
             if (track.audio_r2_key) {
                 trackDropText.textContent = 'Current: ' + track.audio_r2_key.split('/').pop() + ' (drop new file to replace)';
@@ -1273,6 +1371,8 @@
             document.getElementById('track-edit-id').value = '';
             document.getElementById('track-audio-r2-key').value = '';
             document.getElementById('track-duration').value = '';
+            document.getElementById('track-description').value = '';
+            document.getElementById('track-lyrics').value = '';
             trackDropText.textContent = 'Drag & drop audio file here or click to browse';
         }
     }
@@ -1313,16 +1413,20 @@
 
             saveBtn.textContent = 'Saving...';
 
+            var trackBody = {
+                title: title,
+                duration: duration,
+                audioR2Key: audioR2Key,
+                description: document.getElementById('track-description').value,
+                lyrics: document.getElementById('track-lyrics').value
+            };
+
             if (editId) {
                 // Update existing track
                 var res = await fetch('/api/admin/music/tracks/' + editId, {
                     method: 'PUT',
                     headers: jsonAuthHeaders(),
-                    body: JSON.stringify({
-                        title: title,
-                        duration: duration,
-                        audioR2Key: audioR2Key
-                    })
+                    body: JSON.stringify(trackBody)
                 });
                 if (!res.ok) throw new Error((await res.json()).error || 'Update failed');
             } else {
@@ -1330,11 +1434,7 @@
                 var res = await fetch('/api/admin/music/' + editingAlbumId + '/tracks', {
                     method: 'POST',
                     headers: jsonAuthHeaders(),
-                    body: JSON.stringify({
-                        title: title,
-                        duration: duration,
-                        audioR2Key: audioR2Key
-                    })
+                    body: JSON.stringify(trackBody)
                 });
                 if (!res.ok) throw new Error((await res.json()).error || 'Add failed');
             }
@@ -1406,6 +1506,46 @@
             } else {
                 alert('Please drop an audio file (MP3, WAV, FLAC, or M4A).');
             }
+        });
+    }
+
+    function initAlbumCoverDropZone() {
+        var coverDropZone = document.getElementById('album-cover-drop-zone');
+        var coverDropText = document.getElementById('album-cover-drop-text');
+        var coverInput = document.getElementById('album-cover-input');
+        var removeBtn = document.getElementById('album-cover-remove-btn');
+        if (!coverDropZone) return;
+
+        function acceptCoverFile(file) {
+            coverDropText.textContent = file.name;
+            coverDropZone.classList.add('has-file');
+            setAlbumCoverPreview(URL.createObjectURL(file));
+        }
+
+        coverDropZone.addEventListener('click', function() { coverInput.click(); });
+
+        coverInput.addEventListener('change', function() {
+            if (coverInput.files[0]) acceptCoverFile(coverInput.files[0]);
+        });
+
+        coverDropZone.addEventListener('dragover', function(e) { e.preventDefault(); coverDropZone.classList.add('drag-over'); });
+        coverDropZone.addEventListener('dragleave', function() { coverDropZone.classList.remove('drag-over'); });
+        coverDropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            coverDropZone.classList.remove('drag-over');
+            var file = e.dataTransfer.files[0];
+            if (file && /^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
+                var dt = new DataTransfer();
+                dt.items.add(file);
+                coverInput.files = dt.files;
+                acceptCoverFile(file);
+            } else {
+                alert('Please drop an image file (JPEG, PNG, WebP, or GIF).');
+            }
+        });
+
+        removeBtn.addEventListener('click', function() {
+            resetAlbumCoverUI('');
         });
     }
 
@@ -2837,6 +2977,517 @@
             else if (tabName === 'content-views') loadContentViews();
             else if (tabName === 'donations') loadDonations();
             else if (tabName === 'sales') loadSales();
+            else if (tabName === 'coupons') loadCouponsTab();
+            else if (tabName === 'page-access') loadPageAccess();
+            else if (tabName === 'streaming') loadStreamingTab();
+        }
+    }
+
+    // =========================================
+    // COUPONS CMS
+    // =========================================
+    var couponsData = [];
+
+    function loadCouponsTab() {
+        loadCoupons();
+        populateCouponSheetDropdown();
+    }
+
+    async function loadCoupons() {
+        var list = document.getElementById('coupons-list');
+        list.innerHTML = '<div class="cms-loading">Loading...</div>';
+
+        try {
+            var res = await fetch('/api/admin/coupons', { headers: authHeaders() });
+            var data = await res.json();
+            couponsData = data.coupons || [];
+            renderCouponsList();
+        } catch (e) {
+            list.innerHTML = '<div class="cms-empty">Failed to load coupons</div>';
+        }
+    }
+
+    async function populateCouponSheetDropdown() {
+        try {
+            var res = await fetch('/api/admin/sheet-music', { headers: authHeaders() });
+            var data = await res.json();
+            var select = document.getElementById('coupon-sheet');
+            select.innerHTML = '<option value="">All sheets</option>';
+            (data.sheets || []).forEach(function(sheet) {
+                if (!sheet.price_cents || sheet.price_cents <= 0) return; // coupons only apply to paid sheets
+                var opt = document.createElement('option');
+                opt.value = sheet.id;
+                opt.textContent = sheet.title + ' ($' + (sheet.price_cents / 100).toFixed(2) + ')';
+                select.appendChild(opt);
+            });
+        } catch (e) { /* dropdown keeps "All sheets" */ }
+    }
+
+    function describeCouponDiscount(coupon) {
+        return coupon.percent_off
+            ? coupon.percent_off + '% off'
+            : '$' + (coupon.amount_off_cents / 100).toFixed(2) + ' off';
+    }
+
+    function renderCouponsList() {
+        var list = document.getElementById('coupons-list');
+        list.innerHTML = '';
+
+        if (couponsData.length === 0) {
+            list.innerHTML = '<div class="cms-empty">No coupons yet. Click "+ New Coupon" to add one.</div>';
+            return;
+        }
+
+        couponsData.forEach(function(coupon) {
+            var item = document.createElement('div');
+            item.className = 'cms-list-item';
+
+            var statusClass = coupon.is_active ? 'published' : 'draft';
+            var statusText = coupon.is_active ? 'Active' : 'Inactive';
+            var scope = coupon.sheet_id ? (coupon.sheet_title || 'Sheet #' + coupon.sheet_id) : 'All sheets';
+            var uses = coupon.times_used + (coupon.max_uses ? '/' + coupon.max_uses : '') + ' uses';
+            var expiry = coupon.expires_at ? 'expires ' + String(coupon.expires_at).slice(0, 10) : 'never expires';
+
+            item.innerHTML =
+                '<div class="cms-item-info">' +
+                    '<div class="cms-item-title">' + escapeHtml(coupon.code.toUpperCase()) + '</div>' +
+                    '<div class="cms-item-meta">' +
+                        escapeHtml(describeCouponDiscount(coupon)) + ' // ' + escapeHtml(scope) + ' // ' +
+                        escapeHtml(uses) + ' // ' + escapeHtml(expiry) +
+                        ' // <span class="cms-status ' + statusClass + '">' + statusText + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="cms-item-actions">' +
+                    '<button class="cms-btn cms-btn-sm" data-action="edit">Edit</button>' +
+                    '<button class="cms-btn cms-btn-sm cms-btn-danger" data-action="delete">Delete</button>' +
+                '</div>';
+
+            item.querySelector('[data-action="edit"]').addEventListener('click', function() {
+                openCouponForm(coupon);
+            });
+            item.querySelector('[data-action="delete"]').addEventListener('click', function() {
+                deleteCoupon(coupon.id, coupon.code);
+            });
+
+            list.appendChild(item);
+        });
+    }
+
+    function updateCouponDiscountLabel() {
+        var type = document.getElementById('coupon-discount-type').value;
+        var label = document.getElementById('coupon-discount-label');
+        var input = document.getElementById('coupon-discount-value');
+        if (type === 'percent') {
+            label.textContent = 'Percent Off (1–100)';
+            input.min = '1'; input.max = '100'; input.step = '1';
+        } else {
+            label.textContent = 'Amount Off (dollars, e.g. 2.50)';
+            input.min = '0.01'; input.removeAttribute('max'); input.step = '0.01';
+        }
+    }
+
+    function openCouponForm(coupon) {
+        var form = document.getElementById('coupon-form');
+        form.reset();
+
+        if (coupon) {
+            document.getElementById('coupon-form-title').textContent = 'Edit: ' + coupon.code.toUpperCase();
+            document.getElementById('coupon-edit-id').value = coupon.id;
+            document.getElementById('coupon-code').value = coupon.code;
+            document.getElementById('coupon-sheet').value = coupon.sheet_id || '';
+            document.getElementById('coupon-discount-type').value = coupon.percent_off ? 'percent' : 'amount';
+            updateCouponDiscountLabel();
+            document.getElementById('coupon-discount-value').value = coupon.percent_off
+                ? coupon.percent_off
+                : (coupon.amount_off_cents / 100).toFixed(2);
+            document.getElementById('coupon-max-uses').value = coupon.max_uses || '';
+            document.getElementById('coupon-expires').value = coupon.expires_at ? String(coupon.expires_at).slice(0, 10) : '';
+            document.getElementById('coupon-active').checked = !!coupon.is_active;
+        } else {
+            document.getElementById('coupon-form-title').textContent = 'New Coupon';
+            document.getElementById('coupon-edit-id').value = '';
+            document.getElementById('coupon-active').checked = true;
+            updateCouponDiscountLabel();
+        }
+
+        document.getElementById('coupon-form-container').style.display = 'block';
+        document.getElementById('coupons-list').style.display = 'none';
+        document.getElementById('new-coupon-btn').style.display = 'none';
+    }
+
+    function closeCouponForm() {
+        document.getElementById('coupon-form-container').style.display = 'none';
+        document.getElementById('coupons-list').style.display = '';
+        document.getElementById('new-coupon-btn').style.display = '';
+    }
+
+    async function saveCoupon(e) {
+        e.preventDefault();
+        var saveBtn = document.getElementById('coupon-save-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        try {
+            var type = document.getElementById('coupon-discount-type').value;
+            var value = parseFloat(document.getElementById('coupon-discount-value').value);
+            var expiresDate = document.getElementById('coupon-expires').value;
+
+            var body = {
+                code: document.getElementById('coupon-code').value.trim().toUpperCase(),
+                percentOff: type === 'percent' ? Math.round(value) : null,
+                amountOffCents: type === 'amount' ? Math.round(value * 100) : null,
+                sheetId: document.getElementById('coupon-sheet').value || null,
+                maxUses: document.getElementById('coupon-max-uses').value || null,
+                expiresAt: expiresDate ? expiresDate + ' 23:59:59' : null,
+                isActive: document.getElementById('coupon-active').checked,
+            };
+
+            var editId = document.getElementById('coupon-edit-id').value;
+            var url = editId ? '/api/admin/coupons/' + editId : '/api/admin/coupons';
+            var method = editId ? 'PUT' : 'POST';
+
+            var res = await fetch(url, {
+                method: method,
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                var err = await res.json();
+                throw new Error(err.error || 'Save failed');
+            }
+
+            closeCouponForm();
+            loadCoupons();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save';
+    }
+
+    async function deleteCoupon(id, code) {
+        if (!confirm('Delete coupon "' + code.toUpperCase() + '"? This cannot be undone.')) return;
+
+        try {
+            var res = await fetch('/api/admin/coupons/' + id, {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+
+            if (!res.ok) throw new Error('Delete failed');
+            loadCoupons();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // =========================================
+    // PAGE ACCESS
+    // =========================================
+    var PAGE_LABELS = {
+        'photos': 'Photos',
+        'videos': 'Videos',
+        'music': 'Music',
+        'blog': 'Writings',
+        'sheet-music': 'Sheet Music',
+        'streaming': 'Streaming',
+    };
+
+    async function loadPageAccess() {
+        var list = document.getElementById('page-access-list');
+        list.innerHTML = '<div class="cms-loading">Loading...</div>';
+
+        try {
+            var res = await fetch('/api/admin/page-access', { headers: authHeaders() });
+            var data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+            renderPageAccessList(data.pages || []);
+        } catch (e) {
+            list.innerHTML = '<div class="cms-empty">' + escapeHtml(e.message || 'Failed to load settings') + '</div>';
+        }
+    }
+
+    function renderPageAccessList(pages) {
+        var list = document.getElementById('page-access-list');
+        list.innerHTML = '';
+
+        pages.forEach(function(p) {
+            var item = document.createElement('div');
+            item.className = 'cms-list-item';
+            item.style.flexWrap = 'wrap';
+            item.style.gap = '10px';
+
+            item.innerHTML =
+                '<div class="cms-item-info" style="min-width:110px;">' +
+                    '<div class="cms-item-title">' + escapeHtml(PAGE_LABELS[p.page] || p.page) + '</div>' +
+                '</div>' +
+                '<div class="cms-item-actions" style="align-items:center;gap:14px;flex-wrap:wrap;">' +
+                    '<label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;">Access ' +
+                        '<select data-field="level">' +
+                            '<option value="public">Public</option>' +
+                            '<option value="logged_in">Members (logged in)</option>' +
+                            '<option value="subscriber">Subscribers &amp; up</option>' +
+                            '<option value="vip">VIP &amp; up</option>' +
+                        '</select>' +
+                    '</label>' +
+                    '<label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;">' +
+                        '<input type="checkbox" data-field="gate"> Preview gate' +
+                    '</label>' +
+                    '<label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;">Show first ' +
+                        '<input type="number" data-field="count" min="0" max="500" style="width:70px;">' +
+                    '</label>' +
+                    '<button class="cms-btn cms-btn-sm cms-btn-primary" data-action="save">Save</button>' +
+                '</div>';
+
+            item.querySelector('[data-field="level"]').value = p.required_level || 'public';
+            item.querySelector('[data-field="gate"]').checked = !!p.gate_enabled;
+            item.querySelector('[data-field="count"]').value = p.anon_preview_count != null ? p.anon_preview_count : 8;
+
+            item.querySelector('[data-action="save"]').addEventListener('click', async function() {
+                var btn = this;
+                var msg = document.getElementById('page-access-msg');
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+                msg.textContent = '';
+
+                try {
+                    var res = await fetch('/api/admin/page-access/' + p.page, {
+                        method: 'PUT',
+                        headers: jsonAuthHeaders(),
+                        body: JSON.stringify({
+                            requiredLevel: item.querySelector('[data-field="level"]').value,
+                            gateEnabled: item.querySelector('[data-field="gate"]').checked,
+                            anonPreviewCount: parseInt(item.querySelector('[data-field="count"]').value) || 0,
+                        })
+                    });
+                    var data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Save failed');
+                    msg.textContent = PAGE_LABELS[p.page] + ' saved. Page-level access changes take up to a minute to apply.';
+                } catch (e) {
+                    msg.textContent = 'Error: ' + (e.message || 'Save failed');
+                }
+
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            });
+
+            list.appendChild(item);
+        });
+    }
+
+    // =========================================
+    // STREAMING
+    // =========================================
+    function loadStreamingTab() {
+        loadStreamSettings();
+        loadStreamViewers();
+        loadStreamBans();
+        loadStreamChat();
+    }
+
+    async function loadStreamSettings() {
+        try {
+            var res = await fetch('/api/admin/streaming/settings', { headers: authHeaders() });
+            var data = await res.json();
+            var s = data.settings;
+            if (!s) return;
+
+            var radio = document.querySelector('input[name="stream-mode"][value="' + s.mode + '"]');
+            if (radio) radio.checked = true;
+            document.getElementById('stream-video-id').value = s.video_id || '';
+            document.getElementById('stream-channel-id').value = s.channel_id || '';
+            document.getElementById('stream-title-input').value = s.title || '';
+            document.getElementById('stream-offline-message').value = s.offline_message || '';
+            document.getElementById('stream-is-live').checked = !!s.is_live;
+            document.getElementById('stream-chat-enabled').checked = !!s.chat_enabled;
+            document.getElementById('stream-mute-notice').checked = !!s.mute_notice_enabled;
+        } catch (e) {
+            document.getElementById('stream-settings-msg').textContent = 'Failed to load settings';
+        }
+    }
+
+    async function saveStreamSettings(e) {
+        e.preventDefault();
+        var btn = document.getElementById('stream-settings-save');
+        var msg = document.getElementById('stream-settings-msg');
+        btn.disabled = true;
+        msg.textContent = '';
+
+        try {
+            var mode = (document.querySelector('input[name="stream-mode"]:checked') || {}).value || 'offline';
+            var res = await fetch('/api/admin/streaming/settings', {
+                method: 'PUT',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({
+                    mode: mode,
+                    videoId: document.getElementById('stream-video-id').value.trim(),
+                    channelId: document.getElementById('stream-channel-id').value.trim(),
+                    title: document.getElementById('stream-title-input').value,
+                    offlineMessage: document.getElementById('stream-offline-message').value,
+                    isLive: document.getElementById('stream-is-live').checked,
+                    chatEnabled: document.getElementById('stream-chat-enabled').checked,
+                    muteNoticeEnabled: document.getElementById('stream-mute-notice').checked,
+                })
+            });
+            var data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Save failed');
+            msg.textContent = 'Saved.';
+        } catch (err) {
+            msg.textContent = 'Error: ' + err.message;
+        }
+        btn.disabled = false;
+    }
+
+    async function loadStreamViewers() {
+        var list = document.getElementById('stream-viewers-list');
+        list.innerHTML = '<div class="cms-loading">Loading...</div>';
+        try {
+            var res = await fetch('/api/admin/streaming/viewers', { headers: authHeaders() });
+            var data = await res.json();
+            list.innerHTML = '';
+            if (!data.viewers || data.viewers.length === 0) {
+                list.innerHTML = '<div class="cms-empty">No one is watching right now.</div>';
+                return;
+            }
+            data.viewers.forEach(function(v) {
+                var item = document.createElement('div');
+                item.className = 'cms-list-item';
+                var location = [v.city, v.country].filter(Boolean).join(', ') || 'Unknown location';
+                item.innerHTML =
+                    '<div class="cms-item-info">' +
+                        '<div class="cms-item-title">' + escapeHtml(v.name || 'Guest') + ' <span style="opacity:0.5;font-size:0.8rem;">(' + escapeHtml(v.tier || 'guest') + ')</span></div>' +
+                        '<div class="cms-item-meta">' + escapeHtml(location) + ' // ' + escapeHtml(v.ip || 'no ip') + '</div>' +
+                    '</div>';
+                list.appendChild(item);
+            });
+        } catch (e) {
+            list.innerHTML = '<div class="cms-empty">Failed to load viewers</div>';
+        }
+    }
+
+    async function loadStreamBans() {
+        var list = document.getElementById('stream-bans-list');
+        list.innerHTML = '<div class="cms-loading">Loading...</div>';
+        try {
+            var res = await fetch('/api/admin/streaming/bans', { headers: authHeaders() });
+            var data = await res.json();
+            list.innerHTML = '';
+            if (!data.bans || data.bans.length === 0) {
+                list.innerHTML = '<div class="cms-empty">No mutes or bans.</div>';
+                return;
+            }
+            data.bans.forEach(function(ban) {
+                var item = document.createElement('div');
+                item.className = 'cms-list-item';
+                var expiry = ban.expires_at
+                    ? (ban.is_expired ? 'expired ' + ban.expires_at : 'until ' + ban.expires_at + ' UTC')
+                    : 'permanent';
+                var statusClass = ban.is_expired ? 'draft' : 'published';
+                item.innerHTML =
+                    '<div class="cms-item-info">' +
+                        '<div class="cms-item-title">' + escapeHtml(ban.value) + ' <span style="opacity:0.5;font-size:0.8rem;">(' + escapeHtml(ban.target_type) + ')</span></div>' +
+                        '<div class="cms-item-meta">' +
+                            '<span class="cms-status ' + statusClass + '">' + escapeHtml(ban.type.toUpperCase()) + '</span> // ' + escapeHtml(expiry) +
+                            (ban.reason ? ' // ' + escapeHtml(ban.reason) : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="cms-item-actions">' +
+                        '<button class="cms-btn cms-btn-sm cms-btn-danger" data-action="remove">Remove</button>' +
+                    '</div>';
+                item.querySelector('[data-action="remove"]').addEventListener('click', async function() {
+                    try {
+                        await fetch('/api/admin/streaming/bans/' + ban.id, { method: 'DELETE', headers: authHeaders() });
+                        loadStreamBans();
+                    } catch (e) { /* ignore */ }
+                });
+                list.appendChild(item);
+            });
+        } catch (e) {
+            list.innerHTML = '<div class="cms-empty">Failed to load bans</div>';
+        }
+    }
+
+    async function addStreamBan(e) {
+        e.preventDefault();
+        var value = document.getElementById('ban-value').value.trim();
+        if (!value) return;
+
+        try {
+            var res = await fetch('/api/admin/streaming/bans', {
+                method: 'POST',
+                headers: jsonAuthHeaders(),
+                body: JSON.stringify({
+                    targetType: document.getElementById('ban-target-type').value,
+                    value: value,
+                    type: document.getElementById('ban-type').value,
+                    durationMinutes: document.getElementById('ban-duration').value || null,
+                    reason: document.getElementById('ban-reason').value.trim() || null,
+                })
+            });
+            var data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+            document.getElementById('ban-value').value = '';
+            document.getElementById('ban-reason').value = '';
+            loadStreamBans();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    async function loadStreamChat() {
+        var list = document.getElementById('stream-chat-list');
+        list.innerHTML = '<div class="cms-loading">Loading...</div>';
+        try {
+            var res = await fetch('/api/admin/streaming/chat?limit=100', { headers: authHeaders() });
+            var data = await res.json();
+            list.innerHTML = '';
+            if (!data.messages || data.messages.length === 0) {
+                list.innerHTML = '<div class="cms-empty">No chat messages yet.</div>';
+                return;
+            }
+            data.messages.forEach(function(msg) {
+                var item = document.createElement('div');
+                item.className = 'cms-list-item';
+                if (msg.status === 'hidden') item.style.opacity = '0.5';
+                item.innerHTML =
+                    '<div class="cms-item-info">' +
+                        '<div class="cms-item-title">' + escapeHtml(msg.author_name) +
+                            (msg.status === 'hidden' ? ' <span class="cms-status draft">Hidden</span>' : '') +
+                        '</div>' +
+                        '<div class="cms-item-meta">' + escapeHtml(msg.body) + '</div>' +
+                        '<div class="cms-item-meta" style="opacity:0.5;">' + escapeHtml(msg.created_at) + ' UTC // ' + escapeHtml(msg.ip || 'no ip') + ' // ' + escapeHtml(msg.country || '??') + '</div>' +
+                    '</div>' +
+                    '<div class="cms-item-actions">' +
+                        '<button class="cms-btn cms-btn-sm" data-action="toggle">' + (msg.status === 'hidden' ? 'Show' : 'Hide') + '</button>' +
+                        '<button class="cms-btn cms-btn-sm" data-action="ban-author">Ban User</button>' +
+                        '<button class="cms-btn cms-btn-sm cms-btn-danger" data-action="delete">Delete</button>' +
+                    '</div>';
+
+                item.querySelector('[data-action="toggle"]').addEventListener('click', async function() {
+                    var action = msg.status === 'hidden' ? 'show' : 'hide';
+                    await fetch('/api/admin/streaming/chat/' + msg.id + '/' + action, { method: 'PUT', headers: jsonAuthHeaders() });
+                    loadStreamChat();
+                });
+                item.querySelector('[data-action="ban-author"]').addEventListener('click', async function() {
+                    if (!confirm('Permanently ban "' + msg.author_name + '" from chat?')) return;
+                    await fetch('/api/admin/streaming/bans', {
+                        method: 'POST',
+                        headers: jsonAuthHeaders(),
+                        body: JSON.stringify({ targetType: 'user', value: msg.author_name, type: 'ban' })
+                    });
+                    loadStreamBans();
+                });
+                item.querySelector('[data-action="delete"]').addEventListener('click', async function() {
+                    await fetch('/api/admin/streaming/chat/' + msg.id, { method: 'DELETE', headers: authHeaders() });
+                    loadStreamChat();
+                });
+
+                list.appendChild(item);
+            });
+        } catch (e) {
+            list.innerHTML = '<div class="cms-empty">Failed to load chat</div>';
         }
     }
 
@@ -2895,7 +3546,25 @@
         document.getElementById('tracks-done-btn').addEventListener('click', closeTracksEditor);
         document.getElementById('track-cancel-btn').addEventListener('click', closeTrackForm);
         trackForm.addEventListener('submit', saveTrack);
+
+        // Coupons CMS
+        document.getElementById('new-coupon-btn').addEventListener('click', function() { openCouponForm(null); });
+        document.getElementById('coupon-cancel-btn').addEventListener('click', closeCouponForm);
+        document.getElementById('coupon-form').addEventListener('submit', saveCoupon);
+        document.getElementById('coupon-discount-type').addEventListener('change', updateCouponDiscountLabel);
+
+        // Streaming
+        document.getElementById('stream-settings-form').addEventListener('submit', saveStreamSettings);
+        document.getElementById('stream-ban-form').addEventListener('submit', addStreamBan);
+        document.getElementById('stream-viewers-refresh').addEventListener('click', loadStreamViewers);
+        document.getElementById('stream-chat-refresh').addEventListener('click', loadStreamChat);
+        document.getElementById('stream-chat-clear').addEventListener('click', async function() {
+            if (!confirm('Delete ALL chat messages? This cannot be undone.')) return;
+            await fetch('/api/admin/streaming/chat/clear', { method: 'POST', headers: jsonAuthHeaders() });
+            loadStreamChat();
+        });
         initTrackDropZone();
+        initAlbumCoverDropZone();
 
         // Blog form
         document.getElementById('new-post-btn').addEventListener('click', function() { openPostForm(null); });

@@ -5,6 +5,7 @@
 import { Hono } from 'hono';
 import { fileUrl } from '../../utils/fileUrl.js';
 import { optionalUserAuth } from '../../middleware/userAuth.js';
+import { getPageGate, applyAnonGate } from '../../utils/pageAccess.js';
 
 const publicSheetMusic = new Hono();
 
@@ -79,7 +80,9 @@ publicSheetMusic.get('/', optionalUserAuth, async (c) => {
         };
     });
 
-    return c.json({ sheets: mapped });
+    const gate = await getPageGate(c.env.DB, 'sheet-music');
+    const gated = applyAnonGate(mapped, gate, user);
+    return c.json({ sheets: gated.items, locked: gated.locked, total: gated.total, previewCount: gated.previewCount, requiredLevel: gated.requiredLevel });
 });
 
 export default publicSheetMusic;

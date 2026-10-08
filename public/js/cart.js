@@ -20,6 +20,7 @@
     var overlay = null;
     var navLink = null;
     var floatingBtn = null;
+    var appliedCoupon = null; // { code, percentOff, amountOffCents, appliesTo: [sheetId] }
 
     function loadCart() {
         try {
@@ -104,6 +105,11 @@
                 '<button class="cart-modal-close">&times;</button>' +
                 '<div class="cart-modal-title">YOUR CART</div>' +
                 '<div class="cart-items-list"></div>' +
+                '<div class="cart-coupon-row">' +
+                    '<input type="text" class="cart-coupon-input" placeholder="COUPON CODE" maxlength="64" autocomplete="off">' +
+                    '<button class="cart-coupon-apply">[APPLY]</button>' +
+                '</div>' +
+                '<div class="cart-coupon-msg"></div>' +
                 '<div class="cart-total"></div>' +
                 '<button class="cart-checkout-btn" disabled>[CHECKOUT]</button>' +
                 '<div class="cart-error"></div>' +
@@ -121,6 +127,128 @@
             }
         });
         overlay.querySelector('.cart-checkout-btn').addEventListener('click', handleCheckout);
+
+        var couponInput = overlay.querySelector('.cart-coupon-input');
+        var couponBtn = overlay.querySelector('.cart-coupon-apply');
+        couponBtn.addEventListener('click', function() {
+            if (appliedCoupon) {
+                clearCoupon('');
+                renderCartModal();
+            } else {
+                applyCoupon(couponInput.value);
+            }
+        });
+        couponInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (!appliedCoupon) applyCoupon(couponInput.value);
+            }
+        });
+    }
+
+    // ============================
+    // COUPONS
+    // ============================
+    function priceAfterCoupon(item) {
+        if (!appliedCoupon || appliedCoupon.appliesTo.indexOf(item.sheetId) === -1) return item.priceCents;
+        if (appliedCoupon.percentOff) {
+            return Math.round(item.priceCents * (100 - appliedCoupon.percentOff) / 100);
+        }
+        return Math.max(0, item.priceCents - appliedCoupon.amountOffCents);
+    }
+
+    function setCouponMsg(text, isError) {
+        if (!overlay) return;
+        var msgEl = overlay.querySelector('.cart-coupon-msg');
+        msgEl.textContent = text || '';
+        msgEl.classList.toggle('error', !!isError);
+    }
+
+    function clearCoupon(message) {
+        appliedCoupon = null;
+        if (overlay) {
+            overlay.querySelector('.cart-coupon-input').value = '';
+            overlay.querySelector('.cart-coupon-input').disabled = false;
+            overlay.querySelector('.cart-coupon-apply').textContent = '[APPLY]';
+            setCouponMsg(message || '', !!message);
+        }
+    }
+
+    function describeCoupon(coupon) {
+        var off = coupon.percentOff ? coupon.percentOff + '% off' : formatPrice(coupon.amountOffCents) + ' off';
+        return 'Coupon ' + coupon.code.toUpperCase() + ' applied — ' + off;
+    }
+
+    function applyCoupon(code) {
+        code = (code || '').trim();
+        if (!code) { setCouponMsg('Enter a coupon code', true); return; }
+        if (cart.length === 0) return;
+
+        var couponBtn = overlay.querySelector('.cart-coupon-apply');
+        couponBtn.disabled = true;
+        setCouponMsg('Checking...', false);
+
+        fetch('/api/purchase/validate-coupon', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                code: code,
+                items: cart.map(function(i) { return { sheetId: i.sheetId }; })
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            couponBtn.disabled = false;
+            if (!data.valid) {
+                clearCoupon(data.message || 'Invalid coupon code');
+                overlay.querySelector('.cart-coupon-input').value = code;
+                return;
+            }
+            appliedCoupon = {
+                code: data.code,
+                percentOff: data.percentOff,
+                amountOffCents: data.amountOffCents,
+                appliesTo: data.appliesTo || []
+            };
+            renderCartModal();
+        })
+        .catch(function() {
+            couponBtn.disabled = false;
+            setCouponMsg('Could not check coupon — try again', true);
+        });
+    }
+
+    // Cart contents changed — a coupon validated against the old contents may
+    // no longer apply (or may apply to more items). Re-validate quietly.
+    function revalidateCoupon() {
+        if (!appliedCoupon || cart.length === 0) {
+            if (cart.length === 0) appliedCoupon = null;
+            return;
+        }
+        var code = appliedCoupon.code;
+        fetch('/api/purchase/validate-coupon', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                code: code,
+                items: cart.map(function(i) { return { sheetId: i.sheetId }; })
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (!data.valid) {
+                clearCoupon(data.message || 'Coupon no longer applies');
+            } else {
+                appliedCoupon = {
+                    code: data.code,
+                    percentOff: data.percentOff,
+                    amountOffCents: data.amountOffCents,
+                    appliesTo: data.appliesTo || []
+                };
+            }
+            if (overlay && overlay.classList.contains('active')) renderCartModal();
+        })
+        .catch(function() { /* keep current state */ });
     }
 
     function renderCartModal() {
@@ -133,22 +261,43 @@
 
         listEl.innerHTML = '';
 
+        var couponRow = overlay.querySelector('.cart-coupon-row');
+        var couponInput = overlay.querySelector('.cart-coupon-input');
+        var couponBtn = overlay.querySelector('.cart-coupon-apply');
+
         if (cart.length === 0) {
             listEl.innerHTML = '<div class="cart-empty">Your cart is empty</div>';
             totalEl.textContent = '';
             checkoutBtn.disabled = true;
             checkoutBtn.textContent = '[CHECKOUT]';
+            couponRow.style.display = 'none';
+            setCouponMsg('', false);
             return;
+        }
+
+        couponRow.style.display = '';
+        if (appliedCoupon) {
+            couponInput.value = appliedCoupon.code.toUpperCase();
+            couponInput.disabled = true;
+            couponBtn.textContent = '[REMOVE]';
+            setCouponMsg(describeCoupon(appliedCoupon), false);
+        } else {
+            couponInput.disabled = false;
+            couponBtn.textContent = '[APPLY]';
         }
 
         var total = 0;
         cart.forEach(function(item) {
-            total += item.priceCents;
+            var finalCents = priceAfterCoupon(item);
+            total += finalCents;
+            var priceHtml = finalCents < item.priceCents
+                ? '<s class="cart-item-price-original">' + formatPrice(item.priceCents) + '</s> ' + formatPrice(finalCents)
+                : formatPrice(item.priceCents);
             var row = document.createElement('div');
             row.className = 'cart-item';
             row.innerHTML =
                 '<span class="cart-item-title">' + escapeHtml(item.title) + '</span>' +
-                '<span class="cart-item-price">' + formatPrice(item.priceCents) + '</span>' +
+                '<span class="cart-item-price">' + priceHtml + '</span>' +
                 '<button class="cart-item-remove" data-id="' + item.sheetId + '">&times;</button>';
             row.querySelector('.cart-item-remove').addEventListener('click', function() {
                 removeFromCart(item.sheetId);
@@ -204,6 +353,7 @@
     }
 
     function fireChange() {
+        revalidateCoupon();
         document.dispatchEvent(new CustomEvent('cartchange', { detail: { cart: cart } }));
     }
 
@@ -223,6 +373,7 @@
             items: cart.map(function(i) { return { sheetId: i.sheetId }; }),
             returnPath: window.location.pathname
         };
+        if (appliedCoupon) payload.couponCode = appliedCoupon.code;
 
         fetch('/api/purchase/create-session', {
             method: 'POST',
@@ -239,6 +390,7 @@
             if (data.url) {
                 // Clear cart on successful checkout redirect
                 cart = [];
+                appliedCoupon = null;
                 saveCart();
                 window.location.href = data.url;
             } else {

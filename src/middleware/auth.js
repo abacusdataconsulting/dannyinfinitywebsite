@@ -17,12 +17,23 @@ export async function adminAuth(c, next) {
         return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    const session = await c.env.DB.prepare(`
-        SELECT s.*, u.is_admin
-        FROM sessions s
-        JOIN users u ON s.user_id = u.id
-        WHERE s.token = ? AND s.expires_at > datetime('now')
-    `).bind(token).first();
+    let session;
+    try {
+        session = await c.env.DB.prepare(`
+            SELECT s.*, u.is_admin, u.tier
+            FROM sessions s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.token = ? AND s.expires_at > datetime('now')
+        `).bind(token).first();
+    } catch (e) {
+        // u.tier may not exist until migration 018 runs
+        session = await c.env.DB.prepare(`
+            SELECT s.*, u.is_admin
+            FROM sessions s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.token = ? AND s.expires_at > datetime('now')
+        `).bind(token).first();
+    }
 
     if (!session || !session.is_admin) {
         return c.json({ error: 'Unauthorized' }, 401);
